@@ -1,3 +1,9 @@
 spring:
   application:
     name: metro-parking-web-service
+  mongodb:
+    host: localhost
+    port: 27017
+
+server:
+  port: 8080
