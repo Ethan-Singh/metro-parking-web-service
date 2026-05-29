@@ -1,0 +1,1549 @@
+[
+  {
+    "tsn": "213110",
+    "time": "833413141",
+    "spots": "228",
+    "zones": [
+      {
+        "spots": "228",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "41",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "71"
+        },
+        "zone_name": "MainArea",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": 1,
+    "location": {
+      "suburb": "Ashfield",
+      "address": "Brown Street",
+      "latitude": "-33.888104",
+      "longitude": "151.126577"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "41",
+      "monthlies": "0",
+      "open_gate": "0",
+      "transients": "76"
+    },
+    "MessageDate": "2026-05-29T23:39:01",
+    "facility_id": "486",
+    "facility_name": "Park&Ride - Ashfield",
+    "tfnsw_facility_id": "213110TPR001"
+  },
+  {
+    "tsn": "221710",
+    "time": "833413057",
+    "spots": "259",
+    "zones": [
+      {
+        "spots": "259",
+        "zone_id": "2",
+        "occupancy": {
+          "loop": "29",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "15"
+        },
+        "zone_name": "MainArea",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": 3,
+    "location": {
+      "suburb": "Kogarah",
+      "address": "2 Railway Street",
+      "latitude": "-33.96369941",
+      "longitude": "151.1319494"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "29",
+      "monthlies": "0",
+      "open_gate": "0",
+      "transients": "16"
+    },
+    "MessageDate": "2026-05-29T23:37:37",
+    "facility_id": "487",
+    "facility_name": "Park&Ride - Kogarah",
+    "tfnsw_facility_id": "221710TPR001"
+  },
+  {
+    "tsn": "214710",
+    "time": "833413081",
+    "spots": "1613",
+    "zones": [
+      {
+        "spots": "874",
+        "zone_id": "4",
+        "occupancy": {
+          "loop": "696",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "119"
+        },
+        "zone_name": "Multi Level",
+        "parent_zone_id": "0"
+      },
+      {
+        "spots": "739",
+        "zone_id": "5",
+        "occupancy": {
+          "loop": "191",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "1"
+        },
+        "zone_name": "on grade",
+        "parent_zone_id": "0"
+      },
+      {
+        "spots": "0",
+        "zone_id": "0",
+        "occupancy": {
+          "loop": "0",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "0"
+        },
+        "zone_name": "",
+        "parent_zone_id": "0"
+      },
+      {
+        "spots": "0",
+        "zone_id": "0",
+        "occupancy": {
+          "loop": "0",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "0"
+        },
+        "zone_name": "",
+        "parent_zone_id": "0"
+      },
+      {
+        "spots": "0",
+        "zone_id": "0",
+        "occupancy": {
+          "loop": "0",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "0"
+        },
+        "zone_name": "",
+        "parent_zone_id": "0"
+      },
+      {
+        "spots": "0",
+        "zone_id": "0",
+        "occupancy": {
+          "loop": "0",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "0"
+        },
+        "zone_name": "",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": 4,
+    "location": {
+      "suburb": "Seven Hills",
+      "address": "Terminus Road",
+      "latitude": "-33.77304548",
+      "longitude": "150.9367514"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "0",
+      "monthlies": "0",
+      "open_gate": "0",
+      "transients": "0"
+    },
+    "MessageDate": "2026-05-29T23:38:01",
+    "facility_id": "488",
+    "facility_name": "Park&Ride - Seven Hills",
+    "tfnsw_facility_id": "214710TPR001"
+  },+
+  {
+    "tsn": "2093117",
+    "time": "833413134",
+    "spots": "142",
+    "zones": [
+      {
+        "spots": "142",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "6",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "10"
+        },
+        "zone_name": "MainArea",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": 1,
+    "location": {
+      "suburb": "Manly Vale",
+      "address": "84 Kenneth Road",
+      "latitude": "-33.786536",
+      "longitude": "151.267221"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "6",
+      "monthlies": "0",
+      "open_gate": "0",
+      "transients": "25"
+    },
+    "MessageDate": "2026-05-29T23:38:54",
+    "facility_id": "489",
+    "facility_name": "Park&Ride - Manly Vale",
+    "tfnsw_facility_id": "2093117TPR001"
+  },
+  {
+    "tsn": "207210",
+    "time": "833376915",
+    "spots": "213",
+    "zones": [
+      {
+        "spots": "213",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "8",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Gordon Henry St (north)",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Gordon",
+      "address": "Henry Street",
+      "latitude": "-33.757065",
+      "longitude": "151.154662"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "8",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:35:15",
+    "facility_id": "6",
+    "facility_name": "Park&Ride - Gordon Henry St (north)",
+    "tfnsw_facility_id": "207210TPR001"
+  },
+  {
+    "tsn": "253330",
+    "time": "833377156",
+    "spots": "42",
+    "zones": [
+      {
+        "spots": "42",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "5",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Kiama",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Kiama",
+      "address": "Bong Bong Street",
+      "latitude": "-34.673122",
+      "longitude": "150.854546"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "5",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:39:16",
+    "facility_id": "7",
+    "facility_name": "Park&Ride - Kiama",
+    "tfnsw_facility_id": "253330TPR001"
+  },
+  {
+    "tsn": "221210",
+    "time": "833376849",
+    "spots": "931",
+    "zones": [
+      {
+        "spots": "931",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "625660",
+          "total": "35",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD364 Revesby Commuter Carpark",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Revesby",
+      "address": "The River Road",
+      "latitude": "-33.95107517",
+      "longitude": "151.0168491"
+    },
+    "occupancy": {
+      "loop": "625660",
+      "total": "35",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:34:09",
+    "facility_id": "9",
+    "facility_name": "Park&Ride - Revesby",
+    "tfnsw_facility_id": "221210TPR001"
+  },
+  {
+    "tsn": "2101130",
+    "time": "833376770",
+    "spots": "46",
+    "zones": [
+      {
+        "spots": "46",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "155171",
+          "total": "2",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD312 Narrabeen Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Narrabeen",
+      "address": "Pittwater Road",
+      "latitude": "-33.714364",
+      "longitude": "151.29699"
+    },
+    "occupancy": {
+      "loop": "155171",
+      "total": "2",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:32:50",
+    "facility_id": "11",
+    "facility_name": "Park&Ride - Narrabeen",
+    "tfnsw_facility_id": "2101130TPR001"
+  },
+  {
+    "tsn": "2099207",
+    "time": "833376621",
+    "spots": "121",
+    "zones": [
+      {
+        "spots": "121",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "168545",
+          "total": "4",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD309 Dee Why Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Dee Why",
+      "address": "40 Kingsway",
+      "latitude": "-33.750302",
+      "longitude": "151.286717"
+    },
+    "occupancy": {
+      "loop": "168545",
+      "total": "4",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:30:21",
+    "facility_id": "13",
+    "facility_name": "Park&Ride - Dee Why",
+    "tfnsw_facility_id": "2099207TPR001"
+  },
+  {
+    "tsn": "2103108",
+    "time": "833376019",
+    "spots": "68",
+    "zones": [
+      {
+        "spots": "68",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "18",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Mona Vale",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Mona Vale",
+      "address": "Golf Avenue",
+      "latitude": "-33.677567",
+      "longitude": "151.306512"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "18",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:20:19",
+    "facility_id": "12",
+    "facility_name": "Park&Ride - Mona Vale",
+    "tfnsw_facility_id": "2103108TPR001"
+  },
+  {
+    "tsn": "2101131",
+    "time": "833376667",
+    "spots": "233",
+    "zones": [
+      {
+        "spots": "233",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "16",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Warriewood",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Warriewood",
+      "address": "Pittwater Road",
+      "latitude": "-33.696887",
+      "longitude": "151.302143"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "16",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:31:07",
+    "facility_id": "10",
+    "facility_name": "Park&Ride - Warriewood",
+    "tfnsw_facility_id": "2101131TPR001"
+  },
+  {
+    "tsn": "210020",
+    "time": "833412724",
+    "spots": "246",
+    "zones": [
+      {
+        "spots": "246",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "12",
+          "total": null,
+          "monthlies": "0",
+          "open_gate": null,
+          "transients": "83"
+        },
+        "zone_name": "MainArea",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": 1,
+    "location": {
+      "suburb": "Brookvale",
+      "address": "612-624 Pittwater Road",
+      "latitude": "-33.767366",
+      "longitude": "151.269667"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "12",
+      "monthlies": "0",
+      "open_gate": "0",
+      "transients": "400"
+    },
+    "MessageDate": "2026-05-29T23:32:04",
+    "facility_id": "490",
+    "facility_name": "Park&Ride - Brookvale",
+    "tfnsw_facility_id": "210020TPR001"
+  },
+  {
+    "tsn": "211420",
+    "time": "833376962",
+    "spots": "151",
+    "zones": [
+      {
+        "spots": "151",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "528483",
+          "total": "11",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD372 West Ryde Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "West Ryde",
+      "address": "Ryedale Road",
+      "latitude": "-33.805993",
+      "longitude": "151.091248"
+    },
+    "occupancy": {
+      "loop": "528483",
+      "total": "11",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:36:02",
+    "facility_id": "14",
+    "facility_name": "Park&Ride - West Ryde",
+    "tfnsw_facility_id": "211420TPR001"
+  },
+  {
+    "tsn": "217933",
+    "time": "833377145",
+    "spots": "1684",
+    "zones": [
+      {
+        "spots": "1684",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "2456305",
+          "total": "73",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD373 Leppington Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Leppington",
+      "address": "199A Rickard Road",
+      "latitude": "-33.953826",
+      "longitude": "150.806971"
+    },
+    "occupancy": {
+      "loop": "2456305",
+      "total": "73",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:39:05",
+    "facility_id": "16",
+    "facility_name": "Park&Ride - Leppington",
+    "tfnsw_facility_id": "217933TPR001"
+  },
+  {
+    "tsn": "217426",
+    "time": "833377106",
+    "spots": "1431",
+    "zones": [
+      {
+        "spots": "1431",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "2188835",
+          "total": "76",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD375 Edmondson Park Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Edmondson Park",
+      "address": "MacDonald Road",
+      "latitude": "-33.969476",
+      "longitude": "150.856259"
+    },
+    "occupancy": {
+      "loop": "2188835",
+      "total": "76",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:38:26",
+    "facility_id": "17",
+    "facility_name": "Park&Ride - Edmondson Park (south)",
+    "tfnsw_facility_id": "217426TPR001"
+  },
+  {
+    "tsn": "223210",
+    "time": "833376955",
+    "spots": "373",
+    "zones": [
+      {
+        "spots": "373",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "45",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Sutherland",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Sutherland",
+      "address": "East Parade",
+      "latitude": "-34.02955",
+      "longitude": "151.058409"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "45",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:35:55",
+    "facility_id": "15",
+    "facility_name": "Park&Ride - Sutherland",
+    "tfnsw_facility_id": "223210TPR001"
+  },
+  {
+    "tsn": "276010",
+    "time": "833376679",
+    "spots": "684",
+    "zones": [
+      {
+        "spots": "684",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "65",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - St Marys",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "St Marys",
+      "address": "Harris Street",
+      "latitude": "-33.761546",
+      "longitude": "150.776314"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "65",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:31:19",
+    "facility_id": "18",
+    "facility_name": "Park&Ride - St Marys",
+    "tfnsw_facility_id": "276010TPR001"
+  },
+  {
+    "tsn": "225040",
+    "time": "833376220",
+    "spots": "1059",
+    "zones": [
+      {
+        "spots": "1059",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "8",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Gosford",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Gosford",
+      "address": "Showground Road",
+      "latitude": "-33.42526471",
+      "longitude": "151.340236"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "8",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:23:40",
+    "facility_id": "8",
+    "facility_name": "Park&Ride - Gosford",
+    "tfnsw_facility_id": "225040TPR001"
+  },
+  {
+    "tsn": "256020",
+    "time": "833376966",
+    "spots": "68",
+    "zones": [
+      {
+        "spots": "68",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "387367",
+          "total": "25",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD368D FRN Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Campbelltown",
+      "address": "Farrow Road",
+      "latitude": "-34.062279",
+      "longitude": "150.815283"
+    },
+    "occupancy": {
+      "loop": "387367",
+      "total": "25",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:36:06",
+    "facility_id": "19",
+    "facility_name": "Park&Ride - Campbelltown Farrow Rd (north)",
+    "tfnsw_facility_id": "256020TPR001"
+  },
+  {
+    "tsn": "256020",
+    "time": "833376819",
+    "spots": "113",
+    "zones": [
+      {
+        "spots": "113",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "446006",
+          "total": "20",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD368C HSS Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Campbelltown",
+      "address": "Hurley Street",
+      "latitude": "-34.065798",
+      "longitude": "150.812432"
+    },
+    "occupancy": {
+      "loop": "446006",
+      "total": "20",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:33:39",
+    "facility_id": "20",
+    "facility_name": "Park&Ride - Campbelltown Hurley St",
+    "tfnsw_facility_id": "256020TPR002"
+  },
+  {
+    "tsn": "275010",
+    "time": "833376779",
+    "spots": "229",
+    "zones": [
+      {
+        "spots": "229",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "236439",
+          "total": "11",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD369A Penrith AG Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Penrith",
+      "address": "Combewood Avenue",
+      "latitude": "-33.748043",
+      "longitude": "150.69444"
+    },
+    "occupancy": {
+      "loop": "236439",
+      "total": "11",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:32:59",
+    "facility_id": "21",
+    "facility_name": "Park&Ride - Penrith (at-grade)",
+    "tfnsw_facility_id": "275010TPR001"
+  },
+  {
+    "tsn": "275010",
+    "time": "833376868",
+    "spots": "1129",
+    "zones": [
+      {
+        "spots": "1129",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "1419998",
+          "total": "38",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD369B Penrith MSC Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Penrith",
+      "address": "Combewood Avenue",
+      "latitude": "-33.748452",
+      "longitude": "150.695171"
+    },
+    "occupancy": {
+      "loop": "1419998",
+      "total": "38",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:34:28",
+    "facility_id": "22",
+    "facility_name": "Park&Ride - Penrith (multi-level)",
+    "tfnsw_facility_id": "275010TPR002"
+  },
+  {
+    "tsn": "217010",
+    "time": "833377022",
+    "spots": "906",
+    "zones": [
+      {
+        "spots": "906",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": null,
+          "total": "45",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "Park&Ride - Warwick Farm",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Warwick Farm",
+      "address": "Remembrance Avenue",
+      "latitude": "-33.913767",
+      "longitude": "150.934409"
+    },
+    "occupancy": {
+      "loop": null,
+      "total": "45",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:37:02",
+    "facility_id": "23",
+    "facility_name": "Park&Ride - Warwick Farm",
+    "tfnsw_facility_id": "217010TPR001"
+  },
+  {
+    "tsn": "276220",
+    "time": "833376938",
+    "spots": "700",
+    "zones": [
+      {
+        "spots": "700",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "1790910",
+          "total": "21",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD383 Schofields Commuter Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Schofields",
+      "address": "Calder Street",
+      "latitude": "-33.703674",
+      "longitude": "150.870861"
+    },
+    "occupancy": {
+      "loop": "1790910",
+      "total": "21",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:35:38",
+    "facility_id": "24",
+    "facility_name": "Park&Ride - Schofields",
+    "tfnsw_facility_id": "276220TPR001"
+  },
+  {
+    "tsn": "207720",
+    "time": "833376992",
+    "spots": "145",
+    "zones": [
+      {
+        "spots": "145",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "348675",
+          "total": "10",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD386 Hornsby Commuter Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Hornsby",
+      "address": "Jersey Street",
+      "latitude": "-33.701352",
+      "longitude": "151.098004"
+    },
+    "occupancy": {
+      "loop": "348675",
+      "total": "10",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:36:32",
+    "facility_id": "25",
+    "facility_name": "Park&Ride - Hornsby",
+    "tfnsw_facility_id": "207720TPR001"
+  },
+  {
+    "tsn": "2155384",
+    "time": "833377060",
+    "spots": "123",
+    "zones": [
+      {
+        "spots": "123",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "15927",
+          "total": "47",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD396A Tallawong P1 Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Tallawong",
+      "address": "Conferta Avenue",
+      "latitude": "-33.69304704",
+      "longitude": "150.9052577"
+    },
+    "occupancy": {
+      "loop": "15927",
+      "total": "47",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:37:40",
+    "facility_id": "26",
+    "facility_name": "Park&Ride - Tallawong P1",
+    "tfnsw_facility_id": "2155384TPR001"
+  },
+  {
+    "tsn": "2155384",
+    "time": "833376994",
+    "spots": "397",
+    "zones": [
+      {
+        "spots": "397",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "380623",
+          "total": "16",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD396C Tallawong P3 Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Tallawong",
+      "address": "Conferta Avenue",
+      "latitude": "-33.693832",
+      "longitude": "150.903874"
+    },
+    "occupancy": {
+      "loop": "380623",
+      "total": "16",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:36:34",
+    "facility_id": "28",
+    "facility_name": "Park&Ride - Tallawong P3",
+    "tfnsw_facility_id": "2155384TPR003"
+  },
+  {
+    "tsn": "2155384",
+    "time": "833377156",
+    "spots": "455",
+    "zones": [
+      {
+        "spots": "455",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "48410",
+          "total": "95",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD396B Tallawong P2 Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Tallawong",
+      "address": "Aristida Street",
+      "latitude": "-33.692987",
+      "longitude": "150.9043098"
+    },
+    "occupancy": {
+      "loop": "48410",
+      "total": "95",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:39:16",
+    "facility_id": "27",
+    "facility_name": "Park&Ride - Tallawong P2",
+    "tfnsw_facility_id": "2155384TPR002"
+  },
+  {
+    "tsn": "2155382",
+    "time": "833377149",
+    "spots": "351",
+    "zones": [
+      {
+        "spots": "351",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "528157",
+          "total": "13",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD395A Kellyville North Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Kellyville",
+      "address": "Derrobarry Street",
+      "latitude": "-33.711156",
+      "longitude": "150.934364"
+    },
+    "occupancy": {
+      "loop": "528157",
+      "total": "13",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:39:09",
+    "facility_id": "29",
+    "facility_name": "Park&Ride - Kellyville (north)",
+    "tfnsw_facility_id": "2155382TPR001"
+  },
+  {
+    "tsn": "2155382",
+    "time": "833376863",
+    "spots": "964",
+    "zones": [
+      {
+        "spots": "964",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "336601",
+          "total": "100",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD395B Kellyville South Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Kellyville",
+      "address": "Guragura Street",
+      "latitude": "-33.71498982",
+      "longitude": "150.9363451"
+    },
+    "occupancy": {
+      "loop": "336601",
+      "total": "100",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:34:23",
+    "facility_id": "30",
+    "facility_name": "Park&Ride - Kellyville (south)",
+    "tfnsw_facility_id": "2155382TPR002"
+  },
+  {
+    "tsn": "2153478",
+    "time": "833377151",
+    "spots": "774",
+    "zones": [
+      {
+        "spots": "774",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "257835",
+          "total": "101",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD392 Bella Vista Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Bella Vista",
+      "address": "Byles Place",
+      "latitude": "-33.727438",
+      "longitude": "150.941761"
+    },
+    "occupancy": {
+      "loop": "257835",
+      "total": "101",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:39:11",
+    "facility_id": "31",
+    "facility_name": "Park&Ride - Bella Vista",
+    "tfnsw_facility_id": "2153478TPR001"
+  },
+  {
+    "tsn": "2154392",
+    "time": "833377104",
+    "spots": "584",
+    "zones": [
+      {
+        "spots": "584",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "109956",
+          "total": "75",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD394 Hills Showground Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Castle Hill",
+      "address": "De Clambe Drive",
+      "latitude": "-33.727735",
+      "longitude": "150.98505"
+    },
+    "occupancy": {
+      "loop": "109956",
+      "total": "75",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:38:24",
+    "facility_id": "32",
+    "facility_name": "Park&Ride - Hills Showground",
+    "tfnsw_facility_id": "2154392TPR001"
+  },
+  {
+    "tsn": "2126158",
+    "time": "833377136",
+    "spots": "384",
+    "zones": [
+      {
+        "spots": "384",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "322177",
+          "total": "97",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD393 Cherrybrook Car Park",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Cherrybrook",
+      "address": "Bradfield Parade",
+      "latitude": "-33.737374",
+      "longitude": "151.033431"
+    },
+    "occupancy": {
+      "loop": "322177",
+      "total": "97",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:38:56",
+    "facility_id": "33",
+    "facility_name": "Park&Ride - Cherrybrook",
+    "tfnsw_facility_id": "2126158TPR001"
+  },
+  {
+    "tsn": "207010",
+    "time": "833376693",
+    "spots": "94",
+    "zones": [
+      {
+        "spots": "94",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "1135",
+          "total": "8",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD407 Lindfield Village Green",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Lindfield",
+      "address": "Tryon Road",
+      "latitude": "-33.77449",
+      "longitude": "151.170549"
+    },
+    "occupancy": {
+      "loop": "1135",
+      "total": "8",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:31:33",
+    "facility_id": "34",
+    "facility_name": "Park&Ride - Lindfield Village Green",
+    "tfnsw_facility_id": "207010TPR001"
+  },
+  {
+    "tsn": "275020",
+    "time": "833376791",
+    "spots": "750",
+    "zones": [
+      {
+        "spots": "750",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "22664",
+          "total": "3",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD415 Park&Ride - Emu Plains",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Emu Plains",
+      "address": "176 Old Bathurst Rd",
+      "latitude": "-33.745527",
+      "longitude": "150.66987"
+    },
+    "occupancy": {
+      "loop": "22664",
+      "total": "3",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:33:11",
+    "facility_id": "36",
+    "facility_name": "Park&Ride - Emu Plains",
+    "tfnsw_facility_id": "275020TPR001"
+  },
+  {
+    "tsn": "220910",
+    "time": "833377022",
+    "spots": "200",
+    "zones": [
+      {
+        "spots": "200",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "33739",
+          "total": "20",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD409 Beverly Hills Park&Ride",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Beverly Hills",
+      "address": "2-2A Edgbaston Road",
+      "latitude": "-33.949744",
+      "longitude": "151.0801"
+    },
+    "occupancy": {
+      "loop": "33739",
+      "total": "20",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:37:02",
+    "facility_id": "35",
+    "facility_name": "Park&Ride - Beverly Hills",
+    "tfnsw_facility_id": "220910TPR001"
+  },
+  {
+    "tsn": "221010",
+    "time": "833376942",
+    "spots": "124",
+    "zones": [
+      {
+        "spots": "124",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "749",
+          "total": "6",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD416 Park&Ride - Riverwood",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Riverwood",
+      "address": "12-16 Webb St",
+      "latitude": "-33.952727",
+      "longitude": "151.050035"
+    },
+    "occupancy": {
+      "loop": "749",
+      "total": "6",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:35:42",
+    "facility_id": "37",
+    "facility_name": "Park&Ride - Riverwood",
+    "tfnsw_facility_id": "221010TPR001"
+  },
+  {
+    "tsn": "2151161",
+    "time": "833376805",
+    "spots": "139",
+    "zones": [
+      {
+        "spots": "139",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "15369",
+          "total": "5",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD419 Park&Ride - North Rocks",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "North Rocks",
+      "address": "Barclay Rd",
+      "latitude": "-33.765539",
+      "longitude": "151.014131"
+    },
+    "occupancy": {
+      "loop": "15369",
+      "total": "5",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:33:25",
+    "facility_id": "38",
+    "facility_name": "Park&Ride - North Rocks",
+    "tfnsw_facility_id": "2151161TPR001"
+  },
+  {
+    "tsn": "217426",
+    "time": "833376806",
+    "spots": "917",
+    "zones": [
+      {
+        "spots": "917",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "13513",
+          "total": "7",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD421 Park&Ride - Edmondson Park (north)",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Edmondson Park",
+      "address": "Gula Court",
+      "latitude": "-33.9691",
+      "longitude": "150.8616"
+    },
+    "occupancy": {
+      "loop": "13513",
+      "total": "7",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-05-29T23:33:26",
+    "facility_id": "39",
+    "facility_name": "Park&Ride - Edmondson Park (north)",
+    "tfnsw_facility_id": "217426CCP001"
+  }
+]
