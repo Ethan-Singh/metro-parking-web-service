@@ -3,7 +3,5 @@
     facilityId: integer
     facilityName: String
     spots: integer
-    occupancy:
-      total: integer
-    history: String[]
+    occupancy: integer
 ```

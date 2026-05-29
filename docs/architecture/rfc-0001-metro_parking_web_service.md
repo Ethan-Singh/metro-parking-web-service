@@ -21,6 +21,7 @@ All APIs
 
 Use **Authorization Header**: `Authorization: apikey <your-api-key>`
 
+See [API Basics](https://opendata.transport.nsw.gov.au/developers/api-basics)
 ## Tasks:
 
 ### 1 Define APIs
