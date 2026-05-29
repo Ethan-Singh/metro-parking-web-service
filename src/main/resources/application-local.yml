@@ -7,4 +7,4 @@ management:
     web:
       base-path: /actuator
       exposure:
-        include: *
+        include: "*"

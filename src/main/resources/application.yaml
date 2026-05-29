@@ -14,7 +14,7 @@ service:
 management:
   endpoints:
     web:
-      base-path: ${ACTUATOR_BASE_PATH}
+      base-path: ${ACTUATOR_BASE_PATH:}
       exposure:
         include: health, readiness, startup
 
