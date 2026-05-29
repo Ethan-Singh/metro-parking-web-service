@@ -5,5 +5,19 @@ spring:
     host: localhost
     port: 27017
 
+service:
+  open-data:
+    apikey: ${OPEN_DATA_APIKEY}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    display-request-duration: true
+    path: /v3/swagger-ui.html
+    enabled: false
+
 server:
   port: 8080

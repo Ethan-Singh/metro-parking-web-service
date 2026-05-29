@@ -1,0 +1,3 @@
+service:
+  open-data:
+    apikey: ${OPEN_DATA_APIKEY}
