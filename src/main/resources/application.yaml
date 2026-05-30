@@ -1,33 +1,32 @@
+---
 spring:
   application:
     name: metro-parking-web-service
   mongodb:
     host: localhost
     port: 27017
-
+    representation:
+      uuid: standard
 service:
+  cors:
+    allowed-origins: "${CORS_ALLOWED_ORIGINS}"
+server:
+  port: 8080
+server-external:
   open-data:
-    apikey: ${OPEN_DATA_APIKEY}
-  networking:
-    cors:
-      allowed-origins: ${CORS_ALLOWED_ORIGINS}
-
+    apikey: "${OPEN_DATA_APIKEY}"
 management:
   endpoints:
     web:
-      base-path: ${ACTUATOR_BASE_PATH:/actuator}
+      base-path: "${ACTUATOR_BASE_PATH:/actuator}"
       exposure:
-        include: health, readiness, startup
-
+        include: "health, readiness, startup"
 springdoc:
   api-docs:
     path: /v3/api-docs
     enabled: false
   swagger-ui:
     display-request-duration: true
-    path: /v3/swagger-ui.html
+    path: /swagger-ui.html
     enabled: false
   show-actuator: false
-
-server:
-  port: 8080

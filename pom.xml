@@ -153,6 +153,16 @@
 							<content>/* (MISTLETOE MACHINATIONS)$YEAR */</content>  <!-- or <file>${project.basedir}/license-header</file> -->
 						</licenseHeader>
 					</java>
+					<yaml>
+						<includes>
+							<include>src/main/resources/*</include>
+						</includes>
+						<jackson>
+							<yamlFeatures>
+								<MINIMIZE_QUOTES>true</MINIMIZE_QUOTES>
+							</yamlFeatures>
+						</jackson>
+					</yaml>
 				</configuration>
 			</plugin>
 			<!-- mockito agent -->
