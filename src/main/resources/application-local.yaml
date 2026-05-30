@@ -1,10 +1,11 @@
 ---
-service:
-  open-data:
-    apikey: "${OPEN_DATA_APIKEY}"
 management:
   endpoints:
     web:
       base-path: /actuator
       exposure:
         include: '*'
+external-server:
+  carpark:
+    base-url: https://your-base-url
+    apikey: apikey your-apikey

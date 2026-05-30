@@ -2,19 +2,20 @@
 spring:
   application:
     name: metro-parking-web-service
+  kafka:
+    bootstrap-servers: localhost:9092
   mongodb:
     host: localhost
     port: 27017
     representation:
       uuid: standard
+logging:
+  level:
+    root: INFO
+    com.example.metro_parking_web_service: INFO
 service:
   cors:
     allowed-origins: "${CORS_ALLOWED_ORIGINS}"
-server:
-  port: 8080
-server-external:
-  open-data:
-    apikey: "${OPEN_DATA_APIKEY}"
 management:
   endpoints:
     web:
@@ -30,3 +31,9 @@ springdoc:
     path: /swagger-ui.html
     enabled: false
   show-actuator: false
+server:
+  port: 8080
+external-server:
+  carpark:
+    base-url: "${SERVICE_URL}"
+    apikey: "${OPEN_DATA_APIKEY}"
