@@ -24,17 +24,22 @@ Use **Authorization Header**: `Authorization: apikey <your-api-key>`
 See [API Basics](https://opendata.transport.nsw.gov.au/developers/api-basics)
 ## Tasks:
 
-### 1 Define APIs
-* 
+### 1 Priming Development
+1. Linting: Spotless
+2. Database: MongoDB
+3. OpenAPI/Swagger: Springdoc
+4. Actuator: Spring Boot
 
+### 2 Definitions: Server (OpenData) and Client
+1. Server DTOs (request and response)
+2. Client Controller/Service
 
-### 2 Create Controllers
+### 3: 
+
+### 4 Connect to MongDB Database
 *
 
-### 3 Connect to MongDB Database
-*
-
-### 4 Search Bar
+### 5 Search Bar
 *
 
 ### 9 Security:
