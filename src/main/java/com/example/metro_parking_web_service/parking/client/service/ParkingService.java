@@ -1,10 +1,10 @@
+/* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.server.dto.response.Parking;
-import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ParkingService {
