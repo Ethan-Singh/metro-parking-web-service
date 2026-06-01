@@ -2,7 +2,7 @@
 package com.example.metro_parking_web_service.parking.client.controller;
 
 import com.example.metro_parking_web_service.parking.client.service.ParkingService;
-import com.example.metro_parking_web_service.parking.server.dto.response.Parking;
+import com.example.metro_parking_web_service.parking.server.dto.response.ParkingResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,8 +19,12 @@ class ParkingController {
     private final ParkingService parkingService;
 
     @GetMapping("/list")
-    public ResponseEntity<List<Parking>> parkingList(HttpServletRequest request) {
-        List<Parking> result = parkingService.parkingList();
-        return ResponseEntity.ok().body(result);
+    public ResponseEntity<List<ParkingResponse>> parkingList(HttpServletRequest request) {
+        try {
+            List<ParkingResponse> result = parkingService.parkingList();
+            return ResponseEntity.ok().body(result);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
