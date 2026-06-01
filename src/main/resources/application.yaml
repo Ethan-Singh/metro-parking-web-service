@@ -13,6 +13,8 @@ logging:
   level:
     root: INFO
     com.example.metro_parking_web_service: INFO
+    sun.rmi: INFO
+    javax.management: INFO
 service:
   cors:
     allowed-origins: "${CORS_ALLOWED_ORIGINS}"
@@ -34,6 +36,7 @@ springdoc:
 server:
   port: 8080
 external-server:
-  carpark:
-    base-url: "${SERVICE_URL}"
-    apikey: "${OPEN_DATA_APIKEY}"
+  parking:
+    base-url: "${PARKING_BASE_URL}"
+    api: "${PARKING_API}"
+    apikey: "${PARKING_APIKEY}"

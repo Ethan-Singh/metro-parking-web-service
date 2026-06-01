@@ -1,8 +1,10 @@
 ---
 logging:
   level:
-    root: DEBUG
-    com.example.metro_parking_web_service: DEBUG
+    root: INFO
+    com.example.metro_parking_web_service: INFO
+    sun.rmi: INFO
+    javax.management: INFO
 management:
   endpoints:
     web:
@@ -10,6 +12,7 @@ management:
       exposure:
         include: '*'
 external-server:
-  carpark:
+  parking:
     base-url: https://your-base-url
-    apikey: apikey your-apikey
+    api: your-api
+    apikey: your-api-key

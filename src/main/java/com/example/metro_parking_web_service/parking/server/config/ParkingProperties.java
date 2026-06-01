@@ -5,14 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.validation.annotation.Validated;
 
-@ConfigurationProperties("external-server.carpark")
-@Validated
-@Data
+@ConfigurationProperties("external-server.parking")
 @RequiredArgsConstructor
-public class OpendataProperties {
+@Data
+public class ParkingProperties {
 
     @NotBlank private String baseUrl;
+    @NotBlank private String api;
     @NotBlank private String apikey;
 }
