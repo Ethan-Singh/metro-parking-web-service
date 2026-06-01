@@ -1,7 +1,9 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.service;
 
+import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import com.example.metro_parking_web_service.parking.server.dto.response.ParkingResponse;
+import com.example.metro_parking_web_service.parking.server.mapper.ParkingMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -13,12 +15,18 @@ import org.springframework.web.client.RestClient;
 public class ParkingService {
 
     private final RestClient parkingRestClient;
+    private final ParkingMapper parkingMapper;
 
-    public List<ParkingResponse> parkingList() {
-        return parkingRestClient
-                .get()
-                .uri( "/full-list")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+    public List<Parking> parkingList() {
+        List<ParkingResponse> parkingResponses =
+                parkingRestClient
+                        .get()
+                        .uri("/full-list")
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<>() {});
+
+        assert parkingResponses != null;
+
+        return parkingResponses.stream().map(parkingMapper::toParking).toList();
     }
 }

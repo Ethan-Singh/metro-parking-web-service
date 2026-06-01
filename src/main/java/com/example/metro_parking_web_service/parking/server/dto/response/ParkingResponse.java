@@ -2,7 +2,6 @@
 package com.example.metro_parking_web_service.parking.server.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.time.LocalDateTime;
 
 public record ParkingResponse(
