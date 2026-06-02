@@ -2,9 +2,9 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
-import com.example.metro_parking_web_service.parking.server.dto.request.ParkingHistoryRequest;
-import com.example.metro_parking_web_service.parking.server.dto.response.ParkingResponse;
-import com.example.metro_parking_web_service.parking.server.mapper.ParkingMapper;
+import com.example.metro_parking_web_service.parking.server.dto.ParkingHistoryRequest;
+import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.server.mapper.ParkingApiMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -16,7 +16,7 @@ import org.springframework.web.client.RestClient;
 public class ParkingService {
 
     private final RestClient parkingRestClient;
-    private final ParkingMapper parkingMapper;
+    private final ParkingApiMapper parkingApiMapper;
 
     public List<Parking> parkingList() {
         List<ParkingResponse> parkingResponses =
@@ -28,7 +28,7 @@ public class ParkingService {
 
         assert parkingResponses != null;
 
-        return parkingResponses.stream().map(parkingMapper::toParking).toList();
+        return parkingResponses.stream().map(parkingApiMapper::toParking).toList();
     }
 
     public List<Parking> parkingHistory(ParkingHistoryRequest parkingHistoryRequest) {
@@ -51,6 +51,6 @@ public class ParkingService {
 
         assert parkingResponses != null;
 
-        return parkingResponses.stream().map(parkingMapper::toParking).toList();
+        return parkingResponses.stream().map(parkingApiMapper::toParking).toList();
     }
 }
