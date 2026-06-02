@@ -3,7 +3,7 @@ package com.example.metro_parking_web_service.parking.client.controller;
 
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import com.example.metro_parking_web_service.parking.client.service.ParkingService;
-import com.example.metro_parking_web_service.parking.server.dto.request.ParkingHistoryRequest;
+import com.example.metro_parking_web_service.parking.server.dto.ParkingHistoryRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +21,8 @@ class ParkingController {
     private final ParkingService parkingService;
 
     @GetMapping("/list")
-    public ResponseEntity<List<Parking>> parkingList(HttpServletRequest request) {
-        List<Parking> result = parkingService.parkingList();
-        return ResponseEntity.ok().body(result);
+    public ResponseEntity<String> parkingList(HttpServletRequest request) {
+        return ResponseEntity.ok().body("List");
     }
 
     @GetMapping("/history")

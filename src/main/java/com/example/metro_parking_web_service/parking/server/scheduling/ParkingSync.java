@@ -1,7 +1,9 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.server.scheduling;
 
-import java.time.Instant;
+import com.example.metro_parking_web_service.parking.client.dto.Parking;
+import com.example.metro_parking_web_service.parking.client.service.ParkingService;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,11 +14,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Slf4j
 class ParkingSync {
-    private final Instant time = Instant.now();
+
+    private final ParkingService parkingService;
 
     @Scheduled(fixedRate = 10, timeUnit = TimeUnit.SECONDS)
     public void parkingSync() {
-
-        log.info("ParkingSync start: {}", time.toString());
+        List<Parking> parkingList = parkingService.parkingList();
+        System.out.println(parkingList);
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 public class ParkingProperties {
 
-    @NotBlank private String baseUrl;
-    @NotBlank private String api;
-    @NotBlank private String apikey;
+    @NotBlank private final String baseUrl;
+    @NotBlank private final String api;
+    @NotBlank private final String apikey;
 }
