@@ -2,6 +2,7 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
+import com.example.metro_parking_web_service.parking.server.dto.request.ParkingHistoryRequest;
 import com.example.metro_parking_web_service.parking.server.dto.response.ParkingResponse;
 import com.example.metro_parking_web_service.parking.server.mapper.ParkingMapper;
 import java.util.List;
@@ -22,6 +23,29 @@ public class ParkingService {
                 parkingRestClient
                         .get()
                         .uri("/full-list")
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<>() {});
+
+        assert parkingResponses != null;
+
+        return parkingResponses.stream().map(parkingMapper::toParking).toList();
+    }
+
+    public List<Parking> parkingHistory(ParkingHistoryRequest parkingHistoryRequest) {
+        List<ParkingResponse> parkingResponses =
+                parkingRestClient
+                        .get()
+                        .uri(
+                                uriBuilder ->
+                                        uriBuilder
+                                                .path("/history")
+                                                .queryParam(
+                                                        "facility",
+                                                        parkingHistoryRequest.facilityId())
+                                                .queryParam(
+                                                        "eventdate",
+                                                        parkingHistoryRequest.eventDate())
+                                                .build())
                         .retrieve()
                         .body(new ParameterizedTypeReference<>() {});
 

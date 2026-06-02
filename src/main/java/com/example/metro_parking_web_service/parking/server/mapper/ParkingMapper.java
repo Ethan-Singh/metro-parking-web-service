@@ -9,6 +9,7 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface ParkingMapper {
+
     @Mapping(target = "facilityId", expression = "java(Integer.parseInt(response.facilityId()))")
     @Mapping(target = "spots", expression = "java(Integer.parseInt(response.spots()))")
     @Mapping(
