@@ -2,9 +2,12 @@
 spring:
   application:
     name: metro-parking-web-service
-  mongodb:
-    host: localhost
-    port: 27017
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: parking
+      auto-index-creation: true
 logging:
   level:
     root: INFO
@@ -36,3 +39,4 @@ external-server:
     base-url: "${PARKING_BASE_URL}"
     api: "${PARKING_API}"
     apikey: "${PARKING_APIKEY}"
+    disabled-facilities: "1,2,3,4,5"

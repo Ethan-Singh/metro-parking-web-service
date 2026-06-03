@@ -18,11 +18,11 @@ class ParkingController {
 
     @GetMapping("/list")
     public ResponseEntity<String> parkingList(HttpServletRequest request) {
-        return ResponseEntity.ok().body("List");
+        return ResponseEntity.ok().body("Hello");
     }
 
     @GetMapping("/history")
     public ResponseEntity<String> parkingHistory(HttpServletRequest request) {
-        return ResponseEntity.ok().body("List");
+        return ResponseEntity.ok().body("World");
     }
 }

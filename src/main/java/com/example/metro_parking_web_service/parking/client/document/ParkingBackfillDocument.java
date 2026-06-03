@@ -9,9 +9,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
 @Data
-public class ParkingSyncDocument {
-    
-    @Id private String facilityId;
+public class ParkingBackfillDocument {
+
+    @Id private int facilityId;
     private boolean backfillComplete;
     private LocalDate lastProcessedDate;
     private LocalDate backfillUntilDate;
