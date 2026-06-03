@@ -5,6 +5,7 @@ import com.example.metro_parking_web_service.parking.client.document.ParkingBack
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import com.example.metro_parking_web_service.parking.client.dto.ParkingDocumentMapper;
+import com.example.metro_parking_web_service.parking.client.dto.ParkingIdStrategy;
 import com.example.metro_parking_web_service.parking.client.dto.ParkingResponseMapper;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingRepository;
@@ -31,9 +32,30 @@ public class ParkingService {
     private final ParkingDocumentMapper parkingDocumentMapper;
     private final ParkingRepository parkingRepository;
     private final ParkingBackfillRepository parkingBackfillRepository;
+    private final ParkingIdStrategy parkingIdStrategy;
 
-    @Value("${external-server.parking.disabled-facilities}")
-    private final Set<Integer> DISABLED_FACILITIES;
+    @Value("#{'${external-server.parking.disabled-facilities}'.split(',')}")
+    private Set<Integer> DISABLED_FACILITIES;
+
+    private boolean isActiveFacility(Parking parking) {
+        return !DISABLED_FACILITIES.contains(parking.facilityId());
+    }
+
+    private ParkingDocument toParkingDocument(Parking parking) {
+        ParkingDocument parkingDocument = parkingDocumentMapper.toParkingDocument(parking);
+
+        parkingDocument.setId(
+                parkingIdStrategy.generateId(parking.facilityId(), parking.sourceTimestamp()));
+
+        return parkingDocument;
+    }
+
+    private void parkingListSave(List<Parking> parkingList) {
+        List<ParkingDocument> parkingDocumentList =
+                parkingList.stream().map(this::toParkingDocument).toList();
+
+        parkingRepository.saveAll(parkingDocumentList);
+    }
 
     public void parkingSyncAll() {
         List<Parking> parkingList =
@@ -79,9 +101,9 @@ public class ParkingService {
             while (true) {
                 sleep5Seconds();
 
-                List<ParkingResponse> responses = getHistory(facilityId, day);
+                List<ParkingResponse> parkingResponses = getHistory(facilityId, day);
 
-                if (responses.isEmpty()) {
+                if (parkingResponses.isEmpty()) {
                     parkingBackfillDocument.setBackfillComplete(true);
                     parkingBackfillDocument.setBackfillUntilDate(day);
                     parkingBackfillDocument.setUpdatedAt(Instant.now());
@@ -90,9 +112,7 @@ public class ParkingService {
                 }
 
                 List<Parking> parkingList =
-                        getHistory(facilityId, day).stream()
-                                .map(parkingResponseMapper::toParking)
-                                .toList();
+                        parkingResponses.stream().map(parkingResponseMapper::toParking).toList();
 
                 parkingListSave(parkingList);
 
@@ -144,22 +164,11 @@ public class ParkingService {
                 .body(new ParameterizedTypeReference<List<ParkingResponse>>() {});
     }
 
-    private void parkingListSave(List<Parking> parkingList) {
-        List<ParkingDocument> parkingDocumentList =
-                parkingList.stream().map(parkingDocumentMapper::toParkingDocument).toList();
-
-        parkingRepository.saveAll(parkingDocumentList);
-    }
-
     private void sleep5Seconds() {
         try {
             Thread.sleep(5000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    private boolean isActiveFacility(Parking parking) {
-        return !DISABLED_FACILITIES.contains(parking.facilityId());
     }
 }
