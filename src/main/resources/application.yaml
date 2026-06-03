@@ -2,13 +2,9 @@
 spring:
   application:
     name: metro-parking-web-service
-  kafka:
-    bootstrap-servers: localhost:9092
   mongodb:
     host: localhost
     port: 27017
-    representation:
-      uuid: standard
 logging:
   level:
     root: INFO
@@ -26,12 +22,12 @@ management:
         include: "health, readiness, startup"
 springdoc:
   api-docs:
+    enabled: false
     path: /v3/api-docs
-    enabled: false
   swagger-ui:
-    display-request-duration: true
-    path: /swagger-ui.html
     enabled: false
+    path: /swagger-ui.html
+    display-request-duration: true
   show-actuator: false
 server:
   port: 8080

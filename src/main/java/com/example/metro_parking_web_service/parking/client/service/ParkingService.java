@@ -2,9 +2,9 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
+import com.example.metro_parking_web_service.parking.client.dto.ParkingApiMapper;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingHistoryRequest;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
-import com.example.metro_parking_web_service.parking.server.mapper.ParkingApiMapper;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;

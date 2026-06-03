@@ -4,8 +4,8 @@ package com.example.metro_parking_web_service.parking.client.dto;
 import java.time.LocalDateTime;
 
 public record Parking(
-        String facilityId,
+        int facilityId,
         String facilityName,
-        String spots,
-        String occupancy,
-        LocalDateTime messageDate) {}
+        int spots,
+        int occupancy,
+        LocalDateTime sourceTimestamp) {}
