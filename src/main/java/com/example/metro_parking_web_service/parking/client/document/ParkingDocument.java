@@ -4,9 +4,14 @@ package com.example.metro_parking_web_service.parking.client.document;
 import java.time.LocalDateTime;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
+@CompoundIndex(
+        name = "facilityId_sourceTimestamp_unique",
+        def = "{'facilityId': 1, 'sourceTimestamp': 1}",
+        unique = true)
 public class ParkingDocument {
 
     @Id private String id;

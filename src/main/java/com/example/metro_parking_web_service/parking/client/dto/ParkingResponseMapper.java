@@ -7,7 +7,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
-public interface ParkingApiMapper {
+public interface ParkingResponseMapper {
 
     @Mapping(source = "occupancy.total", target = "occupancy")
     @Mapping(source = "messageDate", target = "sourceTimestamp")
