@@ -1,34 +1,34 @@
-<springProfile name="local,test">
+<configuration>
 
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{ISO8601} %-5level %logger - %msg%n</pattern>
-        </encoder>
-    </appender>
+    <springProfile name="local,test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{ISO8601} %-5level %logger - %msg%n</pattern>
+            </encoder>
+        </appender>
 
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-    </root>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 
-</springProfile>
+    <springProfile name="prod">
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/parking.log</file>
 
-<springProfile name="prod">
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>logs/parking.%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>7</maxHistory>
+            </rollingPolicy>
 
-<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>logs/parking.log</file>
+            <encoder>
+                <pattern>%d{ISO8601} %-5level %logger - %msg%n</pattern>
+            </encoder>
+        </appender>
 
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <fileNamePattern>logs/parking.%d{yyyy-MM-dd}.log</fileNamePattern>
-        <maxHistory>7</maxHistory>
-    </rollingPolicy>
+        <root level="INFO">
+            <appender-ref ref="FILE"/>
+        </root>
+    </springProfile>
 
-    <encoder>
-        <pattern>%d{ISO8601} %-5level %logger - %msg%n</pattern>
-    </encoder>
-</appender>
-
-<root level="INFO">
-    <appender-ref ref="FILE"/>
-</root>
-
-</springProfile>
+</configuration>

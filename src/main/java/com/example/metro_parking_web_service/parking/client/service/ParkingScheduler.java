@@ -4,12 +4,14 @@ package com.example.metro_parking_web_service.parking.client.service;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!test")
 class ParkingScheduler {
 
     private final ParkingService parkingService;
