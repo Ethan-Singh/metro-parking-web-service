@@ -56,6 +56,7 @@ public class ParkingService {
     }
 
     void backfillFacility(int facilityId) {
+        log.info("backfill.start facilityId={}", facilityId);
         ParkingBackfillDocument state = getOrCreateBackfillState(facilityId);
         if (state.isBackfillComplete() || isOutOfRange(state)) {
             return;
@@ -65,15 +66,15 @@ public class ParkingService {
         List<Parking> parkingList = fetchHistory(facilityId, day);
         if (parkingList.isEmpty()) {
             markBackfillComplete(state, day);
-            log.info("Backfill complete for facility {} on {}", facilityId, day);
+            log.warn("history.empty facilityId={} date={}", facilityId, day);
         } else {
             saveAll(parkingList);
             markProgress(state, day);
             log.info(
-                    "Imported {} records for facility {} on {}",
-                    parkingList.size(),
+                    "backfill.imported facilityId={} date={} records={}",
                     facilityId,
-                    day);
+                    day,
+                    parkingList.size());
         }
     }
 
