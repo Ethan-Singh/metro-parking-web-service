@@ -64,12 +64,17 @@ public class ParkingService {
             log.info("backfill.all.processing facilityId={}", facilityId);
 
             try {
+                ParkingBackfillDocument backfillDocument = findOrCreateBackfill(facilityId);
+                if (backfillDocument.isComplete()
+                        || parkingPolicy.isOutsideBackfillWindow(backfillDocument)) {
+                    continue;
+                }
                 backfillFacility(facilityId);
             } catch (Exception e) {
                 log.error("backfill.failed facilityId={}", facilityId, e);
             }
 
-            sleep();
+            return;
         }
 
         log.info("backfill.all.complete facilities={}", facilityIds.size());
@@ -104,21 +109,19 @@ public class ParkingService {
                         .map(parkingResponseMapper::toParking)
                         .filter(parkingPolicy::isParkingAllowed)
                         .toList();
-        if (parkingList.isEmpty()) {
+        if (!parkingList.isEmpty()) {
+            saveParkings(parkingList);
+            log.info(
+                    "backfill.processed facilityId={} date={} records={}",
+                    facilityId,
+                    eventDate,
+                    parkingList.size());
+        } else {
             log.warn("backfill.empty facilityId={} eventDate={}", facilityId, eventDate);
-            backfillDocument.setLastProcessedDate(eventDate);
-            saveBackfill(backfillDocument);
-            return;
         }
 
-        saveParkings(parkingList);
         backfillDocument.setLastProcessedDate(eventDate);
         saveBackfill(backfillDocument);
-        log.info(
-                "backfill.progress facilityId={} date={} records={}",
-                facilityId,
-                eventDate,
-                parkingList.size());
     }
 
     private void saveParkings(List<Parking> parkingList) {
@@ -141,7 +144,6 @@ public class ParkingService {
 
     private void saveBackfill(ParkingBackfillDocument backfillDocument) {
         backfillDocument.setUpdatedAt(Instant.now());
-
         parkingBackfillRepository.save(backfillDocument);
     }
 
@@ -164,13 +166,5 @@ public class ParkingService {
             return LocalDate.now();
         }
         return backfillDocument.getLastProcessedDate().minusDays(1);
-    }
-
-    private void sleep() {
-        try {
-            Thread.sleep(5_000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 }
