@@ -1,6 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.controller;
 
+import com.example.metro_parking_web_service.parking.client.service.ParkingService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 class ParkingController {
 
+    private final ParkingService parkingService;
+
     @GetMapping("/list")
     public ResponseEntity<String> parkingList(HttpServletRequest request) {
         return ResponseEntity.ok().body("Hello");
@@ -21,5 +24,11 @@ class ParkingController {
     @GetMapping("/history")
     public ResponseEntity<String> parkingHistory(HttpServletRequest request) {
         return ResponseEntity.ok().body("World");
+    }
+
+    @GetMapping("/backfill")
+    public ResponseEntity<String> parkingBackfill(HttpServletRequest request) {
+        parkingService.backfillAll();
+        return ResponseEntity.ok().body("Backfilling in progress");
     }
 }

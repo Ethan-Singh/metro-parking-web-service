@@ -44,16 +44,26 @@ public class ParkingService {
     }
 
     public void backfillAll() {
-        parkingClient.fetchFullList().stream()
-                .map(ParkingResponse::facilityId)
-                .map(Integer::parseInt)
-                .distinct()
-                .toList()
-                .forEach(
-                        facilityId -> {
-                            backfillFacility(facilityId);
-                            sleep();
-                        });
+        List<Integer> facilityIds =
+                parkingClient.fetchFullList().stream()
+                        .map(ParkingResponse::facilityId)
+                        .map(Integer::parseInt)
+                        .distinct()
+                        .toList();
+        log.info("backfill.all.start facilities={}", facilityIds.size());
+
+        facilityIds.forEach(
+                facilityId -> {
+                    try {
+                        backfillFacility(facilityId);
+                    } catch (Exception e) {
+                        log.error("backfill.failed facilityId={}", facilityId, e);
+                    }
+
+                    sleep();
+                });
+
+        log.info("backfill.all.complete");
     }
 
     void backfillFacility(int facilityId) {
@@ -66,6 +76,8 @@ public class ParkingService {
         }
 
         LocalDate eventDate = calculateNextDay(parkingBackfillDocument);
+        log.info("backfill.history facilityId={} eventDate={}", facilityId, eventDate);
+
         List<Parking> parkingList =
                 parkingClient.fetchHistory(facilityId, eventDate).stream()
                         .map(parkingResponseMapper::toParking)
