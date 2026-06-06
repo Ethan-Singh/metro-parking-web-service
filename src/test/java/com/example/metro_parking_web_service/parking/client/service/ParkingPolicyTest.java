@@ -21,8 +21,7 @@ class ParkingPolicyTest {
     void setup() {
         parkingPolicy = new ParkingPolicy();
         ReflectionTestUtils.setField(parkingPolicy, "DISABLED_FACILITIES", Set.of(1, 2));
-        ReflectionTestUtils.setField(
-                parkingPolicy, "BACKFILL_WINDOW", LocalDate.of(2025, 1, 1));
+        ReflectionTestUtils.setField(parkingPolicy, "BACKFILL_WINDOW", LocalDate.of(2025, 1, 1));
     }
 
     @Test

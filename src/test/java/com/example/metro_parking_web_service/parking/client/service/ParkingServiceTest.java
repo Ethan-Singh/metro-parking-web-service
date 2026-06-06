@@ -17,13 +17,11 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingServiceTest {
@@ -37,13 +35,6 @@ class ParkingServiceTest {
     @Mock private ParkingPolicy parkingPolicy;
 
     @InjectMocks private ParkingService parkingService;
-
-    private final LocalDate BACKFILL_DATE = LocalDate.of(2025, 1, 1);
-
-    @BeforeEach
-    void setup() {
-        ReflectionTestUtils.setField(parkingService, "BACKFILL_START_DATE", BACKFILL_DATE);
-    }
 
     // ------------------------------------------------------------
     // syncAll
@@ -118,11 +109,11 @@ class ParkingServiceTest {
     }
 
     @Test
-    void backfillFacility_shouldExitWhenOutOfRange() {
+    void backfillFacility_shouldExitWhenPolicySaysBeforeBackfillWindow() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
-        backfillDocument.setLastProcessedDate(LocalDate.of(2024, 12, 31));
 
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(backfillDocument));
+        when(parkingPolicy.isBeforeBackfillWindow(backfillDocument)).thenReturn(true);
 
         parkingService.backfillFacility(1);
 
