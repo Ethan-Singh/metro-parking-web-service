@@ -48,10 +48,11 @@ public class ParkingService {
         fetchActiveFullList().stream()
                 .map(Parking::facilityId)
                 .collect(Collectors.toSet())
-                .forEach(facilityId -> {
-                    backfillFacility(facilityId);
-                    sleep();
-                });
+                .forEach(
+                        facilityId -> {
+                            backfillFacility(facilityId);
+                            sleep();
+                        });
     }
 
     void backfillFacility(int facilityId) {

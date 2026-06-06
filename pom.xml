@@ -139,6 +139,9 @@
 								<include>.gitattributes</include>
 								<include>.gitignore</include>
 							</includes>
+							<excludes>
+								<exclude>src/main/resources/logback-spring.xml</exclude>
+							</excludes>
 							<!-- define the steps to apply to those files -->
 							<trimTrailingWhitespace/>
 							<endWithNewline/>
@@ -169,7 +172,8 @@
 					</java>
 					<yaml>
 						<includes>
-							<include>src/main/resources/*</include>
+							<include>src/main/resources/*.yaml</include>
+							<include>src/main/resources/*.yml</include>
 						</includes>
 						<jackson>
 							<yamlFeatures>
