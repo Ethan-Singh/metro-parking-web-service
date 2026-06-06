@@ -12,9 +12,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class ParkingBackfillDocument {
 
     @Id private int facilityId;
-    private boolean backfillComplete;
     private LocalDate lastProcessedDate;
     private LocalDate backfillUntilDate;
+    private boolean backfillComplete;
     private Instant updatedAt;
-    private boolean backfillInProgress;
 }

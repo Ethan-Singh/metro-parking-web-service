@@ -35,114 +35,105 @@ public class ParkingService {
     private final ParkingIdStrategy parkingIdStrategy;
 
     @Value("#{'${external-server.parking.disabled-facilities}'.split(',')}")
-    private Set<Integer> DISABLED_FACILITIES;
+    Set<Integer> DISABLED_FACILITIES;
 
-    private boolean isActiveFacility(Parking parking) {
-        return !DISABLED_FACILITIES.contains(parking.facilityId());
-    }
-
-    private ParkingDocument toParkingDocument(Parking parking) {
-        ParkingDocument parkingDocument = parkingDocumentMapper.toParkingDocument(parking);
-
-        parkingDocument.setId(
-                parkingIdStrategy.generateId(parking.facilityId(), parking.sourceTimestamp()));
-
-        return parkingDocument;
-    }
-
-    private void parkingListSave(List<Parking> parkingList) {
-        List<ParkingDocument> parkingDocumentList =
-                parkingList.stream().map(this::toParkingDocument).toList();
-
-        parkingRepository.saveAll(parkingDocumentList);
-    }
+    @Value("${external-server.parking.backfill-start-date}")
+    LocalDate BACKFILL_START_DATE;
 
     public void parkingSyncAll() {
-        List<Parking> parkingList =
-                getFullList().stream()
-                        .map(parkingResponseMapper::toParking)
-                        .filter(this::isActiveFacility)
-                        .toList();
-
-        parkingListSave(parkingList);
+        saveAll(fetchActiveFullList());
     }
 
     public void parkingBackfillAll() {
-        getFullList().stream()
-                .map(parkingResponseMapper::toParking)
-                .filter(this::isActiveFacility)
+        fetchActiveFullList().stream()
                 .map(Parking::facilityId)
                 .collect(Collectors.toSet())
-                .forEach(this::backfillFacility);
+                .forEach(facilityId -> {
+                    backfillFacility(facilityId);
+                    sleep();
+                });
     }
 
-    private void backfillFacility(int facilityId) {
-        ParkingBackfillDocument parkingBackfillDocument =
-                parkingBackfillRepository
-                        .findById(facilityId)
-                        .orElseGet(() -> createInitialParkingBackfillState(facilityId));
-
-        if (parkingBackfillDocument.isBackfillComplete()
-                && !parkingBackfillDocument.isBackfillInProgress()) {
+    void backfillFacility(int facilityId) {
+        ParkingBackfillDocument state = getOrCreateBackfillState(facilityId);
+        if (state.isBackfillComplete() || isOutOfRange(state)) {
             return;
         }
 
-        parkingBackfillDocument.setBackfillInProgress(true);
-        parkingBackfillRepository.save(parkingBackfillDocument);
-
-        try {
-            LocalDate lastProcessedDate =
-                    parkingBackfillDocument.getLastProcessedDate() != null
-                            ? parkingBackfillDocument.getLastProcessedDate()
-                            : LocalDate.now();
-
-            LocalDate day = lastProcessedDate.minusDays(1);
-
-            while (true) {
-                sleep5Seconds();
-
-                List<ParkingResponse> parkingResponses = getHistory(facilityId, day);
-
-                if (parkingResponses.isEmpty()) {
-                    parkingBackfillDocument.setBackfillComplete(true);
-                    parkingBackfillDocument.setBackfillUntilDate(day);
-                    parkingBackfillDocument.setUpdatedAt(Instant.now());
-                    parkingBackfillRepository.save(parkingBackfillDocument);
-                    break;
-                }
-
-                List<Parking> parkingList =
-                        parkingResponses.stream().map(parkingResponseMapper::toParking).toList();
-
-                parkingListSave(parkingList);
-
-                parkingBackfillDocument.setLastProcessedDate(day);
-                parkingBackfillDocument.setUpdatedAt(Instant.now());
-                parkingBackfillRepository.save(parkingBackfillDocument);
-
-                day = day.minusDays(1);
-            }
-
-        } finally {
-            parkingBackfillDocument.setBackfillInProgress(false);
-            parkingBackfillDocument.setUpdatedAt(Instant.now());
-            parkingBackfillRepository.save(parkingBackfillDocument);
+        LocalDate day = determineNextDay(state);
+        List<Parking> parkingList = fetchHistory(facilityId, day);
+        if (parkingList.isEmpty()) {
+            markBackfillComplete(state, day);
+            log.info("Backfill complete for facility {} on {}", facilityId, day);
+        } else {
+            saveAll(parkingList);
+            markProgress(state, day);
+            log.info(
+                    "Imported {} records for facility {} on {}",
+                    parkingList.size(),
+                    facilityId,
+                    day);
         }
     }
 
-    private ParkingBackfillDocument createInitialParkingBackfillState(int facilityId) {
-        ParkingBackfillDocument parkingBackfillDocument = new ParkingBackfillDocument();
-
-        parkingBackfillDocument.setFacilityId(facilityId);
-        parkingBackfillDocument.setBackfillComplete(false);
-        parkingBackfillDocument.setBackfillInProgress(false);
-        parkingBackfillDocument.setLastProcessedDate(null);
-        parkingBackfillDocument.setUpdatedAt(Instant.now());
-
-        return parkingBackfillRepository.save(parkingBackfillDocument);
+    private ParkingBackfillDocument getOrCreateBackfillState(int facilityId) {
+        return parkingBackfillRepository
+                .findById(facilityId)
+                .orElseGet(
+                        () -> {
+                            ParkingBackfillDocument state = new ParkingBackfillDocument();
+                            state.setFacilityId(facilityId);
+                            state.setBackfillComplete(false);
+                            state.setUpdatedAt(Instant.now());
+                            return parkingBackfillRepository.save(state);
+                        });
     }
 
-    private List<ParkingResponse> getFullList() {
+    private boolean isOutOfRange(ParkingBackfillDocument state) {
+        LocalDate last = state.getLastProcessedDate();
+        return last != null && !last.isAfter(BACKFILL_START_DATE);
+    }
+
+    private LocalDate determineNextDay(ParkingBackfillDocument state) {
+        if (state.getLastProcessedDate() == null) {
+            return LocalDate.now();
+        }
+        return state.getLastProcessedDate().minusDays(1);
+    }
+
+    private void markProgress(ParkingBackfillDocument state, LocalDate day) {
+        state.setLastProcessedDate(day);
+        state.setUpdatedAt(Instant.now());
+        parkingBackfillRepository.save(state);
+    }
+
+    private void markBackfillComplete(ParkingBackfillDocument state, LocalDate day) {
+        state.setBackfillComplete(true);
+        state.setBackfillUntilDate(day);
+        state.setUpdatedAt(Instant.now());
+        parkingBackfillRepository.save(state);
+    }
+
+    private List<Parking> fetchActiveFullList() {
+        return fetchFullList().stream()
+                .map(parkingResponseMapper::toParking)
+                .filter(p -> !DISABLED_FACILITIES.contains(p.facilityId()))
+                .toList();
+    }
+
+    private void saveAll(List<Parking> parkingList) {
+        List<ParkingDocument> documents =
+                parkingList.stream().map(this::toParkingDocument).toList();
+        parkingRepository.saveAll(documents);
+    }
+
+    private ParkingDocument toParkingDocument(Parking parking) {
+        ParkingDocument doc = parkingDocumentMapper.toParkingDocument(parking);
+        doc.setId(parkingIdStrategy.generateId(parking.facilityId(), parking.sourceTimestamp()));
+        return doc;
+    }
+
+    private List<ParkingResponse> fetchFullList() {
         return parkingRestClient
                 .get()
                 .uri("/full-list")
@@ -150,23 +141,27 @@ public class ParkingService {
                 .body(new ParameterizedTypeReference<>() {});
     }
 
-    private List<ParkingResponse> getHistory(int facilityId, LocalDate eventDate) {
-        return parkingRestClient
-                .get()
-                .uri(
-                        uriBuilder ->
-                                uriBuilder
-                                        .path("/history")
-                                        .queryParam("facility", facilityId)
-                                        .queryParam("eventdate", eventDate)
-                                        .build())
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<ParkingResponse>>() {});
+    private List<Parking> fetchHistory(int facilityId, LocalDate eventDate) {
+        List<ParkingResponse> responses =
+                parkingRestClient
+                        .get()
+                        .uri(
+                                uriBuilder ->
+                                        uriBuilder
+                                                .path("/history")
+                                                .queryParam("facility", facilityId)
+                                                .queryParam("eventdate", eventDate)
+                                                .build())
+                        .retrieve()
+                        .body(new ParameterizedTypeReference<List<ParkingResponse>>() {});
+
+        assert responses != null;
+        return responses.stream().map(parkingResponseMapper::toParking).toList();
     }
 
-    private void sleep5Seconds() {
+    private void sleep() {
         try {
-            Thread.sleep(5000);
+            Thread.sleep(5_000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
