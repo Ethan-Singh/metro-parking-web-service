@@ -2,12 +2,8 @@
 spring:
   application:
     name: metro-parking-web-service
-  data:
-    mongodb:
-      host: localhost
-      port: 27017
-      database: parking
-      auto-index-creation: true
+  mongodb:
+    uri: mongodb://localhost:27017/metro-parking-database
 logging:
   level:
     root: INFO
