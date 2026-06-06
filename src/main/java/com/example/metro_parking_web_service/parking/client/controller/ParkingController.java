@@ -25,10 +25,4 @@ class ParkingController {
     public ResponseEntity<String> parkingHistory(HttpServletRequest request) {
         return ResponseEntity.ok().body("World");
     }
-
-    @GetMapping("/backfill")
-    public ResponseEntity<String> parkingBackfill(HttpServletRequest request) {
-        parkingService.backfillAll();
-        return ResponseEntity.ok().body("Backfilling in progress");
-    }
 }
