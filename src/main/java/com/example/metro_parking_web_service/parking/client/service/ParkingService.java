@@ -15,7 +15,6 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,9 +29,6 @@ public class ParkingService {
     private final ParkingIdStrategy parkingIdStrategy;
     private final ParkingRepository parkingRepository;
     private final ParkingBackfillRepository parkingBackfillRepository;
-
-    @Value("${external-server.parking.backfill-start-date}")
-    LocalDate BACKFILL_START_DATE;
 
     public void syncAll() {
         List<Parking> parkingList =
@@ -64,7 +60,8 @@ public class ParkingService {
         log.info("backfill.start facilityId={}", facilityId);
 
         ParkingBackfillDocument parkingBackfillDocument = findOrCreateBackfill(facilityId);
-        if (parkingBackfillDocument.isBackfillComplete() || isOutOfRange(parkingBackfillDocument)) {
+        if (parkingBackfillDocument.isBackfillComplete()
+                || parkingPolicy.isBeforeBackfillWindow(parkingBackfillDocument)) {
             return;
         }
 
@@ -128,11 +125,6 @@ public class ParkingService {
                             parkingBackfillDocument.setUpdatedAt(Instant.now());
                             return parkingBackfillDocument;
                         });
-    }
-
-    private boolean isOutOfRange(ParkingBackfillDocument parkingBackfillDocument) {
-        LocalDate last = parkingBackfillDocument.getLastProcessedDate();
-        return last != null && !last.isAfter(BACKFILL_START_DATE);
     }
 
     private LocalDate calculateNextDay(ParkingBackfillDocument parkingBackfillDocument) {
