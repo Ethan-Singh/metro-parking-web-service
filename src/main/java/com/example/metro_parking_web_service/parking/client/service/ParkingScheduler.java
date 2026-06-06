@@ -16,11 +16,11 @@ class ParkingScheduler {
 
     @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
     private void sync() {
-        parkingService.parkingSyncAll();
+        parkingService.syncAll();
     }
 
     @Scheduled(cron = "0 0 2 * * *")
     private void backfill() {
-        parkingService.parkingBackfillAll();
+        parkingService.backfillAll();
     }
 }
