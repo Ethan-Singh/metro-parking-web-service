@@ -13,7 +13,6 @@ public class ParkingBackfillDocument {
 
     @Id private int facilityId;
     private LocalDate lastProcessedDate;
-    private LocalDate backfillUntilDate;
-    private boolean backfillComplete;
+    private boolean complete;
     private Instant updatedAt;
 }

@@ -23,7 +23,7 @@ public class ParkingPolicy {
         return !DISABLED_FACILITIES.contains(parking.facilityId());
     }
 
-    public boolean isBeforeBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
+    public boolean isOutsideBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
         LocalDate last = parkingBackfillDocument.getLastProcessedDate();
         return last != null && !last.isAfter(BACKFILL_WINDOW);
     }

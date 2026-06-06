@@ -39,25 +39,25 @@ class ParkingPolicyTest {
     }
 
     @Test
-    void isBeforeBackfillWindow_shouldReturnFalse_whenLastDateAfterStart() {
+    void isOutsideBackfillWindow_shouldReturnFalse_whenLastDateAfterStart() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
         backfillDocument.setLastProcessedDate(LocalDate.of(2025, 1, 2));
 
-        assertFalse(parkingPolicy.isBeforeBackfillWindow(backfillDocument));
+        assertFalse(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
     }
 
     @Test
-    void isBeforeBackfillWindow_shouldReturnTrue_whenLastDateBeforeOrEqualStart() {
+    void isOutsideBackfillWindow_shouldReturnTrue_whenLastDateOutsideOrEqualStart() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
         backfillDocument.setLastProcessedDate(LocalDate.of(2024, 12, 31));
 
-        assertTrue(parkingPolicy.isBeforeBackfillWindow(backfillDocument));
+        assertTrue(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
     }
 
     @Test
-    void isBeforeBackfillWindow_shouldReturnFalse_whenLastDateNull() {
+    void isOutsideBackfillWindow_shouldReturnFalse_whenLastDateNull() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
 
-        assertFalse(parkingPolicy.isBeforeBackfillWindow(backfillDocument));
+        assertFalse(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
     }
 }

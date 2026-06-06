@@ -31,52 +31,73 @@ public class ParkingService {
     private final ParkingBackfillRepository parkingBackfillRepository;
 
     public void syncAll() {
+        log.info("sync.all.start");
+
         List<Parking> parkingList =
                 parkingClient.fetchFullList().stream()
                         .map(parkingResponseMapper::toParking)
                         .filter(parkingPolicy::isParkingAllowed)
                         .toList();
+        log.info("sync.all.fetched count={}", parkingList.size());
+
         if (parkingList.isEmpty()) {
+            log.warn("sync.all.empty.skip");
             return;
         }
 
         saveParkings(parkingList);
+        log.info("sync.all.complete count={}", parkingList.size());
     }
 
     public void backfillAll() {
+        log.info("backfill.all.start");
+
         List<Integer> facilityIds =
                 parkingClient.fetchFullList().stream()
                         .map(ParkingResponse::facilityId)
                         .map(Integer::parseInt)
                         .distinct()
                         .toList();
-        log.info("backfill.all.start facilities={}", facilityIds.size());
+        log.info("backfill.all.fetched facilities={}", facilityIds.size());
 
-        facilityIds.forEach(
-                facilityId -> {
-                    try {
-                        backfillFacility(facilityId);
-                    } catch (Exception e) {
-                        log.error("backfill.failed facilityId={}", facilityId, e);
-                    }
+        for (int facilityId : facilityIds) {
+            log.info("backfill.all.processing facilityId={}", facilityId);
 
-                    sleep();
-                });
+            try {
+                backfillFacility(facilityId);
+            } catch (Exception e) {
+                log.error("backfill.failed facilityId={}", facilityId, e);
+            }
 
-        log.info("backfill.all.complete");
+            sleep();
+        }
+
+        log.info("backfill.all.complete facilities={}", facilityIds.size());
     }
 
     void backfillFacility(int facilityId) {
-        log.info("backfill.start facilityId={}", facilityId);
+        ParkingBackfillDocument backfillDocument = findOrCreateBackfill(facilityId);
+        boolean isOutsideWindow = parkingPolicy.isOutsideBackfillWindow(backfillDocument);
+        log.info(
+                "backfill.state facilityId={} isComplete={} isOutsideWindow={}"
+                        + " lastProcessedDate={}",
+                facilityId,
+                backfillDocument.isComplete(),
+                isOutsideWindow,
+                backfillDocument.getLastProcessedDate());
 
-        ParkingBackfillDocument parkingBackfillDocument = findOrCreateBackfill(facilityId);
-        if (parkingBackfillDocument.isBackfillComplete()
-                || parkingPolicy.isBeforeBackfillWindow(parkingBackfillDocument)) {
+        if (backfillDocument.isComplete()) {
+            log.debug("backfill.skip.complete facilityId={}", facilityId);
             return;
         }
 
-        LocalDate eventDate = calculateNextDay(parkingBackfillDocument);
-        log.info("backfill.history facilityId={} eventDate={}", facilityId, eventDate);
+        if (isOutsideWindow) {
+            log.debug("backfill.skip.isOutsideWindow facilityId={}", facilityId);
+            return;
+        }
+
+        LocalDate eventDate = calculateNextDay(backfillDocument);
+        log.info("backfill.fetch facilityId={} eventDate={}", facilityId, eventDate);
 
         List<Parking> parkingList =
                 parkingClient.fetchHistory(facilityId, eventDate).stream()
@@ -84,19 +105,18 @@ public class ParkingService {
                         .filter(parkingPolicy::isParkingAllowed)
                         .toList();
         if (parkingList.isEmpty()) {
-            parkingBackfillDocument.setBackfillComplete(true);
-            parkingBackfillDocument.setBackfillUntilDate(eventDate);
-            saveBackfill(parkingBackfillDocument);
-            log.warn("history.empty facilityId={} date={}", facilityId, eventDate);
+            log.warn("backfill.empty facilityId={} eventDate={}", facilityId, eventDate);
+            backfillDocument.setLastProcessedDate(eventDate);
+            saveBackfill(backfillDocument);
             return;
         }
 
         saveParkings(parkingList);
-        parkingBackfillDocument.setLastProcessedDate(eventDate);
-        saveBackfill(parkingBackfillDocument);
+        backfillDocument.setLastProcessedDate(eventDate);
+        saveBackfill(backfillDocument);
         log.info(
-                "backfill.imported facilityId={} date={} records={}",
-                parkingBackfillDocument.getFacilityId(),
+                "backfill.progress facilityId={} date={} records={}",
+                facilityId,
                 eventDate,
                 parkingList.size());
     }
@@ -119,10 +139,10 @@ public class ParkingService {
         parkingRepository.saveAll(parkingDocuments);
     }
 
-    private void saveBackfill(ParkingBackfillDocument parkingBackfillDocument) {
-        parkingBackfillDocument.setUpdatedAt(Instant.now());
+    private void saveBackfill(ParkingBackfillDocument backfillDocument) {
+        backfillDocument.setUpdatedAt(Instant.now());
 
-        parkingBackfillRepository.save(parkingBackfillDocument);
+        parkingBackfillRepository.save(backfillDocument);
     }
 
     private ParkingBackfillDocument findOrCreateBackfill(int facilityId) {
@@ -130,20 +150,20 @@ public class ParkingService {
                 .findById(facilityId)
                 .orElseGet(
                         () -> {
-                            ParkingBackfillDocument parkingBackfillDocument =
+                            ParkingBackfillDocument backfillDocument =
                                     new ParkingBackfillDocument();
-                            parkingBackfillDocument.setFacilityId(facilityId);
-                            parkingBackfillDocument.setBackfillComplete(false);
-                            parkingBackfillDocument.setUpdatedAt(Instant.now());
-                            return parkingBackfillDocument;
+                            backfillDocument.setFacilityId(facilityId);
+                            backfillDocument.setComplete(false);
+                            backfillDocument.setUpdatedAt(Instant.now());
+                            return backfillDocument;
                         });
     }
 
-    private LocalDate calculateNextDay(ParkingBackfillDocument parkingBackfillDocument) {
-        if (parkingBackfillDocument.getLastProcessedDate() == null) {
+    private LocalDate calculateNextDay(ParkingBackfillDocument backfillDocument) {
+        if (backfillDocument.getLastProcessedDate() == null) {
             return LocalDate.now();
         }
-        return parkingBackfillDocument.getLastProcessedDate().minusDays(1);
+        return backfillDocument.getLastProcessedDate().minusDays(1);
     }
 
     private void sleep() {
