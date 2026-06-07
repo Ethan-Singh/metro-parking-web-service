@@ -46,7 +46,7 @@ public class ParkingAnalyticsService {
         return switch (granularity) {
             case TEN_MINUTE -> {
                 List<ParkingDocument> raw =
-                        analyticsRepository.findRawByFacilityAndDate(facilityId, date);
+                        analyticsRepository.findTenMinuteAveragesByFacilityAndDate(facilityId, date);
                 yield new ParkingHistoryResponse(
                         slug, date, granularity, raw.stream().map(this::toDataPoint).toList());
             }

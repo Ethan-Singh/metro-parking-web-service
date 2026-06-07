@@ -45,13 +45,14 @@ public class ParkingAnalyticsRepository {
                                 .first("occupancy")
                                 .as("occupancy")
                                 .first("sourceTimestamp")
-                                .as("sourceTimestamp"));
+                                .as("sourceTimestamp"),
+                        Aggregation.sort(Sort.Direction.ASC, "facilityName"));
         AggregationResults<ParkingDocument> results =
                 mongoTemplate.aggregate(agg, "parkingDocument", ParkingDocument.class);
         return results.getMappedResults();
     }
 
-    public List<ParkingDocument> findRawByFacilityAndDate(int facilityId, LocalDate date) {
+    public List<ParkingDocument> findTenMinuteAveragesByFacilityAndDate(int facilityId, LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
