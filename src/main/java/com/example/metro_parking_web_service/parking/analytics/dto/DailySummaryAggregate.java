@@ -6,6 +6,6 @@ import java.time.LocalDateTime;
 public record DailySummaryAggregate(
         LocalDateTime timestamp,
         int spots,
-        double avgOccupancyRate,
+        double avgOccupancy,
         int peakOccupancy,
         int minOccupancy) {}

@@ -107,18 +107,20 @@ public class ParkingAnalyticsRepository {
                                         .and("sourceTimestamp")
                                         .gte(since)),
                         Aggregation.project("occupancy", "spots", "sourceTimestamp")
-                                .and(DateOperators.dateOf("sourceTimestamp").dayOfYear())
+                                .and(
+                                        DateOperators.DateTrunc.truncateValueOf("sourceTimestamp")
+                                                .to("day"))
                                 .as("day"),
                         Aggregation.group("day")
                                 .avg("occupancy")
-                                .as("avgOccupancyRate")
+                                .as("avgOccupancy")
                                 .max("occupancy")
                                 .as("peakOccupancy")
                                 .min("occupancy")
                                 .as("minOccupancy")
                                 .first("spots")
                                 .as("spots")
-                                .first("sourceTimestamp")
+                                .first("day")
                                 .as("timestamp"),
                         Aggregation.sort(Sort.Direction.ASC, "_id"));
 

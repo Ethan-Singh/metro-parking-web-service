@@ -148,7 +148,7 @@ public class ParkingAnalyticsService {
     }
 
     private DataPoint toDataPoint(DailySummaryAggregate point) {
-        int occupancy = (int) Math.round(point.avgOccupancyRate());
+        int occupancy = (int) Math.round(point.avgOccupancy());
         int available = Math.max(0, point.spots() - occupancy);
         double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
 
