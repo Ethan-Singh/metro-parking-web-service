@@ -10,6 +10,7 @@ import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistor
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingPredictionResponse;
 import com.example.metro_parking_web_service.parking.analytics.dto.PredictionPoint;
+import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOverviewMapper;
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import com.example.metro_parking_web_service.parking.client.service.ParkingSlugService;
@@ -32,44 +33,21 @@ public class ParkingAnalyticsService {
     private final ParkingAnalyticsProperties analyticsProperties;
     private final ParkingSlugService slugService;
     private final ParkingStatusService statusService;
+    private final ParkingOverviewMapper overviewMapper;
 
     public List<ParkingOverviewResponse> getAllOverviews() {
-        return analyticsRepository.findAllLatest().stream().map(this::toOverview).toList();
+        return analyticsRepository.findAllLatest().stream()
+                .map(overviewMapper::toOverview)
+                .toList();
     }
 
     public ParkingOverviewResponse getOverview(String slug) {
         int facilityId = slugService.facilityIdFromSlug(slug);
-        ParkingDocument doc = analyticsRepository.findLatestByFacilityId(facilityId);
-        if (doc == null) {
+        ParkingDocument document = analyticsRepository.findLatestByFacilityId(facilityId);
+        if (document == null) {
             throw new IllegalArgumentException("No data found for facility: " + slug);
         }
-        return toOverview(doc);
-    }
-
-    private ParkingOverviewResponse toOverview(ParkingDocument doc) {
-        int available = Math.max(0, doc.getSpots() - doc.getOccupancy());
-        double rate = doc.getSpots() > 0 ? (double) doc.getOccupancy() / doc.getSpots() : 0.0;
-
-        AvailabilityStatus status = statusService.resolveStatus(available, doc.getSpots());
-        String statusLabel = statusService.resolveStatusLabel(status);
-        String slug = slugService.toSlug(doc.getFacilityName());
-        String ariaLabel =
-                String.format(
-                        "%s, %d of %d spots available, status: %s",
-                        doc.getFacilityName(), available, doc.getSpots(), statusLabel);
-
-        return new ParkingOverviewResponse(
-                slug,
-                doc.getFacilityName(),
-                doc.getSpots(),
-                doc.getOccupancy(),
-                available,
-                rate,
-                status,
-                statusLabel,
-                APPROXIMATION,
-                doc.getSourceTimestamp(),
-                ariaLabel);
+        return overviewMapper.toOverview(document);
     }
 
     public ParkingHistoryResponse getHistory(String slug, LocalDate date, Granularity granularity) {
@@ -155,9 +133,9 @@ public class ParkingAnalyticsService {
         return new ParkingPredictionResponse(slug, predictions);
     }
 
-    private DataPoint toDataPoint(ParkingDocument doc) {
-        int available = Math.max(0, doc.getSpots() - doc.getOccupancy());
-        double rate = doc.getSpots() > 0 ? (double) doc.getOccupancy() / doc.getSpots() : 0.0;
-        return new DataPoint(doc.getSourceTimestamp(), doc.getOccupancy(), available, rate);
+    private DataPoint toDataPoint(ParkingDocument document) {
+        int available = Math.max(0, document.getSpots() - document.getOccupancy());
+        double rate = document.getSpots() > 0 ? (double) document.getOccupancy() / document.getSpots() : 0.0;
+        return new DataPoint(document.getSourceTimestamp(), document.getOccupancy(), available, rate);
     }
 }
