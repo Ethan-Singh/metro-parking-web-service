@@ -2,7 +2,7 @@
 package com.example.metro_parking_web_service.parking.analytics.dto;
 
 public enum Granularity {
-    RAW_10MIN,
+    TEN_MINUTE,
     HOURLY,
     DAILY
 }

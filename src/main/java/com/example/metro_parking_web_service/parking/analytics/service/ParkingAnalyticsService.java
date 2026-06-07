@@ -2,18 +2,10 @@
 package com.example.metro_parking_web_service.parking.analytics.service;
 
 import com.example.metro_parking_web_service.parking.analytics.config.ParkingAnalyticsProperties;
-import com.example.metro_parking_web_service.parking.analytics.dto.AvailabilityStatus;
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryPoint;
-import com.example.metro_parking_web_service.parking.analytics.dto.DataPoint;
-import com.example.metro_parking_web_service.parking.analytics.dto.Granularity;
-import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistoryResponse;
-import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
-import com.example.metro_parking_web_service.parking.analytics.dto.ParkingPredictionResponse;
-import com.example.metro_parking_web_service.parking.analytics.dto.PredictionPoint;
+import com.example.metro_parking_web_service.parking.analytics.dto.*;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOverviewMapper;
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
-import com.example.metro_parking_web_service.parking.client.service.ParkingSlugService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -52,7 +44,7 @@ public class ParkingAnalyticsService {
         int facilityId = slugService.facilityIdFromSlug(slug);
 
         return switch (granularity) {
-            case RAW_10MIN -> {
+            case TEN_MINUTE -> {
                 List<ParkingDocument> raw =
                         analyticsRepository.findRawByFacilityAndDate(facilityId, date);
                 yield new ParkingHistoryResponse(
@@ -60,13 +52,19 @@ public class ParkingAnalyticsService {
             }
             case HOURLY -> {
                 List<DataPoint> hourly =
-                        analyticsRepository.findHourlyAveragesByFacilityAndDate(facilityId, date);
+                        analyticsRepository
+                                .findHourlyAveragesByFacilityAndDate(facilityId, date)
+                                .stream()
+                                .map(this::toDataPoint)
+                                .toList();
+
                 yield new ParkingHistoryResponse(slug, date, granularity, hourly);
             }
             case DAILY -> {
-                List<DailySummaryPoint> daily =
-                        analyticsRepository.findDailySummary(facilityId, 30);
-                // Return as DataPoint list for consistent shape; daily detail in DailySummaryPoint
+                List<DataPoint> daily =
+                        analyticsRepository.findDailySummary(facilityId, 30).stream()
+                                .map(this::toDataPoint)
+                                .toList();
                 List<DataPoint> points =
                         daily.stream()
                                 .map(
@@ -139,5 +137,21 @@ public class ParkingAnalyticsService {
                         : 0.0;
         return new DataPoint(
                 document.getSourceTimestamp(), document.getOccupancy(), available, rate);
+    }
+
+    private DataPoint toDataPoint(HourlyOccupancyAggregate point) {
+        int occupancy = (int) Math.round(point.occupancy());
+        int available = Math.max(0, point.spots() - occupancy);
+        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
+
+        return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
+    }
+
+    private DataPoint toDataPoint(DailySummaryAggregate point) {
+        int occupancy = (int) Math.round(point.avgOccupancyRate());
+        int available = Math.max(0, point.spots() - occupancy);
+        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
+
+        return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
 }

@@ -1,5 +1,5 @@
 /* (MISTLETOE MACHINATIONS)2026 */
-package com.example.metro_parking_web_service.parking.client.service;
+package com.example.metro_parking_web_service.parking.analytics.service;
 
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.text.Normalizer;

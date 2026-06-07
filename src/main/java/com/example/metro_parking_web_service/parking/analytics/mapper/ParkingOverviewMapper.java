@@ -5,9 +5,9 @@ import static com.example.metro_parking_web_service.parking.analytics.service.Pa
 
 import com.example.metro_parking_web_service.parking.analytics.dto.AvailabilityStatus;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
+import com.example.metro_parking_web_service.parking.analytics.service.ParkingSlugService;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingStatusService;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
-import com.example.metro_parking_web_service.parking.client.service.ParkingSlugService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

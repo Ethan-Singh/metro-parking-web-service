@@ -1,8 +1,8 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.repository;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryPoint;
-import com.example.metro_parking_web_service.parking.analytics.dto.DataPoint;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
+import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -66,7 +66,8 @@ public class ParkingAnalyticsRepository {
         return mongoTemplate.find(query, ParkingDocument.class);
     }
 
-    public List<DataPoint> findHourlyAveragesByFacilityAndDate(int facilityId, LocalDate date) {
+    public List<HourlyOccupancyAggregate> findHourlyAveragesByFacilityAndDate(
+            int facilityId, LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
@@ -90,10 +91,12 @@ public class ParkingAnalyticsRepository {
                                 .as("timestamp"),
                         Aggregation.sort(Sort.Direction.ASC, "_id"));
 
-        return mongoTemplate.aggregate(agg, "parkingDocument", DataPoint.class).getMappedResults();
+        return mongoTemplate
+                .aggregate(agg, "parkingDocument", HourlyOccupancyAggregate.class)
+                .getMappedResults();
     }
 
-    public List<DailySummaryPoint> findDailySummary(int facilityId, int days) {
+    public List<DailySummaryAggregate> findDailySummary(int facilityId, int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
 
         Aggregation agg =
@@ -120,7 +123,7 @@ public class ParkingAnalyticsRepository {
                         Aggregation.sort(Sort.Direction.ASC, "_id"));
 
         return mongoTemplate
-                .aggregate(agg, "parkingDocument", DailySummaryPoint.class)
+                .aggregate(agg, "parkingDocument", DailySummaryAggregate.class)
                 .getMappedResults();
     }
 
