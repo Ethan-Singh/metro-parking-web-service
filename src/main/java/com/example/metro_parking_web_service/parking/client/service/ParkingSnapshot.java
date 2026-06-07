@@ -3,7 +3,6 @@ package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import java.util.List;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,19 @@ public class ParkingSnapshot {
 
     public void refresh() {
         List<ParkingResponse> fetched = parkingClient.fetchFullList();
-        this.responses = Objects.requireNonNullElse(fetched, List.of());
-        log.info("snapshot.refresh count={}", this.responses.size());
+
+        if (fetched == null) {
+            this.responses = List.of();
+            log.warn(
+                    "event=parking_snapshot_refresh decision=defaulted reason=null_response"
+                            + " storedSize=0");
+            return;
+        }
+
+        this.responses = fetched;
+        log.info(
+                "event=parking_snapshot_refresh decision=success storedSize={} sourceSize={}",
+                fetched.size(),
+                fetched.size());
     }
 }

@@ -3,7 +3,6 @@ package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
-import com.example.metro_parking_web_service.parking.client.dto.ParkingResponseMapper;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
@@ -22,14 +21,13 @@ public class ParkingBackfillService {
 
     private final ParkingPolicy parkingPolicy;
     private final ParkingClient parkingClient;
-    private final ParkingResponseMapper parkingResponseMapper;
     private final ParkingIngestService parkingIngestService;
     private final ParkingBackfillRepository parkingBackfillRepository;
     private final ParkingBackfillCursorRepository parkingBackfillCursorRepository;
 
     public void backfillNext(List<ParkingResponse> responses) {
         if (responses == null || responses.isEmpty()) {
-            log.warn("backfill.skip");
+            log.warn("event=backfill_next decision=skip reason=empty_responses");
             return;
         }
 
@@ -43,60 +41,68 @@ public class ParkingBackfillService {
                         .toList();
 
         if (facilityIds.isEmpty()) {
+            log.warn("event=backfill_next decision=skip reason=no_valid_facility_ids");
             return;
         }
 
         int facilityId = resolveNextFacilityId(facilityIds);
-        log.info("backfill.tick facilityId={}", facilityId);
+        log.info(
+                "event=backfill_next decision=process facilityId={} facilityCount={}",
+                facilityId,
+                facilityIds.size());
 
         try {
             backfillFacility(facilityId);
         } catch (Exception e) {
-            log.error("backfill.failed facilityId={}", facilityId, e);
+            log.error(
+                    "event=backfill_next decision=failed facilityId={} reason=exception",
+                    facilityId,
+                    e);
         }
 
         advanceCursor(facilityId);
     }
 
     void backfillFacility(int facilityId) {
-        ParkingBackfillDocument state = findOrCreateBackfill(facilityId);
-
+        ParkingBackfillDocument document = findOrCreateBackfill(facilityId);
         log.debug(
-                "backfill.state facilityId={} isComplete={} isOutsideWindow={}"
+                "event=backfill_facility_state facilityId={} complete={} outsideWindow={}"
                         + " lastProcessedDate={}",
                 facilityId,
-                state.isComplete(),
-                parkingPolicy.isOutsideBackfillWindow(state),
-                state.getLastProcessedDate());
+                document.isComplete(),
+                parkingPolicy.isOutsideBackfillWindow(document),
+                document.getLastProcessedDate());
 
-        if (state.isComplete()) {
-            log.debug("backfill.skip.complete facilityId={}", facilityId);
+        if (document.isComplete()) {
+            log.info(
+                    "event=backfill_facility decision=skip facilityId={} reason=complete",
+                    facilityId);
             return;
         }
 
-        if (parkingPolicy.isOutsideBackfillWindow(state)) {
-            log.debug("backfill.skip.outsideWindow facilityId={}", facilityId);
+        if (parkingPolicy.isOutsideBackfillWindow(document)) {
+            log.info(
+                    "event=backfill_facility decision=skip facilityId={} reason=outside_window",
+                    facilityId);
             return;
         }
 
-        LocalDate eventDate = calculateNextDay(state);
-        log.info("backfill.fetch facilityId={} eventDate={}", facilityId, eventDate);
-
+        LocalDate eventDate = calculateNextDay(document);
+        log.info("event=backfill_fetch facilityId={} eventDate={}", facilityId, eventDate);
         List<ParkingResponse> history = parkingClient.fetchHistory(facilityId, eventDate);
 
         if (!history.isEmpty()) {
             parkingIngestService.ingest(history);
-            log.info(
-                    "backfill.processed facilityId={} date={} records={}",
-                    facilityId,
-                    eventDate,
-                    history.size());
+            log.info("event=backfill_fetch facilityId={} eventDate={}", facilityId, eventDate);
         } else {
-            log.warn("backfill.empty facilityId={} eventDate={}", facilityId, eventDate);
+            log.warn(
+                    "event=backfill_processed facilityId={} eventDate={} decision=no_data",
+                    facilityId,
+                    eventDate);
         }
 
-        state.setLastProcessedDate(eventDate);
-        saveBackfillState(state);
+        document.setLastProcessedDate(eventDate);
+        saveBackfillState(document);
     }
 
     private int resolveNextFacilityId(List<Integer> facilityIds) {
@@ -105,7 +111,6 @@ public class ParkingBackfillService {
                         .findById("cursor")
                         .map(ParkingBackfillCursorDocument::getLastFacilityId)
                         .orElse(-1);
-
         return facilityIds.stream()
                 .filter(id -> id > lastId)
                 .findFirst()

@@ -27,7 +27,9 @@ public class ParkingIngestService {
 
     public void ingest(List<ParkingResponse> responses) {
         if (responses == null || responses.isEmpty()) {
-            log.warn("ingest.skip responses={}", responses == null ? "null" : "empty");
+            log.warn(
+                    "event=parking_ingest decision=skip reason={}",
+                    responses == null ? "null_responses" : "empty_responses");
             return;
         }
 
@@ -39,10 +41,16 @@ public class ParkingIngestService {
                         .toList();
 
         if (filtered.isEmpty()) {
-            log.warn("ingest.filtered.empty originalSize={}", responses.size());
+            log.warn(
+                    "event=parking_ingest decision=skip reason=no_eligible_records inputSize={}",
+                    responses.size());
             return;
         }
 
+        log.info(
+                "event=parking_ingest decision=save inputSize={} filteredSize={}",
+                responses.size(),
+                filtered.size());
         save(filtered);
     }
 
@@ -55,8 +63,9 @@ public class ParkingIngestService {
                                             parkingDocumentMapper.toParkingDocument(parking);
                                     if (doc == null) {
                                         log.warn(
-                                                "parkingDocumentMapper.null facilityId={}"
-                                                        + " sourceTimestamp={}",
+                                                "event=parking_document_mapping decision=skip"
+                                                    + " reason=mapper_returned_null facilityId={}"
+                                                    + " sourceTimestamp={}",
                                                 parking.facilityId(),
                                                 parking.sourceTimestamp());
                                         return null;
@@ -71,11 +80,16 @@ public class ParkingIngestService {
                         .toList();
 
         if (documents.isEmpty()) {
-            log.warn("save.noValidDocuments inputSize={}", parkingList.size());
+            log.warn(
+                    "event=parking_save decision=skip reason=no_valid_documents inputSize={}",
+                    parkingList.size());
             return;
         }
 
         parkingRepository.saveAll(documents);
-        log.info("save.complete inputSize={} savedSize={}", parkingList.size(), documents.size());
+        log.info(
+                "event=parking_save decision=success inputSize={} savedSize={}",
+                parkingList.size(),
+                documents.size());
     }
 }

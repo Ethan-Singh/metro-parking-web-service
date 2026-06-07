@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
-import com.example.metro_parking_web_service.parking.client.dto.ParkingResponseMapper;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
@@ -29,7 +28,6 @@ class ParkingBackfillServiceTest {
 
     @Mock private ParkingPolicy parkingPolicy;
     @Mock private ParkingClient parkingClient;
-    @Mock private ParkingResponseMapper parkingResponseMapper;
     @Mock private ParkingIngestService parkingIngestService;
     @Mock private ParkingBackfillRepository parkingBackfillRepository;
     @Mock private ParkingBackfillCursorRepository parkingBackfillCursorRepository;
