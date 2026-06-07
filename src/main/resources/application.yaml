@@ -36,4 +36,4 @@ external-server:
     api: "${PARKING_API:}"
     apikey: "${PARKING_APIKEY:}"
     disabled-facilities: "1,2,3,4,5"
-    backfill-window: 2025-05-16
+    backfill-window: 2026-05-01

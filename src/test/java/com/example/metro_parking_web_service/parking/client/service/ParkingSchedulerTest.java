@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -16,33 +17,35 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ParkingSchedulerTest {
 
-    @Mock private ParkingService parkingService;
     @Mock private ParkingSnapshot parkingSnapshot;
+    @Mock private ParkingIngestService parkingIngestService;
+    @Mock private ParkingBackfillService parkingBackfillService;
 
-    @InjectMocks private ParkingScheduler scheduler;
+    @InjectMocks private ParkingScheduler parkingScheduler;
 
     @Test
-    void sync_shouldCallService() throws Exception {
-        when(parkingSnapshot.getParkingList()).thenReturn(List.of());
+    void sync_shouldRefreshSnapshotThenIngest() throws Exception {
+        when(parkingSnapshot.getResponses()).thenReturn(List.of());
 
-        Method method = ParkingScheduler.class.getDeclaredMethod("sync");
-        method.setAccessible(true);
-        method.invoke(scheduler);
+        invoke("sync");
 
         verify(parkingSnapshot).refresh();
-        verify(parkingSnapshot).getParkingList();
-        verify(parkingService).syncAll(anyList());
+        verify(parkingIngestService).ingest(anyList());
     }
 
     @Test
-    void backfill_shouldCallService() throws Exception {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1, 2, 3));
+    void backfill_shouldDelegateToBackfillService() throws Exception {
+        ParkingResponse response = org.mockito.Mockito.mock(ParkingResponse.class);
+        when(parkingSnapshot.getResponses()).thenReturn(List.of(response));
 
-        Method method = ParkingScheduler.class.getDeclaredMethod("backfill");
+        invoke("backfill");
+
+        verify(parkingBackfillService).backfillNext(anyList());
+    }
+
+    private void invoke(String methodName) throws Exception {
+        Method method = ParkingScheduler.class.getDeclaredMethod(methodName);
         method.setAccessible(true);
-        method.invoke(scheduler);
-
-        verify(parkingSnapshot).getFacilityIds();
-        verify(parkingService).backfillAll(anyList());
+        method.invoke(parkingScheduler);
     }
 }

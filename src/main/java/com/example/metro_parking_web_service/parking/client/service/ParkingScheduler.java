@@ -14,17 +14,18 @@ import org.springframework.stereotype.Component;
 @Profile("!test")
 class ParkingScheduler {
 
-    private final ParkingService parkingService;
     private final ParkingSnapshot parkingSnapshot;
+    private final ParkingIngestService parkingIngestService;
+    private final ParkingBackfillService parkingBackfillService;
 
     @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.SECONDS)
     void sync() {
         parkingSnapshot.refresh();
-        parkingService.syncAll(parkingSnapshot.getParkingList());
+        parkingIngestService.ingest(parkingSnapshot.getResponses());
     }
 
     @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
     void backfill() {
-        parkingService.backfillAll(parkingSnapshot.getFacilityIds());
+        parkingBackfillService.backfillNext(parkingSnapshot.getResponses());
     }
 }
