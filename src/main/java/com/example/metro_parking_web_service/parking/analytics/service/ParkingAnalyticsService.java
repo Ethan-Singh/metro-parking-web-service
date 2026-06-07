@@ -22,8 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import static com.example.metro_parking_web_service.parking.analytics.service.ParkingAnalyticsLabels.APPROXIMATION;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -135,7 +133,11 @@ public class ParkingAnalyticsService {
 
     private DataPoint toDataPoint(ParkingDocument document) {
         int available = Math.max(0, document.getSpots() - document.getOccupancy());
-        double rate = document.getSpots() > 0 ? (double) document.getOccupancy() / document.getSpots() : 0.0;
-        return new DataPoint(document.getSourceTimestamp(), document.getOccupancy(), available, rate);
+        double rate =
+                document.getSpots() > 0
+                        ? (double) document.getOccupancy() / document.getSpots()
+                        : 0.0;
+        return new DataPoint(
+                document.getSourceTimestamp(), document.getOccupancy(), available, rate);
     }
 }
