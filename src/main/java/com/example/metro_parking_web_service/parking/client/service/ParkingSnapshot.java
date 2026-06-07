@@ -19,7 +19,6 @@ public class ParkingSnapshot {
 
     public void refresh() {
         List<ParkingResponse> fetched = parkingClient.fetchFullList();
-
         if (fetched == null) {
             this.responses = List.of();
             log.warn(

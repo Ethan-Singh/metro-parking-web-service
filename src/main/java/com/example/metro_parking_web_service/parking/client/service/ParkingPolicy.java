@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ParkingPolicy {
 
-    @Value("#{'${external-server.parking.disabled-facilities}'.split(',')}")
+    @Value("#{'${external-server.parking.policy.disabled-facilities}'.split(',')}")
     private Set<Integer> DISABLED_FACILITIES;
 
-    @Value("${external-server.parking.backfill-window}")
+    @Value("${external-server.parking.policy.backfill-window}")
     LocalDate BACKFILL_WINDOW;
 
     public boolean isParkingAllowed(Parking parking) {

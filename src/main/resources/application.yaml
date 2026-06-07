@@ -35,5 +35,35 @@ external-server:
     base-url: "${PARKING_BASE_URL:}"
     api: "${PARKING_API:}"
     apikey: "${PARKING_APIKEY:}"
-    disabled-facilities: "1,2,3,4,5"
-    backfill-window: 2026-05-01
+    policy:
+      disabled-facilities: "1,2,3,4,5"
+      backfill-window: 2026-05-01
+    analytics:
+      almost-full-threshold: 0.1
+      prediction-weeks: 4
+resilience4j:
+  circuitbreaker:
+    instances:
+      parkingClient:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        slow-call-duration-threshold: 5s
+        slow-call-rate-threshold: 80
+        register-health-indicator: true
+  retry:
+    instances:
+      parkingClient:
+        max-attempts: 3
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+        - org.springframework.web.client.ResourceAccessException
+        - java.io.IOException
+  ratelimiter:
+    instances:
+      parkingClient:
+        limit-for-period: 10
+        limit-refresh-period: 5s
+        timeout-duration: 0s
