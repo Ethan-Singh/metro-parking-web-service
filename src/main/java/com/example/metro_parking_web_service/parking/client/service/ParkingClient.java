@@ -2,11 +2,13 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.decorators.Decorators;
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.retry.Retry;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -19,33 +21,52 @@ import org.springframework.web.client.RestClient;
 public class ParkingClient {
 
     private final RestClient restClient;
+    private final CircuitBreaker parkingCircuitBreaker;
+    private final Retry parkingRetry;
+    private final RateLimiter parkingRateLimiter;
 
-    @CircuitBreaker(name = "parkingClient", fallbackMethod = "fetchFullListFallback")
-    @Retry(name = "parkingClient")
-    @RateLimiter(name = "parkingClient")
     public List<ParkingResponse> fetchFullList() {
-        return restClient
-                .get()
-                .uri("/full-list")
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+
+        Supplier<List<ParkingResponse>> supplier =
+                () ->
+                        restClient
+                                .get()
+                                .uri("/full-list")
+                                .retrieve()
+                                .body(new ParameterizedTypeReference<>() {});
+
+        return Decorators.ofSupplier(supplier)
+                .withCircuitBreaker(parkingCircuitBreaker)
+                .withRetry(parkingRetry)
+                .withRateLimiter(parkingRateLimiter)
+                .withFallback(List.of(Exception.class), t -> List.of())
+                .decorate()
+                .get();
     }
 
-    @CircuitBreaker(name = "parkingClient", fallbackMethod = "fetchHistoryFallback")
-    @Retry(name = "parkingClient")
-    @RateLimiter(name = "parkingClient")
     public List<ParkingResponse> fetchHistory(int facilityId, LocalDate eventDate) {
-        return restClient
-                .get()
-                .uri(
-                        uriBuilder ->
-                                uriBuilder
-                                        .path("/history")
-                                        .queryParam("facility", facilityId)
-                                        .queryParam("eventdate", eventDate)
-                                        .build())
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+
+        Supplier<List<ParkingResponse>> supplier =
+                () ->
+                        restClient
+                                .get()
+                                .uri(
+                                        uriBuilder ->
+                                                uriBuilder
+                                                        .path("/history")
+                                                        .queryParam("facility", facilityId)
+                                                        .queryParam("eventdate", eventDate)
+                                                        .build())
+                                .retrieve()
+                                .body(new ParameterizedTypeReference<>() {});
+
+        return Decorators.ofSupplier(supplier)
+                .withCircuitBreaker(parkingCircuitBreaker)
+                .withRetry(parkingRetry)
+                .withRateLimiter(parkingRateLimiter)
+                .withFallback(List.of(Exception.class), t -> List.of())
+                .decorate()
+                .get();
     }
 
     private List<ParkingResponse> fetchFullListFallback(Throwable t) {

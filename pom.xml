@@ -36,11 +36,14 @@
 		<mapstruct-version>1.6.3</mapstruct-version>
 
 		<!-- resilience4j -->
-		<spring-cloud-starter-circuitbreaker-resilience4j-version>5.0.1</spring-cloud-starter-circuitbreaker-resilience4j-version>
 		<resilience4j-spring-boot3-version>2.3.0</resilience4j-spring-boot3-version>
+		<resilience4j-all>2.4.0</resilience4j-all>
 
 		<!-- bucket4j -->
 		<bucket4j-jdk17-core-version>8.19.0</bucket4j-jdk17-core-version>
+
+		<!-- wiremock -->
+		<wiremock-spring-boot-version>4.2.1</wiremock-spring-boot-version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -87,21 +90,28 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
-			<version>${spring-cloud-starter-circuitbreaker-resilience4j-version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-spring-boot3</artifactId>
 			<version>${resilience4j-spring-boot3-version}</version>
 		</dependency>
 
 		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-all</artifactId>
+			<version>${resilience4j-all}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j_jdk17-core</artifactId>
 			<version>${bucket4j-jdk17-core-version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.wiremock.integrations</groupId>
+			<artifactId>wiremock-spring-boot</artifactId>
+			<version>${wiremock-spring-boot-version}</version>
+			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
