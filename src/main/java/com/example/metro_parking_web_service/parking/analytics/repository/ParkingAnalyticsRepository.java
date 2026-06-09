@@ -52,7 +52,8 @@ public class ParkingAnalyticsRepository {
         return results.getMappedResults();
     }
 
-    public List<ParkingDocument> findTenMinuteAveragesByFacilityAndDate(int facilityId, LocalDate date) {
+    public List<ParkingDocument> findTenMinuteAveragesByFacilityAndDate(
+            int facilityId, LocalDate date) {
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end = date.plusDays(1).atStartOfDay();
 
@@ -90,7 +91,7 @@ public class ParkingAnalyticsRepository {
                                 .as("spots")
                                 .first("sourceTimestamp")
                                 .as("timestamp"),
-                        Aggregation.sort(Sort.Direction.ASC, "_id"));
+                        Aggregation.sort(Sort.Direction.ASC, "sourceTimestamp"));
 
         return mongoTemplate
                 .aggregate(agg, "parkingDocument", HourlyOccupancyAggregate.class)
@@ -123,7 +124,7 @@ public class ParkingAnalyticsRepository {
                                 .as("spots")
                                 .first("day")
                                 .as("timestamp"),
-                        Aggregation.sort(Sort.Direction.ASC, "_id"));
+                        Aggregation.sort(Sort.Direction.ASC, "sourceTimestamp"));
 
         return mongoTemplate
                 .aggregate(agg, "parkingDocument", DailySummaryAggregate.class)
