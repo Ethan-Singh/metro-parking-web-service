@@ -9,7 +9,6 @@ import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,22 +24,8 @@ public class ParkingBackfillService {
     private final ParkingBackfillRepository parkingBackfillRepository;
     private final ParkingBackfillCursorRepository parkingBackfillCursorRepository;
 
-    public void backfillNext(List<ParkingResponse> responses) {
-        if (responses == null || responses.isEmpty()) {
-            log.warn("event=backfill_next decision=skip reason=empty_responses");
-            return;
-        }
-
-        List<Integer> facilityIds =
-                responses.stream()
-                        .map(ParkingResponse::facilityId)
-                        .filter(Objects::nonNull)
-                        .map(Integer::parseInt)
-                        .distinct()
-                        .sorted()
-                        .toList();
-
-        if (facilityIds.isEmpty()) {
+    public void backfillNext(List<Integer> facilityIds) {
+        if (facilityIds == null || facilityIds.isEmpty()) {
             log.warn("event=backfill_next decision=skip reason=no_valid_facility_ids");
             return;
         }
@@ -61,48 +46,6 @@ public class ParkingBackfillService {
         }
 
         advanceCursor(facilityId);
-    }
-
-    void backfillFacility(int facilityId) {
-        ParkingBackfillDocument document = findOrCreateBackfill(facilityId);
-        log.debug(
-                "event=backfill_facility_state facilityId={} complete={} outsideWindow={}"
-                        + " lastProcessedDate={}",
-                facilityId,
-                document.isComplete(),
-                parkingPolicy.isOutsideBackfillWindow(document),
-                document.getLastProcessedDate());
-
-        if (document.isComplete()) {
-            log.info(
-                    "event=backfill_facility decision=skip facilityId={} reason=complete",
-                    facilityId);
-            return;
-        }
-
-        if (parkingPolicy.isOutsideBackfillWindow(document)) {
-            log.info(
-                    "event=backfill_facility decision=skip facilityId={} reason=outside_window",
-                    facilityId);
-            return;
-        }
-
-        LocalDate eventDate = calculateNextDay(document);
-        log.info("event=backfill_fetch facilityId={} eventDate={}", facilityId, eventDate);
-        List<ParkingResponse> history = parkingClient.fetchHistory(facilityId, eventDate);
-
-        if (!history.isEmpty()) {
-            parkingIngestService.ingest(history);
-            log.info("event=backfill_fetch facilityId={} eventDate={}", facilityId, eventDate);
-        } else {
-            log.warn(
-                    "event=backfill_processed facilityId={} eventDate={} decision=no_data",
-                    facilityId,
-                    eventDate);
-        }
-
-        document.setLastProcessedDate(eventDate);
-        saveBackfillState(document);
     }
 
     private int resolveNextFacilityId(List<Integer> facilityIds) {
@@ -127,6 +70,13 @@ public class ParkingBackfillService {
         parkingBackfillCursorRepository.save(cursor);
     }
 
+    void backfillFacility(int facilityId) {
+        ParkingBackfillDocument state = findOrCreateBackfill(facilityId);
+
+        if (fillForward(facilityId, state)) return;
+        fillBackward(facilityId, state);
+    }
+
     private ParkingBackfillDocument findOrCreateBackfill(int facilityId) {
         return parkingBackfillRepository
                 .findById(facilityId)
@@ -140,15 +90,64 @@ public class ParkingBackfillService {
                         });
     }
 
+    private boolean fillForward(int facilityId, ParkingBackfillDocument state) {
+        LocalDate nextForwardDay = nextForwardDay(state);
+        if (nextForwardDay == null) return false;
+
+        fetchAndSave(facilityId, nextForwardDay);
+        state.setLastForwardDate(nextForwardDay);
+        saveBackfillState(state);
+        log.info(
+                "event=backfill_facility decision=forward facilityId={} date={}",
+                facilityId,
+                nextForwardDay);
+        return true;
+    }
+
+    private LocalDate nextForwardDay(ParkingBackfillDocument state) {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate lastForward = state.getLastForwardDate();
+
+        if (lastForward == null) return yesterday;
+
+        LocalDate candidate = lastForward.plusDays(1);
+        return candidate.isAfter(yesterday) ? null : candidate;
+    }
+
+    private void fillBackward(int facilityId, ParkingBackfillDocument state) {
+        if (state.isComplete() || parkingPolicy.isOutsideBackfillWindow(state)) {
+            log.debug(
+                    "event=backfill_facility decision=skip facilityId={} reason={}",
+                    facilityId,
+                    state.isComplete() ? "complete" : "outside_window");
+            return;
+        }
+
+        LocalDate nextBackwardDay = nextBackwardDay(state);
+        fetchAndSave(facilityId, nextBackwardDay);
+        state.setLastProcessedDate(nextBackwardDay);
+        saveBackfillState(state);
+        log.info(
+                "event=backfill_facility decision=backward facilityId={} date={}",
+                facilityId,
+                nextBackwardDay);
+    }
+
+    private LocalDate nextBackwardDay(ParkingBackfillDocument state) {
+        return state.getLastProcessedDate() != null
+                ? state.getLastProcessedDate().minusDays(1)
+                : LocalDate.now();
+    }
+
+    private void fetchAndSave(int facilityId, LocalDate date) {
+        List<ParkingResponse> history = parkingClient.fetchHistory(facilityId, date);
+        if (!history.isEmpty()) {
+            parkingIngestService.ingest(history);
+        }
+    }
+
     private void saveBackfillState(ParkingBackfillDocument state) {
         state.setUpdatedAt(Instant.now());
         parkingBackfillRepository.save(state);
-    }
-
-    private LocalDate calculateNextDay(ParkingBackfillDocument state) {
-        if (state.getLastProcessedDate() == null) {
-            return LocalDate.now();
-        }
-        return state.getLastProcessedDate().minusDays(1);
     }
 }

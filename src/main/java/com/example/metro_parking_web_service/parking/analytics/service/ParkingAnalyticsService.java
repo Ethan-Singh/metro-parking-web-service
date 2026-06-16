@@ -3,6 +3,7 @@ package com.example.metro_parking_web_service.parking.analytics.service;
 
 import com.example.metro_parking_web_service.parking.analytics.config.ParkingAnalyticsProperties;
 import com.example.metro_parking_web_service.parking.analytics.dto.*;
+import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingDataPointMapper;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOverviewMapper;
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
@@ -24,6 +25,7 @@ public class ParkingAnalyticsService {
     private final ParkingSlugService slugService;
     private final ParkingStatusService statusService;
     private final ParkingOverviewMapper overviewMapper;
+    private final ParkingDataPointMapper dataPointMapper;
 
     public List<ParkingOverviewResponse> getAllOverviews() {
         return analyticsRepository.findAllLatest().stream()
@@ -49,14 +51,17 @@ public class ParkingAnalyticsService {
                         analyticsRepository.findTenMinuteAveragesByFacilityAndDate(
                                 facilityId, date);
                 yield new ParkingHistoryResponse(
-                        slug, date, granularity, raw.stream().map(this::toDataPoint).toList());
+                        slug,
+                        date,
+                        granularity,
+                        raw.stream().map(dataPointMapper::toDataPoint).toList());
             }
             case HOURLY -> {
                 List<DataPoint> hourly =
                         analyticsRepository
                                 .findHourlyAveragesByFacilityAndDate(facilityId, date)
                                 .stream()
-                                .map(this::toDataPoint)
+                                .map(dataPointMapper::toDataPoint)
                                 .toList();
 
                 yield new ParkingHistoryResponse(slug, date, granularity, hourly);
@@ -64,7 +69,7 @@ public class ParkingAnalyticsService {
             case DAILY -> {
                 List<DataPoint> daily =
                         analyticsRepository.findDailySummary(facilityId, 30).stream()
-                                .map(this::toDataPoint)
+                                .map(dataPointMapper::toDataPoint)
                                 .toList();
                 List<DataPoint> points =
                         daily.stream()
@@ -89,8 +94,7 @@ public class ParkingAnalyticsService {
         List<PredictionPoint> predictions = new ArrayList<>();
         LocalDateTime cursor = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
 
-        // Predict next 14 days hourly
-        for (int day = 0; day < 14; day++) {
+        for (int day = 0; day < 7; day++) {
             for (int hour = 0; hour < 24; hour++) {
                 LocalDateTime slot = cursor.plusDays(day).withHour(hour);
                 int dow = slot.getDayOfWeek().getValue(); // 1=Mon..7=Sun
@@ -128,31 +132,5 @@ public class ParkingAnalyticsService {
         }
 
         return new ParkingPredictionResponse(slug, predictions);
-    }
-
-    private DataPoint toDataPoint(ParkingDocument document) {
-        int available = Math.max(0, document.getSpots() - document.getOccupancy());
-        double rate =
-                document.getSpots() > 0
-                        ? (double) document.getOccupancy() / document.getSpots()
-                        : 0.0;
-        return new DataPoint(
-                document.getSourceTimestamp(), document.getOccupancy(), available, rate);
-    }
-
-    private DataPoint toDataPoint(HourlyOccupancyAggregate point) {
-        int occupancy = (int) Math.round(point.occupancy());
-        int available = Math.max(0, point.spots() - occupancy);
-        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
-
-        return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
-    }
-
-    private DataPoint toDataPoint(DailySummaryAggregate point) {
-        int occupancy = (int) Math.round(point.avgOccupancy());
-        int available = Math.max(0, point.spots() - occupancy);
-        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
-
-        return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
 }

@@ -15,4 +15,5 @@ public class ParkingBackfillDocument {
     private LocalDate lastProcessedDate;
     private boolean complete;
     private Instant updatedAt;
+    private LocalDate lastForwardDate;
 }

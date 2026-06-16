@@ -56,63 +56,108 @@ class ParkingBackfillServiceTest {
 
     @Test
     void backfillNext_shouldAdvanceCursorAfterProcessing() {
-        ParkingResponse response = mockResponse("1");
-        ParkingBackfillDocument state = completeState();
+        ParkingBackfillDocument state = fullyProcessedState();
 
         when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.empty());
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
 
-        parkingBackfillService.backfillNext(List.of(response));
+        parkingBackfillService.backfillNext(List.of(1));
 
         verify(parkingBackfillCursorRepository).save(any(ParkingBackfillCursorDocument.class));
     }
 
     @Test
     void backfillNext_shouldPickNextFacilityAfterCursor() {
-        ParkingResponse r1 = mockResponse("1");
-        ParkingResponse r2 = mockResponse("2");
-
         ParkingBackfillCursorDocument cursor = new ParkingBackfillCursorDocument();
         cursor.setLastFacilityId(1);
 
-        ParkingBackfillDocument state = completeState();
+        ParkingBackfillDocument state = fullyProcessedState();
 
         when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.of(cursor));
         when(parkingBackfillRepository.findById(2)).thenReturn(Optional.of(state));
 
-        parkingBackfillService.backfillNext(List.of(r1, r2));
+        parkingBackfillService.backfillNext(List.of(1, 2));
 
-        // facility 2 should be picked (first id > lastId of 1)
         verify(parkingBackfillRepository).findById(2);
         verify(parkingBackfillRepository, never()).findById(1);
     }
 
     @Test
     void backfillNext_shouldWrapAroundWhenCursorExceedsAllIds() {
-        ParkingResponse r1 = mockResponse("1");
-        ParkingResponse r2 = mockResponse("2");
-
         ParkingBackfillCursorDocument cursor = new ParkingBackfillCursorDocument();
-        cursor.setLastFacilityId(99); // beyond all facility ids
+        cursor.setLastFacilityId(99);
 
-        ParkingBackfillDocument state = completeState();
+        ParkingBackfillDocument state = fullyProcessedState();
 
         when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.of(cursor));
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
 
-        parkingBackfillService.backfillNext(List.of(r1, r2));
+        parkingBackfillService.backfillNext(List.of(1, 2));
 
-        // should wrap to first facility (id=1)
         verify(parkingBackfillRepository).findById(1);
     }
 
     // ------------------------------------------------------------
-    // backfillFacility
+    // backfillFacility — forward fill
     // ------------------------------------------------------------
 
     @Test
-    void backfillFacility_shouldSkipWhenComplete() {
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(completeState()));
+    void backfillFacility_shouldForwardFillYesterdayWhenNoLastForwardDate() {
+        ParkingBackfillDocument state = new ParkingBackfillDocument();
+        state.setComplete(true); // complete but no lastForwardDate → still forward fills
+
+        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
+        when(parkingClient.fetchHistory(eq(1), eq(LocalDate.now().minusDays(1))))
+                .thenReturn(List.of());
+
+        parkingBackfillService.backfillFacility(1);
+
+        verify(parkingClient).fetchHistory(eq(1), eq(LocalDate.now().minusDays(1)));
+        verify(parkingBackfillRepository)
+                .save(
+                        argThat(
+                                saved ->
+                                        LocalDate.now()
+                                                .minusDays(1)
+                                                .equals(saved.getLastForwardDate())));
+    }
+
+    @Test
+    void backfillFacility_shouldForwardFillNextDayAfterLastForwardDate() {
+        LocalDate twoDaysAgo = LocalDate.now().minusDays(2);
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        ParkingBackfillDocument state = new ParkingBackfillDocument();
+        state.setComplete(true);
+        state.setLastForwardDate(twoDaysAgo);
+
+        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
+        when(parkingClient.fetchHistory(eq(1), eq(yesterday))).thenReturn(List.of());
+
+        parkingBackfillService.backfillFacility(1);
+
+        verify(parkingClient).fetchHistory(eq(1), eq(yesterday));
+    }
+
+    @Test
+    void backfillFacility_shouldNotForwardFillWhenLastForwardDateIsYesterday() {
+        ParkingBackfillDocument state = fullyProcessedState();
+
+        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
+
+        parkingBackfillService.backfillFacility(1);
+
+        verifyNoInteractions(parkingClient);
+        verifyNoInteractions(parkingIngestService);
+    }
+
+    // ------------------------------------------------------------
+    // backfillFacility — backward fill
+    // ------------------------------------------------------------
+
+    @Test
+    void backfillFacility_shouldSkipBackwardWhenComplete() {
+        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(fullyProcessedState()));
 
         parkingBackfillService.backfillFacility(1);
 
@@ -121,8 +166,8 @@ class ParkingBackfillServiceTest {
     }
 
     @Test
-    void backfillFacility_shouldSkipWhenOutsideWindow() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
+    void backfillFacility_shouldSkipBackwardWhenOutsideWindow() {
+        ParkingBackfillDocument state = stateWithForwardFillCurrent();
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
         when(parkingPolicy.isOutsideBackfillWindow(state)).thenReturn(true);
 
@@ -143,8 +188,8 @@ class ParkingBackfillServiceTest {
     }
 
     @Test
-    void backfillFacility_shouldIngestAndAdvanceWhenHistoryFound() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
+    void backfillFacility_shouldIngestAndAdvanceBackwardWhenHistoryFound() {
+        ParkingBackfillDocument state = stateWithForwardFillCurrent();
         state.setLastProcessedDate(LocalDate.of(2025, 1, 2));
 
         ParkingResponse response = mockResponse("1");
@@ -156,12 +201,17 @@ class ParkingBackfillServiceTest {
         parkingBackfillService.backfillFacility(1);
 
         verify(parkingIngestService).ingest(List.of(response));
-        verify(parkingBackfillRepository).save(any());
+        verify(parkingBackfillRepository)
+                .save(
+                        argThat(
+                                saved ->
+                                        LocalDate.of(2025, 1, 1)
+                                                .equals(saved.getLastProcessedDate())));
     }
 
     @Test
-    void backfillFacility_shouldAdvanceDateEvenWhenHistoryEmpty() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
+    void backfillFacility_shouldAdvanceBackwardDateEvenWhenHistoryEmpty() {
+        ParkingBackfillDocument state = stateWithForwardFillCurrent();
         state.setLastProcessedDate(LocalDate.of(2025, 1, 2));
 
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
@@ -179,8 +229,8 @@ class ParkingBackfillServiceTest {
     }
 
     @Test
-    void backfillFacility_shouldUseTodayWhenLastProcessedIsNull() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
+    void backfillFacility_shouldUseYesterdayWhenLastProcessedIsNull() {
+        ParkingBackfillDocument state = stateWithForwardFillCurrent();
 
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
         when(parkingClient.fetchHistory(eq(1), any(LocalDate.class)))
@@ -195,19 +245,25 @@ class ParkingBackfillServiceTest {
     // Helpers
     // ------------------------------------------------------------
 
-    private ParkingBackfillDocument completeState() {
+    private ParkingBackfillDocument stateWithForwardFillCurrent() {
+        ParkingBackfillDocument state = new ParkingBackfillDocument();
+        state.setLastForwardDate(LocalDate.now().minusDays(1));
+        return state;
+    }
+
+    private ParkingBackfillDocument fullyProcessedState() {
         ParkingBackfillDocument state = new ParkingBackfillDocument();
         state.setComplete(true);
+        state.setLastForwardDate(LocalDate.now().minusDays(1));
         return state;
     }
 
     private ParkingResponse mockResponse(String facilityId) {
-        LocalDateTime messageDate = LocalDateTime.of(2025, 1, 1, 10, 15);
         return new ParkingResponse(
                 facilityId,
                 "Kolombo Creek",
                 "500",
                 new ParkingResponse.Occupancy("200"),
-                messageDate);
+                LocalDateTime.of(2025, 1, 1, 10, 15));
     }
 }

@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -35,9 +34,6 @@ class ParkingSchedulerTest {
 
     @Test
     void backfill_shouldDelegateToBackfillService() throws Exception {
-        ParkingResponse response = org.mockito.Mockito.mock(ParkingResponse.class);
-        when(parkingSnapshot.getResponses()).thenReturn(List.of(response));
-
         invoke("backfill");
 
         verify(parkingBackfillService).backfillNext(anyList());

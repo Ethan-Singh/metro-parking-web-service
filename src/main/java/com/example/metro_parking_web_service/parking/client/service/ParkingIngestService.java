@@ -54,9 +54,9 @@ public class ParkingIngestService {
         save(filtered);
     }
 
-    void save(List<Parking> parkingList) {
+    void save(List<Parking> parkings) {
         List<ParkingDocument> documents =
-                parkingList.stream()
+                parkings.stream()
                         .map(
                                 parking -> {
                                     ParkingDocument doc =
@@ -82,14 +82,14 @@ public class ParkingIngestService {
         if (documents.isEmpty()) {
             log.warn(
                     "event=parking_save decision=skip reason=no_valid_documents inputSize={}",
-                    parkingList.size());
+                    parkings.size());
             return;
         }
 
         parkingRepository.saveAll(documents);
         log.info(
                 "event=parking_save decision=success inputSize={} savedSize={}",
-                parkingList.size(),
+                parkings.size(),
                 documents.size());
     }
 }

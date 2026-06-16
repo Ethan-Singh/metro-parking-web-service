@@ -19,4 +19,10 @@ public class ParkingAnalyticsProperties {
 
     @Min(1)
     private Integer predictionWeeks;
+
+    @Min(1)
+    private Integer historyWeeks;
+
+    @Min(1)
+    private Integer cachePredictionWeeks;
 }

@@ -3,6 +3,7 @@ package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import java.util.List;
+import java.util.Objects;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,5 +33,15 @@ public class ParkingSnapshot {
                 "event=parking_snapshot_refresh decision=success storedSize={} sourceSize={}",
                 fetched.size(),
                 fetched.size());
+    }
+
+    public List<Integer> getFacilityIds() {
+        return responses.stream()
+                .map(ParkingResponse::facilityId)
+                .filter(Objects::nonNull)
+                .map(Integer::parseInt)
+                .distinct()
+                .sorted()
+                .toList();
     }
 }

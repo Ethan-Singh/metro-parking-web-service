@@ -40,7 +40,9 @@ external-server:
       backfill-window: 2026-05-01
     analytics:
       almost-full-threshold: 0.1
-      prediction-weeks: 4
+      prediction-weeks: 1
+      history-weeks: 4
+      cache-prediction-weeks: 1
 resilience4j:
   circuitbreaker:
     instances:

@@ -64,8 +64,7 @@ class ParkingClientITTest {
 
         CircuitBreaker circuitBreaker = cbRegistry.circuitBreaker("parkingClient");
 
-        RestClient restClient =
-                RestClient.builder().baseUrl(wireMock.baseUrl()).build();
+        RestClient restClient = RestClient.builder().baseUrl(wireMock.baseUrl()).build();
 
         parkingClient = new ParkingClient(restClient, circuitBreaker, retry, rateLimiter);
     }
@@ -78,17 +77,19 @@ class ParkingClientITTest {
     void fetchFullList_shouldReturnData() {
         wireMock.stubFor(
                 get(urlEqualTo("/full-list"))
-                        .willReturn(okJson("""
-                                [
-                                  {
-                                    "facility_id": "1",
-                                    "facility_name": "Kolombo Creek",
-                                    "spots": "500",
-                                    "occupancy": { "total": "200" },
-                                    "MessageDate": "2025-01-01T10:15:00"
-                                  }
-                                ]
-                                """)));
+                        .willReturn(
+                                okJson(
+                                        """
+                                        [
+                                          {
+                                            "facility_id": "1",
+                                            "facility_name": "Kolombo Creek",
+                                            "spots": "500",
+                                            "occupancy": { "total": "200" },
+                                            "MessageDate": "2025-01-01T10:15:00"
+                                          }
+                                        ]
+                                        """)));
 
         List<ParkingResponse> result = parkingClient.fetchFullList();
 
@@ -109,17 +110,19 @@ class ParkingClientITTest {
                 get(urlEqualTo("/full-list"))
                         .inScenario("retry-full")
                         .whenScenarioStateIs("SECOND")
-                        .willReturn(okJson("""
-                                [
-                                  {
-                                    "facility_id": "1",
-                                    "facility_name": "Kolombo Creek",
-                                    "spots": "500",
-                                    "occupancy": { "total": "200" },
-                                    "MessageDate": "2025-01-01T10:15:00"
-                                  }
-                                ]
-                                """)));
+                        .willReturn(
+                                okJson(
+                                        """
+                                        [
+                                          {
+                                            "facility_id": "1",
+                                            "facility_name": "Kolombo Creek",
+                                            "spots": "500",
+                                            "occupancy": { "total": "200" },
+                                            "MessageDate": "2025-01-01T10:15:00"
+                                          }
+                                        ]
+                                        """)));
 
         List<ParkingResponse> result = parkingClient.fetchFullList();
 
@@ -151,20 +154,21 @@ class ParkingClientITTest {
                 get(urlPathEqualTo("/history"))
                         .withQueryParam("facility", equalTo("99"))
                         .withQueryParam("eventdate", equalTo("2025-01-01"))
-                        .willReturn(okJson("""
-                                [
-                                  {
-                                    "facility_id": "99",
-                                    "facility_name": "History Lot",
-                                    "spots": "300",
-                                    "occupancy": { "total": "120" },
-                                    "MessageDate": "2025-01-01T10:15:00"
-                                  }
-                                ]
-                                """)));
+                        .willReturn(
+                                okJson(
+                                        """
+                                        [
+                                          {
+                                            "facility_id": "99",
+                                            "facility_name": "History Lot",
+                                            "spots": "300",
+                                            "occupancy": { "total": "120" },
+                                            "MessageDate": "2025-01-01T10:15:00"
+                                          }
+                                        ]
+                                        """)));
 
-        List<ParkingResponse> result =
-                parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
+        List<ParkingResponse> result = parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
 
         assertEquals(1, result.size());
         assertEquals("99", result.getFirst().facilityId());
@@ -187,20 +191,21 @@ class ParkingClientITTest {
                         .withQueryParam("eventdate", equalTo("2025-01-01"))
                         .inScenario("history-retry")
                         .whenScenarioStateIs("SECOND")
-                        .willReturn(okJson("""
-                                [
-                                  {
-                                    "facility_id": "99",
-                                    "facility_name": "History Lot",
-                                    "spots": "300",
-                                    "occupancy": { "total": "120" },
-                                    "MessageDate": "2025-01-01T10:15:00"
-                                  }
-                                ]
-                                """)));
+                        .willReturn(
+                                okJson(
+                                        """
+                                        [
+                                          {
+                                            "facility_id": "99",
+                                            "facility_name": "History Lot",
+                                            "spots": "300",
+                                            "occupancy": { "total": "120" },
+                                            "MessageDate": "2025-01-01T10:15:00"
+                                          }
+                                        ]
+                                        """)));
 
-        List<ParkingResponse> result =
-                parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
+        List<ParkingResponse> result = parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
 
         assertEquals(1, result.size());
         assertEquals("99", result.getFirst().facilityId());
@@ -220,17 +225,19 @@ class ParkingClientITTest {
     void rateLimiter_shouldThrottleRequests() {
         wireMock.stubFor(
                 get(urlEqualTo("/full-list"))
-                        .willReturn(okJson("""
-                                [
-                                  {
-                                    "facility_id": "1",
-                                    "facility_name": "Kolombo Creek",
-                                    "spots": "500",
-                                    "occupancy": { "total": "200" },
-                                    "MessageDate": "2025-01-01T10:15:00"
-                                  }
-                                ]
-                                """)));
+                        .willReturn(
+                                okJson(
+                                        """
+                                        [
+                                          {
+                                            "facility_id": "1",
+                                            "facility_name": "Kolombo Creek",
+                                            "spots": "500",
+                                            "occupancy": { "total": "200" },
+                                            "MessageDate": "2025-01-01T10:15:00"
+                                          }
+                                        ]
+                                        """)));
 
         int successfulCalls = 0;
 
@@ -269,8 +276,7 @@ class ParkingClientITTest {
     void fetchHistory_shouldReturnEmptyList_whenServerFails() {
         wireMock.stubFor(get(urlPathEqualTo("/history")).willReturn(serverError()));
 
-        List<ParkingResponse> result =
-                parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
+        List<ParkingResponse> result = parkingClient.fetchHistory(99, LocalDate.of(2025, 1, 1));
 
         assertEquals(List.of(), result);
     }

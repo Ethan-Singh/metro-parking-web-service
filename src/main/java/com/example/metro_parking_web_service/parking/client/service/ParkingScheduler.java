@@ -1,6 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.service;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ class ParkingScheduler {
 
     @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
     void backfill() {
-        parkingBackfillService.backfillNext(parkingSnapshot.getResponses());
+        List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
+        parkingBackfillService.backfillNext(facilityIds);
     }
 }
