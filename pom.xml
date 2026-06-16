@@ -176,8 +176,8 @@
 						<format>
 							<!-- define the files to apply to -->
 							<includes>
-								<include>.gitattributes</include>
-								<include>.gitignore</include>
+								<include>*/.gitattributes</include>
+								<include>*/.gitignore</include>
 							</includes>
 							<excludes>
 								<exclude>src/main/resources/logback-spring.xml</exclude>
@@ -189,6 +189,7 @@
 								<tabs>true</tabs>
 								<spacesPerTab>4</spacesPerTab>
 							</indent>
+							<lineEndings>UNIX</lineEndings>
 						</format>
 					</formats>
 					<!-- define a language-specific format -->
