@@ -11,9 +11,6 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.ratelimiter.RateLimiter;
-import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
@@ -53,20 +50,11 @@ class ParkingClientITTest {
                                         .build())
                         .retry("parkingClient");
 
-        RateLimiter rateLimiter =
-                RateLimiterRegistry.of(
-                                RateLimiterConfig.custom()
-                                        .limitForPeriod(2)
-                                        .limitRefreshPeriod(Duration.ofSeconds(1))
-                                        .timeoutDuration(Duration.ZERO)
-                                        .build())
-                        .rateLimiter("parkingClient");
-
         CircuitBreaker circuitBreaker = cbRegistry.circuitBreaker("parkingClient");
 
         RestClient restClient = RestClient.builder().baseUrl(wireMock.baseUrl()).build();
 
-        parkingClient = new ParkingClient(restClient, circuitBreaker, retry, rateLimiter);
+        parkingClient = new ParkingClient(restClient, circuitBreaker, retry);
     }
 
     // ------------------------------------------------------------

@@ -4,7 +4,6 @@ package com.example.metro_parking_web_service.parking.server.service;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.decorators.Decorators;
-import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.retry.Retry;
 import java.time.LocalDate;
 import java.util.List;
@@ -23,7 +22,6 @@ public class ParkingClient {
     private final RestClient restClient;
     private final CircuitBreaker parkingCircuitBreaker;
     private final Retry parkingRetry;
-    private final RateLimiter parkingRateLimiter;
 
     public List<ParkingResponse> fetchFullList() {
         Supplier<List<ParkingResponse>> supplier =
@@ -37,7 +35,6 @@ public class ParkingClient {
         return Decorators.ofSupplier(supplier)
                 .withCircuitBreaker(parkingCircuitBreaker)
                 .withRetry(parkingRetry)
-                .withRateLimiter(parkingRateLimiter)
                 .withFallback(List.of(Exception.class), t -> List.of())
                 .decorate()
                 .get();
@@ -61,7 +58,6 @@ public class ParkingClient {
         return Decorators.ofSupplier(supplier)
                 .withCircuitBreaker(parkingCircuitBreaker)
                 .withRetry(parkingRetry)
-                .withRateLimiter(parkingRateLimiter)
                 .withFallback(List.of(Exception.class), t -> List.of())
                 .decorate()
                 .get();

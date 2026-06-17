@@ -63,9 +63,3 @@ resilience4j:
         retry-exceptions:
         - org.springframework.web.client.ResourceAccessException
         - java.io.IOException
-  ratelimiter:
-    instances:
-      parkingClient:
-        limit-for-period: 10
-        limit-refresh-period: 5s
-        timeout-duration: 0s
