@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;

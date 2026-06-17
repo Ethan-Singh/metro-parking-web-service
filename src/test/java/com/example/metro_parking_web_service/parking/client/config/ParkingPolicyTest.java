@@ -1,5 +1,5 @@
 /* (MISTLETOE MACHINATIONS)2026 */
-package com.example.metro_parking_web_service.parking.client.service;
+package com.example.metro_parking_web_service.parking.client.config;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

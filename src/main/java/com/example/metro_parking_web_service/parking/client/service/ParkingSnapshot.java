@@ -2,6 +2,7 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
 import java.util.List;
 import java.util.Objects;
 import lombok.Getter;

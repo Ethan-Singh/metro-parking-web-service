@@ -1,9 +1,9 @@
 /* (MISTLETOE MACHINATIONS)2026 */
-package com.example.metro_parking_web_service.parking.client.dto;
+package com.example.metro_parking_web_service.parking.server.dto;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;

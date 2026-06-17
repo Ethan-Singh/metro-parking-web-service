@@ -1,5 +1,5 @@
 /* (MISTLETOE MACHINATIONS)2026 */
-package com.example.metro_parking_web_service.parking.client.service;
+package com.example.metro_parking_web_service.parking.server.service;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ParkingIdStrategy {
 
-    public String generateId(int facilityId, LocalDateTime timestamp) {
-        return facilityId + "_" + timestamp;
+    public String generateId(int facilityId, LocalDateTime sourceTimestamp) {
+        return facilityId + "_" + sourceTimestamp;
     }
 }

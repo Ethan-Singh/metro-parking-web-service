@@ -8,13 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import com.example.metro_parking_web_service.parking.client.dto.ParkingDocumentMapper;
 import com.example.metro_parking_web_service.parking.client.dto.ParkingIdStrategy;
-import com.example.metro_parking_web_service.parking.client.dto.ParkingResponseMapper;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingRepository;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.server.dto.ParkingResponseMapper;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;

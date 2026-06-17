@@ -1,7 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
-package com.example.metro_parking_web_service.parking.client.dto;
+package com.example.metro_parking_web_service.parking.server.dto;
 
-import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
+import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
