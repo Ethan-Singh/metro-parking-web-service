@@ -59,7 +59,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(securityProperties.getAllowedOrigins());
+        config.setAllowedOrigins(securityProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Accept"));
         config.setMaxAge(3600L);

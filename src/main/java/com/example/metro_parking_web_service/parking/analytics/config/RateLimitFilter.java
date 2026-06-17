@@ -51,9 +51,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                             + " refillTokens={} refillPeriodSeconds={}",
                     clientIp,
                     path,
-                    securityProperties.getRateLimit().getCapacity(),
-                    securityProperties.getRateLimit().getRefillTokens(),
-                    securityProperties.getRateLimit().getRefillPeriodSeconds());
+                    securityProperties.rateLimit().capacity(),
+                    securityProperties.rateLimit().refillTokens(),
+                    securityProperties.rateLimit().refillPeriodSeconds());
 
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
@@ -67,21 +67,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Bucket newBucket(String clientIp) {
-        ParkingSecurityProperties.RateLimit cfg = securityProperties.getRateLimit();
+        ParkingSecurityProperties.RateLimit ratelimit = securityProperties.rateLimit();
         log.debug(
                 "event=rate_limit_bucket_create ip={} capacity={} refillTokens={}"
                         + " refillPeriodSeconds={}",
                 clientIp,
-                cfg.getCapacity(),
-                cfg.getRefillTokens(),
-                cfg.getRefillPeriodSeconds());
+                ratelimit.capacity(),
+                ratelimit.refillTokens(),
+                ratelimit.refillPeriodSeconds());
 
         Bandwidth limit =
                 Bandwidth.builder()
-                        .capacity(cfg.getCapacity())
+                        .capacity(ratelimit.capacity())
                         .refillGreedy(
-                                cfg.getRefillTokens(),
-                                Duration.ofSeconds(cfg.getRefillPeriodSeconds()))
+                                ratelimit.refillTokens(),
+                                Duration.ofSeconds(ratelimit.refillPeriodSeconds()))
                         .build();
 
         return Bucket.builder().addLimit(limit).build();

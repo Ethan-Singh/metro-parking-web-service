@@ -43,6 +43,12 @@ external-server:
       prediction-weeks: 1
       history-weeks: 4
       cache-prediction-weeks: 1
+    security:
+      allowed-origins: []
+      rate-limit:
+        capacity: 10
+        refill-tokens: 10
+        refill-period-seconds: 60
 resilience4j:
   circuitbreaker:
     instances:

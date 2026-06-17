@@ -16,3 +16,6 @@ external-server:
     base-url: https://your-base-url
     api: your-api
     apikey: your-api-key
+    security:
+      allowed-origins:
+      - http://localhost:8080
