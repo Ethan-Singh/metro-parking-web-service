@@ -20,8 +20,8 @@ class ParkingPolicyTest {
     @BeforeEach
     void setup() {
         parkingPolicy = new ParkingPolicy();
-        ReflectionTestUtils.setField(parkingPolicy, "DISABLED_FACILITIES", Set.of(1, 2));
-        ReflectionTestUtils.setField(parkingPolicy, "BACKFILL_WINDOW", 4);
+        ReflectionTestUtils.setField(parkingPolicy, "disabledFacilities", Set.of(1, 2));
+        ReflectionTestUtils.setField(parkingPolicy, "backfillWindow", 4);
     }
 
     @Test

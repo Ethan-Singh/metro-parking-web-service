@@ -36,7 +36,12 @@ external-server:
     api: "${PARKING_API:}"
     apikey: "${PARKING_APIKEY:}"
     policy:
-      disabled-facilities: "1,2,3,4,5"
+      disabled-facilities:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
       backfill-window: 4
     analytics:
       almost-full-threshold: 0.1
