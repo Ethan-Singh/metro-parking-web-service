@@ -17,14 +17,18 @@ public class ParkingPolicy {
     private Set<Integer> DISABLED_FACILITIES;
 
     @Value("${external-server.parking.policy.backfill-window}")
-    LocalDate BACKFILL_WINDOW;
+    private int BACKFILL_WINDOW;
 
     public boolean isParkingAllowed(Parking parking) {
         return !DISABLED_FACILITIES.contains(parking.facilityId());
     }
 
+    private LocalDate backfillWindow() {
+        return LocalDate.now().minusWeeks(BACKFILL_WINDOW);
+    }
+
     public boolean isOutsideBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
         LocalDate last = parkingBackfillDocument.getLastProcessedDate();
-        return last != null && !last.isAfter(BACKFILL_WINDOW);
+        return last != null && last.isBefore(backfillWindow());
     }
 }

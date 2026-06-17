@@ -37,7 +37,7 @@ external-server:
     apikey: "${PARKING_APIKEY:}"
     policy:
       disabled-facilities: "1,2,3,4,5"
-      backfill-window: 2026-05-01
+      backfill-window: 4
     analytics:
       almost-full-threshold: 0.1
     security:

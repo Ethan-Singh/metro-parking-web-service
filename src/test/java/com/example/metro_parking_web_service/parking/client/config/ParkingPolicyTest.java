@@ -21,7 +21,7 @@ class ParkingPolicyTest {
     void setup() {
         parkingPolicy = new ParkingPolicy();
         ReflectionTestUtils.setField(parkingPolicy, "DISABLED_FACILITIES", Set.of(1, 2));
-        ReflectionTestUtils.setField(parkingPolicy, "BACKFILL_WINDOW", LocalDate.of(2025, 1, 1));
+        ReflectionTestUtils.setField(parkingPolicy, "BACKFILL_WINDOW", 4);
     }
 
     @Test
@@ -41,7 +41,7 @@ class ParkingPolicyTest {
     @Test
     void isOutsideBackfillWindow_shouldReturnFalse_whenLastDateAfterStart() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
-        backfillDocument.setLastProcessedDate(LocalDate.of(2025, 1, 2));
+        backfillDocument.setLastProcessedDate(LocalDate.now().minusWeeks(2));
 
         assertFalse(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
     }
@@ -49,7 +49,7 @@ class ParkingPolicyTest {
     @Test
     void isOutsideBackfillWindow_shouldReturnTrue_whenLastDateOutsideOrEqualStart() {
         ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
-        backfillDocument.setLastProcessedDate(LocalDate.of(2024, 12, 31));
+        backfillDocument.setLastProcessedDate(LocalDate.now().minusWeeks(10));
 
         assertTrue(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
     }
