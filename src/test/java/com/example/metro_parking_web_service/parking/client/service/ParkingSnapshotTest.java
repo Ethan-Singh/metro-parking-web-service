@@ -22,6 +22,8 @@ class ParkingSnapshotTest {
 
     @InjectMocks private ParkingSnapshot parkingSnapshot;
 
+    @Mock private ParkingIngestService parkingIngestService;
+
     @Test
     void refresh_shouldStoreResponses() {
         ParkingResponse r1 = mock(ParkingResponse.class);

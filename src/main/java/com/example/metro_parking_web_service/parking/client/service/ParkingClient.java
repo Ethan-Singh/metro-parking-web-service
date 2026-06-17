@@ -26,7 +26,6 @@ public class ParkingClient {
     private final RateLimiter parkingRateLimiter;
 
     public List<ParkingResponse> fetchFullList() {
-
         Supplier<List<ParkingResponse>> supplier =
                 () ->
                         restClient
@@ -45,7 +44,6 @@ public class ParkingClient {
     }
 
     public List<ParkingResponse> fetchHistory(int facilityId, LocalDate eventDate) {
-
         Supplier<List<ParkingResponse>> supplier =
                 () ->
                         restClient
@@ -67,20 +65,5 @@ public class ParkingClient {
                 .withFallback(List.of(Exception.class), t -> List.of())
                 .decorate()
                 .get();
-    }
-
-    private List<ParkingResponse> fetchFullListFallback(Throwable t) {
-        log.error("parkingClient.fetchFullList.fallback reason={}", t.getMessage());
-        return List.of();
-    }
-
-    private List<ParkingResponse> fetchHistoryFallback(
-            int facilityId, LocalDate eventDate, Throwable t) {
-        log.error(
-                "parkingClient.fetchHistory.fallback facilityId={} date={} reason={}",
-                facilityId,
-                eventDate,
-                t.getMessage());
-        return List.of();
     }
 }

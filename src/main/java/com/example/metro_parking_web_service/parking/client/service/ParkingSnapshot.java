@@ -14,13 +14,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ParkingSnapshot {
 
-    private final ParkingClient parkingClient;
+    private final ParkingClient client;
+    private final ParkingIngestService parkingIngestService;
 
     @Getter private volatile List<ParkingResponse> responses = List.of();
 
     public void refresh() {
-        List<ParkingResponse> fetched = parkingClient.fetchFullList();
-        if (fetched == null) {
+        List<ParkingResponse> parkings = client.fetchFullList();
+        if (parkings == null) {
             this.responses = List.of();
             log.warn(
                     "event=parking_snapshot_refresh decision=defaulted reason=null_response"
@@ -28,11 +29,13 @@ public class ParkingSnapshot {
             return;
         }
 
-        this.responses = fetched;
+        this.responses = parkings;
         log.info(
                 "event=parking_snapshot_refresh decision=success storedSize={} sourceSize={}",
-                fetched.size(),
-                fetched.size());
+                parkings.size(),
+                parkings.size());
+
+        parkingIngestService.ingest(this.getResponses());
     }
 
     public List<Integer> getFacilityIds() {
