@@ -1,15 +1,12 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.service;
 
-import com.example.metro_parking_web_service.parking.analytics.config.ParkingAnalyticsProperties;
 import com.example.metro_parking_web_service.parking.analytics.dto.*;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingDataPointMapper;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOverviewMapper;
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +18,7 @@ import org.springframework.stereotype.Service;
 public class ParkingAnalyticsService {
 
     private final ParkingAnalyticsRepository analyticsRepository;
-    private final ParkingAnalyticsProperties analyticsProperties;
     private final ParkingSlugService slugService;
-    private final ParkingStatusService statusService;
     private final ParkingOverviewMapper overviewMapper;
     private final ParkingDataPointMapper dataPointMapper;
 
@@ -84,53 +79,5 @@ public class ParkingAnalyticsService {
                 yield new ParkingHistoryResponse(slug, date, granularity, points);
             }
         };
-    }
-
-    public ParkingPredictionResponse getPrediction(String slug) {
-        int facilityId = slugService.facilityIdFromSlug(slug);
-        int weeks = analyticsProperties.getPredictionWeeks();
-        LocalDateTime since = LocalDateTime.now().minusWeeks(weeks);
-
-        List<PredictionPoint> predictions = new ArrayList<>();
-        LocalDateTime cursor = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0);
-
-        for (int day = 0; day < 7; day++) {
-            for (int hour = 0; hour < 24; hour++) {
-                LocalDateTime slot = cursor.plusDays(day).withHour(hour);
-                int dow = slot.getDayOfWeek().getValue(); // 1=Mon..7=Sun
-
-                List<ParkingDocument> historical =
-                        analyticsRepository.findByFacilityAndWeekdayAndHourInRange(
-                                facilityId, dow, hour, since);
-
-                if (historical.isEmpty()) {
-                    continue;
-                }
-
-                int spots = historical.getFirst().getSpots();
-                double avgOccupancy =
-                        historical.stream()
-                                .mapToInt(ParkingDocument::getOccupancy)
-                                .average()
-                                .orElse(0);
-
-                int predictedOccupancy = (int) Math.round(avgOccupancy);
-                int predictedAvailable = Math.max(0, spots - predictedOccupancy);
-                double confidence = Math.min(1.0, historical.size() / (double) weeks);
-
-                AvailabilityStatus status = statusService.resolveStatus(predictedAvailable, spots);
-
-                predictions.add(
-                        new PredictionPoint(
-                                slot,
-                                predictedOccupancy,
-                                predictedAvailable,
-                                confidence,
-                                status,
-                                statusService.resolveStatusLabel(status)));
-            }
-        }
-
-        return new ParkingPredictionResponse(slug, predictions);
     }
 }

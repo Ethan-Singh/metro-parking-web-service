@@ -15,7 +15,7 @@ public class ParkingStatusService {
     public AvailabilityStatus resolveStatus(int available, int spots) {
         if (available < 1) return AvailabilityStatus.FULL;
         double availableRate = spots > 0 ? (double) available / spots : 0.0;
-        if (availableRate < analyticsProperties.getAlmostFullThreshold()) {
+        if (availableRate < analyticsProperties.almostFullThreshold()) {
             return AvailabilityStatus.ALMOST_FULL;
         }
         return AvailabilityStatus.AVAILABLE;
