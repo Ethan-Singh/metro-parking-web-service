@@ -14,13 +14,13 @@ public class RestClientConfig {
 
     @Bean("parkingRestClient")
     RestClient parkingRestClient(ParkingProperties parkingProperties) {
-        String url = parkingProperties.getBaseUrl() + parkingProperties.getApi();
+        String url = parkingProperties.baseUrl() + parkingProperties.api();
 
         log.info("parkingRestClient.url={}", url);
 
         return RestClient.builder()
                 .baseUrl(url)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, parkingProperties.getApikey())
+                .defaultHeader(HttpHeaders.AUTHORIZATION, parkingProperties.apikey())
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
