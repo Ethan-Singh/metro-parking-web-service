@@ -62,6 +62,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(securityProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type", "Accept"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

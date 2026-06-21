@@ -1,38 +1,27 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.config;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest(GlobalExceptionHandlerTestController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 class GlobalExceptionHandlerTest {
 
     @Autowired private MockMvc mockMvc;
-
-    @MockitoBean private ParkingSecurityProperties securityProperties;
-
-    @BeforeEach
-    void setup() {
-        ParkingSecurityProperties.RateLimit rateLimit =
-                new ParkingSecurityProperties.RateLimit(10, 1, 60);
-
-        when(securityProperties.rateLimit()).thenReturn(rateLimit);
-    }
 
     @Test
     void shouldHandleIllegalArgumentException() throws Exception {
