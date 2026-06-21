@@ -4,7 +4,6 @@ package com.example.metro_parking_web_service.parking.analytics.repository;
 import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +22,12 @@ public class ParkingAnalyticsRepository {
     private final MongoTemplate mongoTemplate;
 
     public ParkingDocument findLatestByFacilityId(int facilityId) {
-        org.springframework.data.mongodb.core.query.Query query =
+        var query =
                 new org.springframework.data.mongodb.core.query.Query(
                                 Criteria.where("facilityId").is(facilityId))
                         .with(Sort.by(Sort.Direction.DESC, "sourceTimestamp"))
                         .limit(1);
+
         return mongoTemplate.findOne(query, ParkingDocument.class);
     }
 
@@ -52,12 +52,10 @@ public class ParkingAnalyticsRepository {
         return results.getMappedResults();
     }
 
-    public List<ParkingDocument> findTenMinuteAveragesByFacilityAndDate(
-            int facilityId, LocalDate date) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.plusDays(1).atStartOfDay();
+    public List<ParkingDocument> findTenMinuteAveragesByFacilityAndRange(
+            int facilityId, LocalDateTime start, LocalDateTime end) {
 
-        org.springframework.data.mongodb.core.query.Query query =
+        var query =
                 new org.springframework.data.mongodb.core.query.Query(
                                 Criteria.where("facilityId")
                                         .is(facilityId)
@@ -65,13 +63,12 @@ public class ParkingAnalyticsRepository {
                                         .gte(start)
                                         .lt(end))
                         .with(Sort.by(Sort.Direction.ASC, "sourceTimestamp"));
+
         return mongoTemplate.find(query, ParkingDocument.class);
     }
 
-    public List<HourlyOccupancyAggregate> findHourlyAveragesByFacilityAndDate(
-            int facilityId, LocalDate date) {
-        LocalDateTime start = date.atStartOfDay();
-        LocalDateTime end = date.plusDays(1).atStartOfDay();
+    public List<HourlyOccupancyAggregate> findHourlyAveragesByFacilityAndRange(
+            int facilityId, LocalDateTime start, LocalDateTime end) {
 
         Aggregation agg =
                 Aggregation.newAggregation(
@@ -91,15 +88,15 @@ public class ParkingAnalyticsRepository {
                                 .as("spots")
                                 .first("sourceTimestamp")
                                 .as("timestamp"),
-                        Aggregation.sort(Sort.Direction.ASC, "sourceTimestamp"));
+                        Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id")));
 
         return mongoTemplate
                 .aggregate(agg, "parkingDocument", HourlyOccupancyAggregate.class)
                 .getMappedResults();
     }
 
-    public List<DailySummaryAggregate> findDailySummary(int facilityId, int days) {
-        LocalDateTime since = LocalDateTime.now().minusDays(days);
+    public List<DailySummaryAggregate> findDailySummary(
+            int facilityId, LocalDateTime start, LocalDateTime end) {
 
         Aggregation agg =
                 Aggregation.newAggregation(
@@ -107,7 +104,8 @@ public class ParkingAnalyticsRepository {
                                 Criteria.where("facilityId")
                                         .is(facilityId)
                                         .and("sourceTimestamp")
-                                        .gte(since)),
+                                        .gte(start)
+                                        .lt(end)),
                         Aggregation.project("occupancy", "spots", "sourceTimestamp")
                                 .and(
                                         DateOperators.DateTrunc.truncateValueOf("sourceTimestamp")
@@ -124,7 +122,7 @@ public class ParkingAnalyticsRepository {
                                 .as("spots")
                                 .first("day")
                                 .as("timestamp"),
-                        Aggregation.sort(Sort.Direction.ASC, "sourceTimestamp"));
+                        Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id")));
 
         return mongoTemplate
                 .aggregate(agg, "parkingDocument", DailySummaryAggregate.class)

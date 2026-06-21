@@ -48,8 +48,10 @@ public class ParkingAnalyticsController {
     @GetMapping("/{slug}/history")
     public ResponseEntity<ParkingHistoryResponse> getHistory(
             @PathVariable String slug,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "HOURLY") Granularity granularity) {
-        return ResponseEntity.ok(analyticsService.getHistory(slug, date, granularity));
+
+        return ResponseEntity.ok(analyticsService.getHistory(slug, from, to, granularity));
     }
 }

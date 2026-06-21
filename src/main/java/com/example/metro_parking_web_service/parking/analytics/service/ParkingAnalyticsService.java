@@ -5,8 +5,10 @@ import com.example.metro_parking_web_service.parking.analytics.dto.*;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingDataPointMapper;
 import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOverviewMapper;
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
+import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ public class ParkingAnalyticsService {
     private final ParkingSlugService slugService;
     private final ParkingOverviewMapper overviewMapper;
     private final ParkingDataPointMapper dataPointMapper;
+    private final ParkingPolicy parkingPolicy;
 
     public List<ParkingOverviewResponse> getAllOverviews() {
         return analyticsRepository.findAllLatest().stream()
@@ -37,46 +40,62 @@ public class ParkingAnalyticsService {
         return overviewMapper.toOverview(document);
     }
 
-    public ParkingHistoryResponse getHistory(String slug, LocalDate date, Granularity granularity) {
+    public ParkingHistoryResponse getHistory(
+            String slug, LocalDate from, LocalDate to, Granularity granularity) {
+
+        LocalDate now = LocalDate.now();
+        LocalDate minAllowedDate = now.minusWeeks(parkingPolicy.getBackfillWindow());
+
+        if (from.isBefore(minAllowedDate)) {
+            log.info(
+                    "event=history_request_clamped slug={} from={} minAllowed={}",
+                    slug,
+                    from,
+                    minAllowedDate);
+
+            from = minAllowedDate;
+        }
+
+        if (to.isAfter(now)) {
+            to = now;
+        }
+
         int facilityId = slugService.facilityIdFromSlug(slug);
+
+        LocalDateTime start = from.atStartOfDay();
+        LocalDateTime end = to.plusDays(1).atStartOfDay();
 
         return switch (granularity) {
             case TEN_MINUTE -> {
                 List<ParkingDocument> raw =
-                        analyticsRepository.findTenMinuteAveragesByFacilityAndDate(
-                                facilityId, date);
+                        analyticsRepository.findTenMinuteAveragesByFacilityAndRange(
+                                facilityId, start, end);
+
                 yield new ParkingHistoryResponse(
                         slug,
-                        date,
+                        from,
                         granularity,
                         raw.stream().map(dataPointMapper::toDataPoint).toList());
             }
+
             case HOURLY -> {
                 List<DataPoint> hourly =
                         analyticsRepository
-                                .findHourlyAveragesByFacilityAndDate(facilityId, date)
+                                .findHourlyAveragesByFacilityAndRange(facilityId, start, end)
                                 .stream()
                                 .map(dataPointMapper::toDataPoint)
                                 .toList();
 
-                yield new ParkingHistoryResponse(slug, date, granularity, hourly);
+                yield new ParkingHistoryResponse(slug, from, granularity, hourly);
             }
+
             case DAILY -> {
                 List<DataPoint> daily =
-                        analyticsRepository.findDailySummary(facilityId, 30).stream()
+                        analyticsRepository.findDailySummary(facilityId, start, end).stream()
                                 .map(dataPointMapper::toDataPoint)
                                 .toList();
-                List<DataPoint> points =
-                        daily.stream()
-                                .map(
-                                        d ->
-                                                new DataPoint(
-                                                        d.timestamp(),
-                                                        d.occupancy(),
-                                                        d.available(),
-                                                        d.occupancyRate()))
-                                .toList();
-                yield new ParkingHistoryResponse(slug, date, granularity, points);
+
+                yield new ParkingHistoryResponse(slug, from, granularity, daily);
             }
         };
     }

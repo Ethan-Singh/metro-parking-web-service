@@ -43,11 +43,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Bucket bucket = buckets.computeIfAbsent(clientIp, this::newBucket);
 
         if (bucket.tryConsume(1)) {
-            log.debug("event=rate_limit_check decision=allow ip={} path={}", clientIp, path);
+            log.debug("event=rate_limit_check decision=success ip={} path={}", clientIp, path);
             filterChain.doFilter(request, response);
         } else {
             log.warn(
-                    "event=rate_limit_exceeded decision=block ip={} path={} limit={}"
+                    "event=rate_limit_exceeded decision=fail ip={} path={} limit={}"
                             + " refillTokens={} refillPeriodSeconds={}",
                     clientIp,
                     path,

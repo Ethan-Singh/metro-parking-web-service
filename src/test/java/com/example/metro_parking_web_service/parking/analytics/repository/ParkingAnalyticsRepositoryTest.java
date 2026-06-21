@@ -10,6 +10,7 @@ import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryA
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,8 +71,11 @@ class ParkingAnalyticsRepositoryTest {
         when(hourlyAggResults.getMappedResults())
                 .thenReturn(List.of(new HourlyOccupancyAggregate(null, 10, 100)));
 
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end = LocalDate.now().plusDays(1).atStartOfDay();
+
         List<HourlyOccupancyAggregate> result =
-                repository.findHourlyAveragesByFacilityAndDate(1, LocalDate.now());
+                repository.findHourlyAveragesByFacilityAndRange(1, start, end);
 
         assertThat(result).hasSize(1);
     }
@@ -87,7 +91,10 @@ class ParkingAnalyticsRepositoryTest {
         when(dailyAggResults.getMappedResults())
                 .thenReturn(List.of(new DailySummaryAggregate(null, 100, 20, 30, 10)));
 
-        List<DailySummaryAggregate> result = repository.findDailySummary(1, 7);
+        LocalDateTime start = LocalDate.now().minusDays(7).atStartOfDay();
+        LocalDateTime end = LocalDate.now().atStartOfDay();
+
+        List<DailySummaryAggregate> result = repository.findDailySummary(1, start, end);
 
         assertThat(result).hasSize(1);
     }

@@ -25,7 +25,7 @@ public class ParkingSnapshot {
         if (parkings == null) {
             this.responses = List.of();
             log.warn(
-                    "event=parking_snapshot_refresh decision=defaulted reason=null_response"
+                    "event=parking_snapshot_refresh decision=skip reason=null_response"
                             + " storedSize=0");
             return;
         }

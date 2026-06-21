@@ -23,12 +23,12 @@ public class ParkingPolicy {
         return !disabledFacilities.contains(parking.facilityId());
     }
 
-    private LocalDate backfillWindow() {
+    private LocalDate backfillStartDate() {
         return LocalDate.now().minusWeeks(backfillWindow);
     }
 
     public boolean isOutsideBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
         LocalDate last = parkingBackfillDocument.getLastProcessedDate();
-        return last != null && last.isBefore(backfillWindow());
+        return last != null && last.isBefore(backfillStartDate());
     }
 }
