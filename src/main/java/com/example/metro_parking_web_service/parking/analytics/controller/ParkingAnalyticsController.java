@@ -43,7 +43,7 @@ public class ParkingAnalyticsController {
 
     /**
      * Historical graph data.
-     * GET /api/v1/parking/{slug}/history?date=2025-06-07&granularity=HOURLY
+     * GET /api/v1/parking/{slug}/history?from=2025-06-07&to=2025-06-07&granularity=HOURLY
      */
     @GetMapping("/{slug}/history")
     public ResponseEntity<ParkingHistoryResponse> getHistory(

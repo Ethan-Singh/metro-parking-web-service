@@ -79,16 +79,18 @@ public class ParkingAnalyticsRepository {
                                         .gte(start)
                                         .lt(end)),
                         Aggregation.project("occupancy", "spots", "sourceTimestamp")
-                                .and(DateOperators.dateOf("sourceTimestamp").hour())
+                                .and(
+                                        DateOperators.DateTrunc.truncateValueOf("sourceTimestamp")
+                                                .to("hour"))
                                 .as("hour"),
                         Aggregation.group("hour")
                                 .avg("occupancy")
                                 .as("occupancy")
                                 .first("spots")
                                 .as("spots")
-                                .first("sourceTimestamp")
+                                .min("sourceTimestamp")
                                 .as("timestamp"),
-                        Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id")));
+                        Aggregation.sort(Sort.Direction.ASC, "timestamp"));
 
         return mongoTemplate
                 .aggregate(agg, "parkingDocument", HourlyOccupancyAggregate.class)
