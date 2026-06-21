@@ -1,0 +1,16 @@
+---
+spring:
+  application:
+    name: metro-parking-web-service
+external-server:
+  parking:
+    base-url: http://localhost:8081
+    api: /parking
+    apikey: test-key
+    security:
+      allowed-origins:
+        - http://localhost:3000
+      rate-limit:
+        capacity: 25
+        refill-tokens: 10
+        refill-period-seconds: 60

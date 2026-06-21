@@ -1,9 +1,0 @@
----
-spring:
-  profiles:
-    active: test
-external-server:
-  parking:
-    base-url: http://localhost:8080
-    api: /parking
-    apikey: test-key
