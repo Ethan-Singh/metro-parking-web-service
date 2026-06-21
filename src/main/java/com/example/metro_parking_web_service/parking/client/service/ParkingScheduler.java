@@ -26,4 +26,9 @@ class ParkingScheduler {
     void backfill() {
         parkingBackfillService.backfill();
     }
+
+    @Scheduled(cron = "0 0 3 * * *")
+    void cleanup() {
+        parkingBackfillService.cleanup();
+    }
 }

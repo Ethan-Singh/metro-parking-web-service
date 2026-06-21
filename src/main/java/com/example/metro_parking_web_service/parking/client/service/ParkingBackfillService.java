@@ -4,15 +4,20 @@ package com.example.metro_parking_web_service.parking.client.service;
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,6 +31,7 @@ public class ParkingBackfillService {
     private final ParkingBackfillRepository parkingBackfillRepository;
     private final ParkingBackfillCursorRepository parkingBackfillCursorRepository;
     private final ParkingSnapshot parkingSnapshot;
+    private final MongoTemplate mongoTemplate;
 
     public void backfill() {
         List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
@@ -152,5 +158,20 @@ public class ParkingBackfillService {
     private void saveBackfillDocument(ParkingBackfillDocument document) {
         document.setUpdatedAt(Instant.now());
         parkingBackfillRepository.save(document);
+    }
+
+    public void cleanup() {
+        LocalDate cutoff = LocalDate.now().minusWeeks(parkingPolicy.getBackfillWindow());
+
+        LocalDateTime cutoffTime = cutoff.atStartOfDay();
+
+        Query query = new Query(Criteria.where("sourceTimestamp").lt(cutoffTime));
+
+        long deleted = mongoTemplate.remove(query, ParkingDocument.class).getDeletedCount();
+
+        log.info(
+                "event=cleanup_parking_data decision=success cutoff={} deletedCount={}",
+                cutoffTime,
+                deleted);
     }
 }
