@@ -130,27 +130,4 @@ public class ParkingAnalyticsRepository {
                 .aggregate(agg, "parkingDocument", DailySummaryAggregate.class)
                 .getMappedResults();
     }
-
-    public List<ParkingDocument> findByFacilityAndWeekdayAndHourInRange(
-            int facilityId, int dayOfWeek, int hour, LocalDateTime since) {
-
-        Aggregation agg =
-                Aggregation.newAggregation(
-                        Aggregation.match(
-                                Criteria.where("facilityId")
-                                        .is(facilityId)
-                                        .and("sourceTimestamp")
-                                        .gte(since)),
-                        Aggregation.project("occupancy", "spots", "sourceTimestamp")
-                                .and(DateOperators.dateOf("sourceTimestamp").dayOfWeek())
-                                .as("dow")
-                                .and(DateOperators.dateOf("sourceTimestamp").hour())
-                                .as("hour"),
-                        Aggregation.match(
-                                Criteria.where("dow").is(dayOfWeek).and("hour").is(hour)));
-
-        return mongoTemplate
-                .aggregate(agg, "parkingDocument", ParkingDocument.class)
-                .getMappedResults();
-    }
 }
