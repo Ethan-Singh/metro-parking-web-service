@@ -48,6 +48,14 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void shouldHandleNotFoundException() throws Exception {
+        mockMvc.perform(get("/api/v1/parking/notfound"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("Endpoint not found"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
     void shouldHandleGenericException() throws Exception {
         mockMvc.perform(get("/api/v1/parking/generic"))
                 .andExpect(status().isInternalServerError())

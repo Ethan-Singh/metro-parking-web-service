@@ -9,6 +9,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 @Slf4j
@@ -48,6 +49,14 @@ public class GlobalExceptionHandler {
                 .body(
                         new ErrorResponse(
                                 "Invalid parameter format: " + exception.getName(), Instant.now()));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(NoResourceFoundException ex) {
+        log.warn("event=not_found error_type=NoResourceFoundException message={}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("Endpoint not found", Instant.now()));
     }
 
     @ExceptionHandler(Exception.class)
