@@ -42,7 +42,7 @@ public class ParkingBackfillService {
         }
 
         int facilityId = resolveNextFacility(facilityIds);
-        log.info(
+        log.debug(
                 "event=backfill decision=process facilityId={} facilityCount={}",
                 facilityId,
                 facilityIds.size());
