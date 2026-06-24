@@ -46,6 +46,12 @@ public class ParkingAnalyticsService {
         from = parkingPolicy.clampFromDate(from);
         to = parkingPolicy.clampToDate(to);
 
+        if (granularity == Granularity.TEN_MINUTE) {
+            if (from.plusDays(7).isBefore(to)) {
+                from = to.minusDays(7);
+            }
+        }
+
         int facilityId = slugService.facilityIdFromSlug(slug);
 
         LocalDateTime start = from.atStartOfDay();
