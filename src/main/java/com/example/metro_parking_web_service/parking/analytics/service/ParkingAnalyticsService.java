@@ -44,7 +44,10 @@ public class ParkingAnalyticsService {
             String slug, LocalDate from, LocalDate to, Granularity granularity) {
 
         from = parkingPolicy.clampFromDate(from);
+
+        LocalDate maxTo = LocalDate.now().minusDays(1);
         to = parkingPolicy.clampToDate(to);
+        to = to.isAfter(maxTo) ? maxTo : to;
 
         if (granularity == Granularity.TEN_MINUTE) {
             if (from.plusDays(7).isBefore(to)) {
