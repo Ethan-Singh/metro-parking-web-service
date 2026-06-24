@@ -1,10 +1,10 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.config;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -39,25 +39,38 @@ class ParkingPolicyTest {
     }
 
     @Test
-    void isOutsideBackfillWindow_shouldReturnFalse_whenLastDateAfterStart() {
-        ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
-        backfillDocument.setLastProcessedDate(LocalDate.now().minusWeeks(2));
+    void clampFromDate_shouldClamp_whenBeforeMinAllowed() {
+        LocalDate from = LocalDate.now().minusWeeks(10);
 
-        assertFalse(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
+        LocalDate result = parkingPolicy.clampFromDate(from);
+
+        assertThat(result).isEqualTo(LocalDate.now().minusWeeks(4));
     }
 
     @Test
-    void isOutsideBackfillWindow_shouldReturnTrue_whenLastDateOutsideOrEqualStart() {
-        ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
-        backfillDocument.setLastProcessedDate(LocalDate.now().minusWeeks(10));
+    void clampFromDate_shouldNotClamp_whenWithinWindow() {
+        LocalDate from = LocalDate.now().minusWeeks(2);
 
-        assertTrue(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
+        LocalDate result = parkingPolicy.clampFromDate(from);
+
+        assertThat(result).isEqualTo(from);
     }
 
     @Test
-    void isOutsideBackfillWindow_shouldReturnFalse_whenLastDateNull() {
-        ParkingBackfillDocument backfillDocument = new ParkingBackfillDocument();
+    void clampToDate_shouldClamp_whenAfterToday() {
+        LocalDate to = LocalDate.now().plusDays(10);
 
-        assertFalse(parkingPolicy.isOutsideBackfillWindow(backfillDocument));
+        LocalDate result = parkingPolicy.clampToDate(to);
+
+        assertThat(result).isEqualTo(LocalDate.now());
+    }
+
+    @Test
+    void clampToDate_shouldNotClamp_whenBeforeOrEqualToday() {
+        LocalDate to = LocalDate.now().minusDays(1);
+
+        LocalDate result = parkingPolicy.clampToDate(to);
+
+        assertThat(result).isEqualTo(to);
     }
 }

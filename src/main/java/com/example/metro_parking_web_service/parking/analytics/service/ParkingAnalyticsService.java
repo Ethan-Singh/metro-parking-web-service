@@ -43,22 +43,8 @@ public class ParkingAnalyticsService {
     public ParkingHistoryResponse getHistory(
             String slug, LocalDate from, LocalDate to, Granularity granularity) {
 
-        LocalDate now = LocalDate.now();
-        LocalDate minAllowedDate = now.minusWeeks(parkingPolicy.getBackfillWindow());
-
-        if (from.isBefore(minAllowedDate)) {
-            log.info(
-                    "event=history_request_clamped slug={} from={} minAllowed={}",
-                    slug,
-                    from,
-                    minAllowedDate);
-
-            from = minAllowedDate;
-        }
-
-        if (to.isAfter(now)) {
-            to = now;
-        }
+        from = parkingPolicy.clampFromDate(from);
+        to = parkingPolicy.clampToDate(to);
 
         int facilityId = slugService.facilityIdFromSlug(slug);
 

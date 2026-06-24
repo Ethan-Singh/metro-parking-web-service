@@ -124,7 +124,7 @@ public class ParkingBackfillService {
     }
 
     private void backfillBackward(int facilityId, ParkingBackfillDocument document) {
-        if (document.isComplete() || parkingPolicy.isOutsideBackfillWindow(document)) {
+        if (document.isComplete() || parkingPolicy.isBeforeMinAllowedDate(document)) {
             log.debug(
                     "event=backfill_facility decision=skip facilityId={} reason={}",
                     facilityId,
