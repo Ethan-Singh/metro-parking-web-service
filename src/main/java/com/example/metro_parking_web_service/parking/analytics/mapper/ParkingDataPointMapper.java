@@ -13,27 +13,31 @@ import org.springframework.stereotype.Component;
 public class ParkingDataPointMapper {
 
     public DataPoint toDataPoint(ParkingDocument document) {
-        int available = Math.max(0, document.getSpots() - document.getOccupancy());
-        double rate =
-                document.getSpots() > 0
-                        ? (double) document.getOccupancy() / document.getSpots()
-                        : 0.0;
-        return new DataPoint(
-                document.getSourceTimestamp(), document.getOccupancy(), available, rate);
+        int spots = document.getSpots();
+        double occupancy = Math.min(document.getOccupancy(), spots);
+
+        int available = Math.max(0, spots - (int) occupancy);
+        double rate = spots > 0 ? occupancy / spots : 0.0;
+
+        return new DataPoint(document.getSourceTimestamp(), occupancy, available, rate);
     }
 
     public DataPoint toDataPoint(HourlyOccupancyAggregate point) {
-        int occupancy = (int) Math.round(point.occupancy());
-        int available = Math.max(0, point.spots() - occupancy);
-        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
+        int spots = point.spots();
+        double occupancy = Math.min(point.occupancy(), spots);
+
+        int available = Math.max(0, spots - (int) occupancy);
+        double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
 
         return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
 
     public DataPoint toDataPoint(DailySummaryAggregate point) {
-        int occupancy = (int) Math.round(point.avgOccupancy());
-        int available = Math.max(0, point.spots() - occupancy);
-        double occupancyRate = point.spots() > 0 ? (double) occupancy / point.spots() : 0.0;
+        int spots = point.spots();
+        double occupancy = Math.min(point.avgOccupancy(), spots);
+
+        int available = Math.max(0, spots - (int) occupancy);
+        double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
 
         return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
