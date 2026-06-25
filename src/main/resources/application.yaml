@@ -50,8 +50,8 @@ external-server:
     security:
       allowed-origins: []
       rate-limit:
-        capacity: 10
-        refill-tokens: 10
+        capacity: 60
+        refill-tokens: 60
         refill-period-seconds: 60
 resilience4j:
   circuitbreaker:
