@@ -30,7 +30,7 @@ server:
   compression:
     enabled: true
     mime-types:
-      - application/json
+    - application/json
     min-response-size: 1024
 external-server:
   parking:

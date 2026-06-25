@@ -19,17 +19,18 @@ class ParkingSchedulerTest {
     @InjectMocks private ParkingScheduler parkingScheduler;
 
     @Test
-    void sync_shouldRefreshSnapshotThenIngest() throws Exception {
+    void sync_shouldRefreshSnapshotThenBackfill() throws Exception {
         invoke("sync");
 
         verify(parkingSnapshot).refresh();
+        verify(parkingBackfillService).backfill();
     }
 
     @Test
-    void backfill_shouldDelegateToBackfillService() throws Exception {
-        invoke("backfill");
+    void sync_shouldCleanupBackfill() throws Exception {
+        invoke("cleanup");
 
-        verify(parkingBackfillService).backfill();
+        verify(parkingBackfillService).cleanup();
     }
 
     private void invoke(String methodName) throws Exception {

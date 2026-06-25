@@ -20,10 +20,6 @@ class ParkingScheduler {
     @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.SECONDS)
     void sync() {
         parkingSnapshot.refresh();
-    }
-
-    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
-    void backfill() {
         parkingBackfillService.backfill();
     }
 
