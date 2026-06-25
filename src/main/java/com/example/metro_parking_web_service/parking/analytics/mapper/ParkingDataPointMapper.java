@@ -14,7 +14,7 @@ public class ParkingDataPointMapper {
 
     public DataPoint toDataPoint(ParkingDocument document) {
         int spots = document.getSpots();
-        double occupancy = Math.min(document.getOccupancy(), spots);
+        double occupancy = document.getOccupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
         double rate = spots > 0 ? occupancy / spots : 0.0;
@@ -24,7 +24,7 @@ public class ParkingDataPointMapper {
 
     public DataPoint toDataPoint(HourlyOccupancyAggregate point) {
         int spots = point.spots();
-        double occupancy = Math.min(point.occupancy(), spots);
+        double occupancy = point.occupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
         double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
@@ -34,7 +34,7 @@ public class ParkingDataPointMapper {
 
     public DataPoint toDataPoint(DailySummaryAggregate point) {
         int spots = point.spots();
-        double occupancy = Math.min(point.avgOccupancy(), spots);
+        double occupancy = point.avgOccupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
         double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
