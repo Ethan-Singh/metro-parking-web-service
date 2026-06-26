@@ -28,7 +28,7 @@ class RateLimitFilterTest {
 
     @BeforeEach
     void setup() {
-        rateLimitFilter.clearBuckets();
+        rateLimitFilter.resetRateLimiter();
     }
 
     @Test

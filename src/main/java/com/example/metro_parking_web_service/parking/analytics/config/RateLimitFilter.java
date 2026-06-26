@@ -100,7 +100,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return request.getRemoteAddr();
     }
 
-    void clearBuckets() {
+    void resetRateLimiter() {
         buckets.invalidateAll();
     }
 }
