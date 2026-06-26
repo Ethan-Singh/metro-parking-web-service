@@ -11,6 +11,7 @@ import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOve
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
+import com.github.benmanes.caffeine.cache.Cache;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +28,7 @@ class ParkingAnalyticsServiceTest {
     @Mock private ParkingSlugService slugService;
     @Mock private ParkingOverviewMapper overviewMapper;
     @Mock private ParkingDataPointMapper dataPointMapper;
+    @Mock private Cache<String, ParkingHistoryResponse> historyCache;
 
     private ParkingAnalyticsService analyticsService;
 
@@ -41,7 +43,8 @@ class ParkingAnalyticsServiceTest {
                         slugService,
                         overviewMapper,
                         dataPointMapper,
-                        parkingPolicy);
+                        parkingPolicy,
+                        historyCache);
     }
 
     @Test

@@ -7,6 +7,7 @@ import com.example.metro_parking_web_service.parking.analytics.mapper.ParkingOve
 import com.example.metro_parking_web_service.parking.analytics.repository.ParkingAnalyticsRepository;
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
+import com.github.benmanes.caffeine.cache.Cache;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +25,7 @@ public class ParkingAnalyticsService {
     private final ParkingOverviewMapper overviewMapper;
     private final ParkingDataPointMapper dataPointMapper;
     private final ParkingPolicy parkingPolicy;
+    private final Cache<String, ParkingHistoryResponse> historyCache;
 
     public List<ParkingOverviewResponse> getAllOverviews() {
         return analyticsRepository.findAllLatest().stream()
@@ -57,43 +59,55 @@ public class ParkingAnalyticsService {
 
         int facilityId = slugService.facilityIdFromSlug(slug);
 
+        String key = facilityId + "|" + from + "|" + to + "|" + granularity;
+
+        ParkingHistoryResponse cached = historyCache.getIfPresent(key);
+        if (cached != null) {
+            return cached;
+        }
+
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.plusDays(1).atStartOfDay();
 
-        return switch (granularity) {
-            case TEN_MINUTE -> {
-                List<ParkingDocument> raw =
-                        analyticsRepository.findTenMinuteAveragesByFacilityAndRange(
-                                facilityId, start, end);
+        ParkingHistoryResponse result =
+                switch (granularity) {
+                    case TEN_MINUTE -> {
+                        var raw =
+                                analyticsRepository.findTenMinuteAveragesByFacilityAndRange(
+                                        facilityId, start, end);
 
-                yield new ParkingHistoryResponse(
-                        slug,
-                        from,
-                        granularity,
-                        raw.stream().map(dataPointMapper::toDataPoint).toList());
-            }
+                        yield new ParkingHistoryResponse(
+                                slug,
+                                from,
+                                granularity,
+                                raw.stream().map(dataPointMapper::toDataPoint).toList());
+                    }
 
-            case HOURLY -> {
-                List<DataPoint> hourly =
-                        analyticsRepository
-                                .findHourlyAveragesByFacilityAndRange(facilityId, start, end)
-                                .stream()
-                                .map(dataPointMapper::toDataPoint)
-                                .toList();
+                    case HOURLY -> {
+                        var hourly =
+                                analyticsRepository
+                                        .findHourlyAveragesByFacilityAndRange(
+                                                facilityId, start, end)
+                                        .stream()
+                                        .map(dataPointMapper::toDataPoint)
+                                        .toList();
 
-                yield new ParkingHistoryResponse(slug, from, granularity, hourly);
-            }
+                        yield new ParkingHistoryResponse(slug, from, granularity, hourly);
+                    }
 
-            case DAILY -> {
-                List<DataPoint> daily =
-                        analyticsRepository
-                                .findDailyOccupancyAggregate(facilityId, start, end)
-                                .stream()
-                                .map(dataPointMapper::toDataPoint)
-                                .toList();
+                    case DAILY -> {
+                        var daily =
+                                analyticsRepository
+                                        .findDailyOccupancyAggregate(facilityId, start, end)
+                                        .stream()
+                                        .map(dataPointMapper::toDataPoint)
+                                        .toList();
 
-                yield new ParkingHistoryResponse(slug, from, granularity, daily);
-            }
-        };
+                        yield new ParkingHistoryResponse(slug, from, granularity, daily);
+                    }
+                };
+
+        historyCache.put(key, result);
+        return result;
     }
 }
