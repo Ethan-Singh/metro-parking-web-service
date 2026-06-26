@@ -86,7 +86,9 @@ public class ParkingAnalyticsService {
 
             case DAILY -> {
                 List<DataPoint> daily =
-                        analyticsRepository.findDailySummary(facilityId, start, end).stream()
+                        analyticsRepository
+                                .findDailyOccupancyAggregate(facilityId, start, end)
+                                .stream()
                                 .map(dataPointMapper::toDataPoint)
                                 .toList();
 

@@ -3,7 +3,7 @@ package com.example.metro_parking_web_service.parking.analytics.mapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.DataPoint;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
@@ -68,10 +68,10 @@ class ParkingDataPointMapperTest {
     }
 
     @Test
-    void shouldMapDailySummaryAggregate() {
+    void shouldMapDailyOccupancyAggregate() {
         LocalDateTime timestamp = LocalDateTime.now();
 
-        DailySummaryAggregate aggregate = new DailySummaryAggregate(timestamp, 100, 42.4, 80, 10);
+        DailyOccupancyAggregate aggregate = new DailyOccupancyAggregate(timestamp, 100, 42.4);
 
         DataPoint result = mapper.toDataPoint(aggregate);
 

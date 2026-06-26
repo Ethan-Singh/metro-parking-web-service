@@ -94,9 +94,10 @@ class ParkingAnalyticsServiceTest {
         LocalDate from = LocalDate.of(2025, 6, 1);
         LocalDate to = LocalDate.of(2025, 6, 7);
 
-        DailySummaryAggregate agg = new DailySummaryAggregate(LocalDateTime.now(), 100, 40, 60, 10);
+        DailyOccupancyAggregate agg = new DailyOccupancyAggregate(LocalDateTime.now(), 100, 40);
 
-        when(analyticsRepository.findDailySummary(anyInt(), any(), any())).thenReturn(List.of(agg));
+        when(analyticsRepository.findDailyOccupancyAggregate(anyInt(), any(), any()))
+                .thenReturn(List.of(agg));
 
         DataPoint mapped = new DataPoint(LocalDateTime.now(), 40, 60, 0.4);
         when(dataPointMapper.toDataPoint(agg)).thenReturn(mapped);

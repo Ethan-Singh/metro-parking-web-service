@@ -1,7 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.mapper;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.DataPoint;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
@@ -32,7 +32,7 @@ public class ParkingDataPointMapper {
         return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
 
-    public DataPoint toDataPoint(DailySummaryAggregate point) {
+    public DataPoint toDataPoint(DailyOccupancyAggregate point) {
         int spots = point.spots();
         double occupancy = point.avgOccupancy();
 

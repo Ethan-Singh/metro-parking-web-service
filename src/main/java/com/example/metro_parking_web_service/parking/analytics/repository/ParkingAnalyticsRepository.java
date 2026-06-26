@@ -1,7 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.repository;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDateTime;
@@ -97,7 +97,7 @@ public class ParkingAnalyticsRepository {
                 .getMappedResults();
     }
 
-    public List<DailySummaryAggregate> findDailySummary(
+    public List<DailyOccupancyAggregate> findDailyOccupancyAggregate(
             int facilityId, LocalDateTime start, LocalDateTime end) {
 
         Aggregation agg =
@@ -127,7 +127,7 @@ public class ParkingAnalyticsRepository {
                         Aggregation.sort(Sort.by(Sort.Direction.ASC, "_id")));
 
         return mongoTemplate
-                .aggregate(agg, "parkingDocument", DailySummaryAggregate.class)
+                .aggregate(agg, "parkingDocument", DailyOccupancyAggregate.class)
                 .getMappedResults();
     }
 }

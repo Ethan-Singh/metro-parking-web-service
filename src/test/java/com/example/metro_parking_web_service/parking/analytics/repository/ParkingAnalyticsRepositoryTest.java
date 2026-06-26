@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.DailySummaryAggregate;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import java.time.LocalDate;
@@ -31,7 +31,7 @@ class ParkingAnalyticsRepositoryTest {
 
     @Mock private AggregationResults<HourlyOccupancyAggregate> hourlyAggResults;
 
-    @Mock private AggregationResults<DailySummaryAggregate> dailyAggResults;
+    @Mock private AggregationResults<DailyOccupancyAggregate> dailyAggResults;
 
     @InjectMocks private ParkingAnalyticsRepository repository;
 
@@ -81,20 +81,21 @@ class ParkingAnalyticsRepositoryTest {
     }
 
     @Test
-    void shouldFindDailySummary() {
+    void shouldFindDailyOccupancyAggregate() {
         when(mongoTemplate.aggregate(
                         any(Aggregation.class),
                         eq("parkingDocument"),
-                        eq(DailySummaryAggregate.class)))
+                        eq(DailyOccupancyAggregate.class)))
                 .thenReturn(dailyAggResults);
 
         when(dailyAggResults.getMappedResults())
-                .thenReturn(List.of(new DailySummaryAggregate(null, 100, 20, 30, 10)));
+                .thenReturn(List.of(new DailyOccupancyAggregate(null, 100, 20)));
 
         LocalDateTime start = LocalDate.now().minusDays(7).atStartOfDay();
         LocalDateTime end = LocalDate.now().atStartOfDay();
 
-        List<DailySummaryAggregate> result = repository.findDailySummary(1, start, end);
+        List<DailyOccupancyAggregate> result =
+                repository.findDailyOccupancyAggregate(1, start, end);
 
         assertThat(result).hasSize(1);
     }
