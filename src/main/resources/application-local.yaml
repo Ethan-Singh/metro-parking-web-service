@@ -8,7 +8,6 @@ logging:
 management:
   endpoints:
     web:
-      base-path: /actuator
       exposure:
         include: '*'
 external-server:
@@ -16,6 +15,3 @@ external-server:
     base-url: https://your-base-url
     api: your-api
     apikey: your-api-key
-    security:
-      allowed-origins:
-      - http://localhost:3000
