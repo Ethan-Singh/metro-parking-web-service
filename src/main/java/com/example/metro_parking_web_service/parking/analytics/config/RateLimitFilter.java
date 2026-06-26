@@ -1,6 +1,8 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.config;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.FilterChain;
@@ -9,8 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -24,7 +24,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private final ParkingSecurityProperties securityProperties;
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    Cache<String, Bucket> buckets =
+            Caffeine.newBuilder()
+                    .expireAfterAccess(Duration.ofMinutes(30))
+                    .maximumSize(10_000)
+                    .build();
 
     @Override
     protected void doFilterInternal(
@@ -40,7 +44,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String clientIp = resolveClientIp(request);
         String path = request.getRequestURI();
 
-        Bucket bucket = buckets.computeIfAbsent(clientIp, this::newBucket);
+        Bucket bucket = buckets.get(clientIp, this::newBucket);
 
         if (bucket.tryConsume(1)) {
             log.debug("event=rate_limit_check decision=success ip={} path={}", clientIp, path);
@@ -97,6 +101,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     void clearBuckets() {
-        buckets.clear();
+        buckets.invalidateAll();
     }
 }

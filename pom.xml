@@ -42,6 +42,9 @@
 		<!-- bucket4j -->
 		<bucket4j-jdk17-core-version>8.19.0</bucket4j-jdk17-core-version>
 
+		<!-- caffeine -->
+		<caffeine.version>3.2.4</caffeine.version>
+
 		<!-- wiremock -->
 		<wiremock-spring-boot-version>4.2.1</wiremock-spring-boot-version>
 	</properties>
@@ -105,6 +108,13 @@
 			<groupId>com.bucket4j</groupId>
 			<artifactId>bucket4j_jdk17-core</artifactId>
 			<version>${bucket4j-jdk17-core-version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+			<version>${caffeine.version}</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<dependency>
