@@ -13,15 +13,15 @@ logging:
 management:
   endpoints:
     web:
-      base-path: "${ACTUATOR_BASE_PATH:}"
+      base-path: "${ACTUATOR_BASE_PATH:/actuator}"
       exposure:
         include: "health, readiness, startup"
 springdoc:
   api-docs:
-    enabled: false
+    enabled: "${API_DOCS:false}"
     path: /v3/api-docs
   swagger-ui:
-    enabled: false
+    enabled: "${SWAGGER_UI:false}"
     path: /swagger-ui.html
     display-request-duration: true
   show-actuator: false
@@ -48,7 +48,7 @@ external-server:
     analytics:
       almost-full-threshold: 0.1
     security:
-      allowed-origins: []
+      allowed-origins: "${ALLOWED_ORIGINS:[http://localhost:5173]}"
       rate-limit:
         capacity: 60
         refill-tokens: 60
