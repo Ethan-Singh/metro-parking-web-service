@@ -22,7 +22,7 @@ class SecurityConfigTest {
 
     @Autowired private MockMvc mockMvc;
 
-    @Autowired ParkingSecurityProperties props;
+    @Autowired SecurityProperties props;
 
     @Test
     void shouldAllowParkingEndpoint() throws Exception {

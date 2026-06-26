@@ -5,6 +5,6 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("external-server.parking.security")
-public record ParkingSecurityProperties(List<String> allowedOrigins, RateLimit rateLimit) {
+public record SecurityProperties(List<String> allowedOrigins, RateLimit rateLimit) {
     public record RateLimit(int capacity, int refillTokens, int refillPeriodSeconds) {}
 }

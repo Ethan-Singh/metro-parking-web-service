@@ -23,7 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final ParkingSecurityProperties securityProperties;
+    private final SecurityProperties securityProperties;
     Cache<String, Bucket> buckets =
             Caffeine.newBuilder()
                     .expireAfterAccess(Duration.ofMinutes(30))
@@ -71,7 +71,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Bucket newBucket(String clientIp) {
-        ParkingSecurityProperties.RateLimit ratelimit = securityProperties.rateLimit();
+        SecurityProperties.RateLimit ratelimit = securityProperties.rateLimit();
         log.debug(
                 "event=rate_limit_bucket_create ip={} capacity={} refillTokens={}"
                         + " refillPeriodSeconds={}",

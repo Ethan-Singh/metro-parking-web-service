@@ -23,7 +23,7 @@ class RateLimitFilterTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private RateLimitFilter rateLimitFilter;
 
-    @MockitoBean private ParkingSecurityProperties securityProperties;
+    @MockitoBean private SecurityProperties securityProperties;
     @MockitoBean private ParkingAnalyticsService analyticsService;
 
     @BeforeEach
@@ -35,7 +35,7 @@ class RateLimitFilterTest {
     void should_allow_requests_under_limit() throws Exception {
 
         when(securityProperties.rateLimit())
-                .thenReturn(new ParkingSecurityProperties.RateLimit(10, 10, 60));
+                .thenReturn(new SecurityProperties.RateLimit(10, 10, 60));
 
         when(analyticsService.getAllOverviews()).thenReturn(List.of());
 
@@ -45,8 +45,7 @@ class RateLimitFilterTest {
     @Test
     void should_block_requests_when_rate_limited() throws Exception {
 
-        when(securityProperties.rateLimit())
-                .thenReturn(new ParkingSecurityProperties.RateLimit(1, 1, 60));
+        when(securityProperties.rateLimit()).thenReturn(new SecurityProperties.RateLimit(1, 1, 60));
 
         when(analyticsService.getAllOverviews()).thenReturn(List.of());
 

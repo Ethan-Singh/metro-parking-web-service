@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class ParkingSecurityPropertiesTest {
 
-    @Autowired private ParkingSecurityProperties props;
+    @Autowired private SecurityProperties props;
 
     @Test
     void shouldBindConfigurationPropertiesCorrectly() {
