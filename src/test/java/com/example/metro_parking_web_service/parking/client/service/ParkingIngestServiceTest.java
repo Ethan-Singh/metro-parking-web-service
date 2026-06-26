@@ -60,7 +60,7 @@ class ParkingIngestServiceTest {
         Parking parking = new Parking(1, "A", 10, 5, LocalDateTime.now());
 
         when(parkingResponseMapper.toParking(response)).thenReturn(parking);
-        when(parkingPolicy.isParkingAllowed(parking)).thenReturn(false);
+        when(parkingPolicy.isParkingFacilityAllowed(parking)).thenReturn(false);
 
         parkingIngestService.ingest(List.of(response));
 
@@ -74,7 +74,7 @@ class ParkingIngestServiceTest {
         ParkingDocument doc = new ParkingDocument();
 
         when(parkingResponseMapper.toParking(response)).thenReturn(parking);
-        when(parkingPolicy.isParkingAllowed(parking)).thenReturn(true);
+        when(parkingPolicy.isParkingFacilityAllowed(parking)).thenReturn(true);
         when(parkingDocumentMapper.toParkingDocument(parking)).thenReturn(doc);
         when(parkingIdStrategy.generateId(anyInt(), any())).thenReturn("id-1");
 

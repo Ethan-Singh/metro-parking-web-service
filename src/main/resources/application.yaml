@@ -44,7 +44,7 @@ external-server:
       - 3
       - 4
       - 5
-      backfill-window: 4
+      backfill-window: 31
     analytics:
       almost-full-threshold: 0.1
     security:

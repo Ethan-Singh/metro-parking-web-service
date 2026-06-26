@@ -7,6 +7,11 @@ external-server:
     base-url: http://localhost:8081
     api: /parking
     apikey: test-key
+    policy:
+      disabled-facilities:
+        - 1
+        - 2
+      backfill-window: 31
     security:
       allowed-origins:
         - http://localhost:3000

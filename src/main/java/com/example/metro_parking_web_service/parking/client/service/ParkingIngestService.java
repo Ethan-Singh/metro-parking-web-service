@@ -38,7 +38,7 @@ public class ParkingIngestService {
                 responses.stream()
                         .map(parkingResponseMapper::toParking)
                         .filter(Objects::nonNull)
-                        .filter(parkingPolicy::isParkingAllowed)
+                        .filter(parkingPolicy::isParkingFacilityAllowed)
                         .toList();
 
         if (filtered.isEmpty()) {

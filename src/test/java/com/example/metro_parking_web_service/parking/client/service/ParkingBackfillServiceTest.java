@@ -180,7 +180,7 @@ class ParkingBackfillServiceTest {
 
         when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
         when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingPolicy.isBeforeMinAllowedDate(state)).thenReturn(true);
+        when(parkingPolicy.isBeforeBackfillWindow(state)).thenReturn(true);
 
         parkingBackfillService.backfill();
 

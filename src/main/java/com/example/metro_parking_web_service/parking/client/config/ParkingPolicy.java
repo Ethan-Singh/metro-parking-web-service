@@ -4,7 +4,6 @@ package com.example.metro_parking_web_service.parking.client.config;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Set;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -20,21 +19,17 @@ public class ParkingPolicy {
     private Set<Integer> disabledFacilities;
     private int backfillWindow;
 
-    public LocalDate minAllowedDate() {
-        return LocalDate.now().minusWeeks(backfillWindow);
+    public LocalDate getEarliestBackfillDate() {
+        return LocalDate.now().minusDays(backfillWindow);
     }
 
-    public boolean isParkingAllowed(Parking parking) {
-        return !disabledFacilities.contains(parking.facilityId());
-    }
-
-    public boolean isBeforeMinAllowedDate(ParkingBackfillDocument parkingBackfillDocument) {
+    public boolean isBeforeBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
         LocalDate last = parkingBackfillDocument.getLastProcessedDate();
-        return last != null && last.isBefore(minAllowedDate());
+        return last != null && last.isBefore(getEarliestBackfillDate());
     }
 
     public LocalDate clampFromDate(LocalDate from) {
-        LocalDate min = minAllowedDate();
+        LocalDate min = getEarliestBackfillDate();
         return from.isBefore(min) ? min : from;
     }
 
@@ -43,7 +38,7 @@ public class ParkingPolicy {
         return to.isAfter(now) ? now : to;
     }
 
-    public LocalDateTime clampEndInclusiveDate(LocalDate to) {
-        return clampToDate(to).plusDays(1).atStartOfDay().minusNanos(1);
+    public boolean isParkingFacilityAllowed(Parking parking) {
+        return !disabledFacilities.contains(parking.facilityId());
     }
 }
