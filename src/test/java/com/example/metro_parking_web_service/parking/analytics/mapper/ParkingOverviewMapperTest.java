@@ -4,7 +4,7 @@ package com.example.metro_parking_web_service.parking.analytics.mapper;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.AvailabilityStatus;
+import com.example.metro_parking_web_service.parking.analytics.dto.Availability;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingSlugService;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingStatusService;
@@ -36,10 +36,9 @@ class ParkingOverviewMapperTest {
 
         when(slugService.toSlug("Central Station")).thenReturn("central-station");
 
-        when(statusService.resolveStatus(70, 100)).thenReturn(AvailabilityStatus.AVAILABLE);
+        when(statusService.resolveStatus(70, 100)).thenReturn(Availability.AVAILABLE);
 
-        when(statusService.resolveStatusLabel(AvailabilityStatus.AVAILABLE))
-                .thenReturn("Available");
+        when(statusService.resolveStatusLabel(Availability.AVAILABLE)).thenReturn("Available");
 
         ParkingOverviewResponse result = mapper.toOverview(doc);
 
@@ -49,7 +48,7 @@ class ParkingOverviewMapperTest {
         assertThat(result.occupancy()).isEqualTo(30);
         assertThat(result.available()).isEqualTo(70);
         assertThat(result.occupancyRate()).isEqualTo(0.3);
-        assertThat(result.status()).isEqualTo(AvailabilityStatus.AVAILABLE);
+        assertThat(result.status()).isEqualTo(Availability.AVAILABLE);
         assertThat(result.statusLabel()).isEqualTo("Available");
         assertThat(result.approximation()).isEqualTo("~ Estimated availability");
         assertThat(result.asOf()).isEqualTo(ts);
@@ -69,9 +68,9 @@ class ParkingOverviewMapperTest {
 
         when(slugService.toSlug("Empty Lot")).thenReturn("empty-lot");
 
-        when(statusService.resolveStatus(0, 0)).thenReturn(AvailabilityStatus.FULL);
+        when(statusService.resolveStatus(0, 0)).thenReturn(Availability.FULL);
 
-        when(statusService.resolveStatusLabel(AvailabilityStatus.FULL)).thenReturn("Full");
+        when(statusService.resolveStatusLabel(Availability.FULL)).thenReturn("Full");
 
         ParkingOverviewResponse result = mapper.toOverview(doc);
 

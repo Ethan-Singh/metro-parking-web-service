@@ -2,7 +2,7 @@
 package com.example.metro_parking_web_service.parking.analytics.service;
 
 import com.example.metro_parking_web_service.parking.analytics.config.ParkingAnalyticsProperties;
-import com.example.metro_parking_web_service.parking.analytics.dto.AvailabilityStatus;
+import com.example.metro_parking_web_service.parking.analytics.dto.Availability;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,16 +12,16 @@ public class ParkingStatusService {
 
     private final ParkingAnalyticsProperties analyticsProperties;
 
-    public AvailabilityStatus resolveStatus(int available, int spots) {
-        if (available < 1) return AvailabilityStatus.FULL;
+    public Availability resolveStatus(int available, int spots) {
+        if (available < 1) return Availability.FULL;
         double availableRate = spots > 0 ? (double) available / spots : 0.0;
         if (availableRate < analyticsProperties.almostFullThreshold()) {
-            return AvailabilityStatus.ALMOST_FULL;
+            return Availability.ALMOST_FULL;
         }
-        return AvailabilityStatus.AVAILABLE;
+        return Availability.AVAILABLE;
     }
 
-    public String resolveStatusLabel(AvailabilityStatus status) {
+    public String resolveStatusLabel(Availability status) {
         return switch (status) {
             case FULL -> "Full";
             case ALMOST_FULL -> "Almost Full";

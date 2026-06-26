@@ -10,7 +10,7 @@ public record ParkingOverviewResponse(
         int occupancy,
         int available,
         double occupancyRate,
-        AvailabilityStatus status,
+        Availability status,
         String statusLabel,
         String approximation,
         LocalDateTime asOf,

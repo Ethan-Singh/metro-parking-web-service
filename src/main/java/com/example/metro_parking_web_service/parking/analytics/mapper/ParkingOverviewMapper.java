@@ -3,7 +3,7 @@ package com.example.metro_parking_web_service.parking.analytics.mapper;
 
 import static com.example.metro_parking_web_service.parking.analytics.service.ParkingAnalyticsLabels.APPROXIMATION;
 
-import com.example.metro_parking_web_service.parking.analytics.dto.AvailabilityStatus;
+import com.example.metro_parking_web_service.parking.analytics.dto.Availability;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingSlugService;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingStatusService;
@@ -25,7 +25,7 @@ public class ParkingOverviewMapper {
                         ? (double) document.getOccupancy() / document.getSpots()
                         : 0.0;
 
-        AvailabilityStatus status = statusService.resolveStatus(available, document.getSpots());
+        Availability status = statusService.resolveStatus(available, document.getSpots());
         String statusLabel = statusService.resolveStatusLabel(status);
         String slug = slugService.toSlug(document.getFacilityName());
         String ariaLabel =
