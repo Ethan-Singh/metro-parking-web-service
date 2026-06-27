@@ -15,7 +15,7 @@ public class CacheConfig {
     public Cache<String, ParkingHistoryResponse> historyCache() {
         return Caffeine.newBuilder()
                 .maximumSize(10_000)
-                .expireAfterWrite(Duration.ofHours(24))
+                .expireAfterWrite(Duration.ofHours(1))
                 .build();
     }
 }
