@@ -1,8 +1,6 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.mapper;
 
-import static com.example.metro_parking_web_service.parking.analytics.service.ParkingAnalyticsLabels.APPROXIMATION;
-
 import com.example.metro_parking_web_service.parking.analytics.dto.Availability;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingSlugService;
@@ -20,17 +18,17 @@ public class ParkingOverviewMapper {
 
     public ParkingOverviewResponse toOverview(ParkingDocument document) {
         int available = Math.max(0, document.getSpots() - document.getOccupancy());
-        double rate =
+        double occupancyRate =
                 document.getSpots() > 0
                         ? (double) document.getOccupancy() / document.getSpots()
                         : 0.0;
 
-        Availability status = statusService.resolveStatus(available, document.getSpots());
-        String statusLabel = statusService.resolveStatusLabel(status);
+        Availability availability = statusService.resolveStatus(available, document.getSpots());
+        String statusLabel = statusService.resolveStatusLabel(availability);
         String slug = slugService.toSlug(document.getFacilityName());
         String ariaLabel =
                 String.format(
-                        "%s, %d of %d spots available, status: %s",
+                        "%s, %d of %d spots available, availability: %s",
                         document.getFacilityName(), available, document.getSpots(), statusLabel);
 
         return new ParkingOverviewResponse(
@@ -39,10 +37,8 @@ public class ParkingOverviewMapper {
                 document.getSpots(),
                 document.getOccupancy(),
                 available,
-                rate,
-                status,
-                statusLabel,
-                APPROXIMATION,
+                occupancyRate,
+                availability,
                 document.getSourceTimestamp(),
                 ariaLabel);
     }

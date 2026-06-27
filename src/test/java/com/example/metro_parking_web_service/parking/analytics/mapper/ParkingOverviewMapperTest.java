@@ -48,12 +48,10 @@ class ParkingOverviewMapperTest {
         assertThat(result.occupancy()).isEqualTo(30);
         assertThat(result.available()).isEqualTo(70);
         assertThat(result.occupancyRate()).isEqualTo(0.3);
-        assertThat(result.status()).isEqualTo(Availability.AVAILABLE);
-        assertThat(result.statusLabel()).isEqualTo("Available");
-        assertThat(result.approximation()).isEqualTo("~ Estimated availability");
-        assertThat(result.asOf()).isEqualTo(ts);
+        assertThat(result.availability()).isEqualTo(Availability.AVAILABLE);
+        assertThat(result.timestamp()).isEqualTo(ts);
         assertThat(result.ariaLabel())
-                .isEqualTo("Central Station, 70 of 100 spots available, status: Available");
+                .isEqualTo("Central Station, 70 of 100 spots available, availability: Available");
     }
 
     @Test

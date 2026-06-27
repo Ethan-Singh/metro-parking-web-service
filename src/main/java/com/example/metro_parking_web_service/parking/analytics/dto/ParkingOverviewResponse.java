@@ -10,8 +10,6 @@ public record ParkingOverviewResponse(
         int occupancy,
         int available,
         double occupancyRate,
-        Availability status,
-        String statusLabel,
-        String approximation,
-        LocalDateTime asOf,
+        Availability availability,
+        LocalDateTime timestamp,
         String ariaLabel) {}
