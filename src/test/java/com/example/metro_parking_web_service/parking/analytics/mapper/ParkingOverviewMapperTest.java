@@ -38,8 +38,6 @@ class ParkingOverviewMapperTest {
 
         when(statusService.resolveStatus(70, 100)).thenReturn(Availability.AVAILABLE);
 
-        when(statusService.resolveStatusLabel(Availability.AVAILABLE)).thenReturn("Available");
-
         ParkingOverviewResponse result = mapper.toOverview(doc);
 
         assertThat(result.slug()).isEqualTo("central-station");
@@ -50,8 +48,7 @@ class ParkingOverviewMapperTest {
         assertThat(result.occupancyRate()).isEqualTo(0.3);
         assertThat(result.availability()).isEqualTo(Availability.AVAILABLE);
         assertThat(result.timestamp()).isEqualTo(ts);
-        assertThat(result.ariaLabel())
-                .isEqualTo("Central Station, 70 of 100 spots available, availability: Available");
+        assertThat(result.ariaLabel()).isEqualTo("Central Station, 70 of 100 spots available");
     }
 
     @Test
@@ -67,8 +64,6 @@ class ParkingOverviewMapperTest {
         when(slugService.toSlug("Empty Lot")).thenReturn("empty-lot");
 
         when(statusService.resolveStatus(0, 0)).thenReturn(Availability.FULL);
-
-        when(statusService.resolveStatusLabel(Availability.FULL)).thenReturn("Full");
 
         ParkingOverviewResponse result = mapper.toOverview(doc);
 

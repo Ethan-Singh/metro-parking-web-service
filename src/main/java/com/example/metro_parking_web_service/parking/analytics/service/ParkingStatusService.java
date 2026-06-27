@@ -20,12 +20,4 @@ public class ParkingStatusService {
         }
         return Availability.AVAILABLE;
     }
-
-    public String resolveStatusLabel(Availability status) {
-        return switch (status) {
-            case FULL -> "Full";
-            case ALMOST_FULL -> "Almost Full";
-            case AVAILABLE -> "Available";
-        };
-    }
 }

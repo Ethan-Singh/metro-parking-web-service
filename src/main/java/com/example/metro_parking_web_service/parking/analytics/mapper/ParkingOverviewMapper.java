@@ -24,12 +24,11 @@ public class ParkingOverviewMapper {
                         : 0.0;
 
         Availability availability = statusService.resolveStatus(available, document.getSpots());
-        String statusLabel = statusService.resolveStatusLabel(availability);
         String slug = slugService.toSlug(document.getFacilityName());
         String ariaLabel =
                 String.format(
-                        "%s, %d of %d spots available, availability: %s",
-                        document.getFacilityName(), available, document.getSpots(), statusLabel);
+                        "%s, %d of %d spots available",
+                        document.getFacilityName(), available, document.getSpots());
 
         return new ParkingOverviewResponse(
                 slug,
