@@ -17,9 +17,9 @@ public class ParkingDataPointMapper {
         double occupancy = document.getOccupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
-        double rate = spots > 0 ? occupancy / spots : 0.0;
+        double occupancyRate = spots > 0 ? Math.round((occupancy / spots) * 100.0) / 100.0 : 0.0;
 
-        return new DataPoint(document.getSourceTimestamp(), occupancy, available, rate);
+        return new DataPoint(document.getSourceTimestamp(), occupancy, available, occupancyRate);
     }
 
     public DataPoint toDataPoint(HourlyOccupancyAggregate point) {
@@ -27,7 +27,7 @@ public class ParkingDataPointMapper {
         double occupancy = point.occupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
-        double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
+        double occupancyRate = spots > 0 ? Math.round((occupancy / spots) * 100.0) / 100.0 : 0.0;
 
         return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }
@@ -37,7 +37,7 @@ public class ParkingDataPointMapper {
         double occupancy = point.avgOccupancy();
 
         int available = Math.max(0, spots - (int) occupancy);
-        double occupancyRate = spots > 0 ? occupancy / spots : 0.0;
+        double occupancyRate = spots > 0 ? Math.round((occupancy / spots) * 100.0) / 100.0 : 0.0;
 
         return new DataPoint(point.timestamp(), occupancy, available, occupancyRate);
     }

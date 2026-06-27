@@ -78,7 +78,7 @@ class ParkingDataPointMapperTest {
         assertThat(result.timestamp()).isEqualTo(timestamp);
         assertThat(result.occupancy()).isEqualTo(42.4);
         assertThat(result.available()).isEqualTo(58);
-        assertThat(result.occupancyRate()).isEqualTo(0.424);
+        assertThat(result.occupancyRate()).isEqualTo(0.42);
     }
 
     @Test
