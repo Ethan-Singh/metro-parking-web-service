@@ -17,7 +17,7 @@ class ParkingScheduler {
     private final ParkingSnapshot parkingSnapshot;
     private final ParkingBackfillService parkingBackfillService;
 
-    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.SECONDS)
+    @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.SECONDS)
     void sync() {
         parkingSnapshot.refresh();
         parkingBackfillService.backfill();
