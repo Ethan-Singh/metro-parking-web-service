@@ -3,8 +3,7 @@ package com.example.metro_parking_web_service.parking.client.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
 import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
@@ -20,20 +19,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ParkingSnapshotTest {
 
     @Mock private ParkingClient parkingClient;
+    @Mock private ParkingIngestService parkingIngestService;
 
     @InjectMocks private ParkingSnapshot parkingSnapshot;
 
-    @Mock private ParkingIngestService parkingIngestService;
-
     @Test
-    void refresh_shouldStoreResponses() {
+    void refresh_shouldStoreResponsesAndIngest() {
         ParkingResponse r1 = mock(ParkingResponse.class);
         ParkingResponse r2 = mock(ParkingResponse.class);
+
         when(parkingClient.fetchFullList()).thenReturn(List.of(r1, r2));
 
         parkingSnapshot.refresh();
 
         assertEquals(2, parkingSnapshot.getResponses().size());
+        verify(parkingIngestService).ingest(List.of(r1, r2));
     }
 
     @Test
@@ -43,6 +43,7 @@ class ParkingSnapshotTest {
         parkingSnapshot.refresh();
 
         assertTrue(parkingSnapshot.getResponses().isEmpty());
+        verify(parkingIngestService).ingest(Collections.emptyList());
     }
 
     @Test
@@ -52,5 +53,6 @@ class ParkingSnapshotTest {
         parkingSnapshot.refresh();
 
         assertTrue(parkingSnapshot.getResponses().isEmpty());
+        verify(parkingIngestService, never()).ingest(any());
     }
 }
