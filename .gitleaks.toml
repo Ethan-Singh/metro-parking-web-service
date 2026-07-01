@@ -1,0 +1,25 @@
+title = "Spring Boot Gitleaks Config"
+
+[extend]
+useDefault = true
+
+# -------------------------
+# Custom Spring-friendly rules
+# -------------------------
+
+[[rules]]
+id = "spring-api-key"
+description = "Detect API keys in Spring config files"
+regex = '''(?i)(api[_-]?key|apikey)\s*[:=]\s*["']?[A-Za-z0-9_\-]{16,}["']?'''
+entropy = 3.5
+
+[[rules]]
+id = "spring-secret"
+description = "Detect generic secrets in config"
+regex = '''(?i)(secret|password|passwd|pwd|token)\s*[:=]\s*["']?[A-Za-z0-9_\-]{12,}["']?'''
+entropy = 3.0
+
+[[rules]]
+id = "jwt-token"
+description = "Detect JWT tokens"
+regex = '''eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*'''
