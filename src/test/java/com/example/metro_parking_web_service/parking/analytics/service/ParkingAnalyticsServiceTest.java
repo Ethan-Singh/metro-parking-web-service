@@ -2,6 +2,7 @@
 package com.example.metro_parking_web_service.parking.analytics.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -176,5 +177,94 @@ class ParkingAnalyticsServiceTest {
                 slug, LocalDate.of(2000, 1, 1), LocalDate.of(3000, 1, 1), Granularity.HOURLY);
 
         verify(analyticsRepository).findHourlyAveragesByFacilityAndRange(eq(1), any(), any());
+    }
+
+    @Test
+    void shouldReturnCachedHistory() {
+        String slug = "abc";
+
+        when(slugService.facilityIdFromSlug(slug)).thenReturn(1);
+
+        LocalDate from = LocalDate.of(2025, 6, 1);
+        LocalDate to = LocalDate.of(2025, 6, 2);
+
+        ParkingHistoryResponse cached =
+                new ParkingHistoryResponse(slug, from, Granularity.HOURLY, List.of());
+
+        when(historyCache.getIfPresent(anyString())).thenReturn(cached);
+
+        ParkingHistoryResponse result =
+                analyticsService.getHistory(slug, from, to, Granularity.HOURLY);
+
+        assertThat(result).isSameAs(cached);
+        verifyNoInteractions(analyticsRepository);
+    }
+
+    @Test
+    void shouldCacheHistoryAfterRepositoryLookup() {
+        String slug = "abc";
+
+        when(slugService.facilityIdFromSlug(slug)).thenReturn(1);
+
+        LocalDate from = LocalDate.of(2025, 6, 1);
+        LocalDate to = LocalDate.of(2025, 6, 2);
+
+        when(analyticsRepository.findHourlyAveragesByFacilityAndRange(anyInt(), any(), any()))
+                .thenReturn(List.of());
+
+        analyticsService.getHistory(slug, from, to, Granularity.HOURLY);
+
+        verify(historyCache).put(anyString(), any(ParkingHistoryResponse.class));
+    }
+
+    @Test
+    void shouldReturnAllOverviews() {
+        ParkingDocument document = new ParkingDocument();
+
+        LocalDateTime now = LocalDateTime.of(2026, 7, 1, 17, 20, 8);
+
+        ParkingOverviewResponse response =
+                new ParkingOverviewResponse(
+                        "abc", "Test", 100, 20, 80, 0.2, Availability.AVAILABLE, now, null);
+
+        when(analyticsRepository.findAllLatest()).thenReturn(List.of(document));
+        when(overviewMapper.toOverview(document)).thenReturn(response);
+
+        List<ParkingOverviewResponse> result = analyticsService.getAllOverviews();
+
+        assertThat(result).containsExactly(response);
+    }
+
+    @Test
+    void shouldReturnOverview() {
+        String slug = "abc";
+
+        ParkingDocument document = new ParkingDocument();
+
+        LocalDateTime now = LocalDateTime.of(2026, 7, 1, 17, 20, 8);
+
+        ParkingOverviewResponse response =
+                new ParkingOverviewResponse(
+                        slug, "Test", 100, 20, 80, 0.2, Availability.AVAILABLE, now, null);
+
+        when(slugService.facilityIdFromSlug(slug)).thenReturn(1);
+        when(analyticsRepository.findLatestByFacilityId(1)).thenReturn(document);
+        when(overviewMapper.toOverview(document)).thenReturn(response);
+
+        ParkingOverviewResponse result = analyticsService.getOverview(slug);
+
+        assertThat(result).isEqualTo(response);
+    }
+
+    @Test
+    void shouldThrowWhenOverviewNotFound() {
+        String slug = "abc";
+
+        when(slugService.facilityIdFromSlug(slug)).thenReturn(1);
+        when(analyticsRepository.findLatestByFacilityId(1)).thenReturn(null);
+
+        assertThatThrownBy(() -> analyticsService.getOverview(slug))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("No data found for facility: abc");
     }
 }
