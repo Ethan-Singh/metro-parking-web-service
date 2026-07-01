@@ -36,10 +36,6 @@ class ParkingIngestServiceTest {
 
     @InjectMocks private ParkingIngestService parkingIngestService;
 
-    // ------------------------------------------------------------
-    // ingest
-    // ------------------------------------------------------------
-
     @Test
     void ingest_shouldSkipWhenNull() {
         parkingIngestService.ingest(null);
@@ -82,10 +78,6 @@ class ParkingIngestServiceTest {
 
         verify(parkingRepository).saveAll(anyList());
     }
-
-    // ------------------------------------------------------------
-    // save
-    // ------------------------------------------------------------
 
     @Test
     void save_shouldNotSaveWhenMapperReturnsNull() {
