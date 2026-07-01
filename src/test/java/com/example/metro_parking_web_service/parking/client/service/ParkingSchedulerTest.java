@@ -3,7 +3,6 @@ package com.example.metro_parking_web_service.parking.client.service;
 
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Method;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,23 +18,17 @@ class ParkingSchedulerTest {
     @InjectMocks private ParkingScheduler parkingScheduler;
 
     @Test
-    void sync_shouldRefreshSnapshotThenBackfill() throws Exception {
-        invoke("sync");
+    void sync_shouldRefreshSnapshotThenBackfill() {
+        parkingScheduler.sync();
 
         verify(parkingSnapshot).refresh();
         verify(parkingBackfillService).backfill();
     }
 
     @Test
-    void sync_shouldCleanupBackfill() throws Exception {
-        invoke("cleanup");
+    void cleanup_shouldCallBackfillCleanup() {
+        parkingScheduler.cleanup();
 
         verify(parkingBackfillService).cleanup();
-    }
-
-    private void invoke(String methodName) throws Exception {
-        Method method = ParkingScheduler.class.getDeclaredMethod(methodName);
-        method.setAccessible(true);
-        method.invoke(parkingScheduler);
     }
 }
