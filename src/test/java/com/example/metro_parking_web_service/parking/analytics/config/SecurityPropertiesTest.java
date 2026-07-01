@@ -10,7 +10,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class ParkingSecurityPropertiesTest {
+class SecurityPropertiesTest {
 
     @Autowired private SecurityProperties props;
 
