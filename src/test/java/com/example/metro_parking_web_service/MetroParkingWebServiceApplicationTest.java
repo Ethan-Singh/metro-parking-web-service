@@ -1,14 +1,18 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class MetroParkingWebServiceApplicationTests {
+class MetroParkingWebServiceApplicationTest {
 
     @Test
-    void contextLoads() {}
+    void contextLoads() {
+        assertThat(true).isTrue();
+    }
 }
