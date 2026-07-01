@@ -15,6 +15,7 @@ class ParkingResponseMapperTest {
     @Test
     void toParking_shouldMapFields() {
         LocalDateTime messageDate = LocalDateTime.of(2025, 1, 1, 10, 15);
+
         ParkingResponse response =
                 new ParkingResponse(
                         "123",
@@ -22,6 +23,7 @@ class ParkingResponseMapperTest {
                         "500",
                         new ParkingResponse.Occupancy("200"),
                         messageDate);
+
         Parking parking = mapper.toParking(response);
 
         assertEquals(123, parking.facilityId());
