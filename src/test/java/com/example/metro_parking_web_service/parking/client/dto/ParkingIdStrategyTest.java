@@ -15,6 +15,6 @@ class ParkingIdStrategyTest {
         LocalDateTime ts = LocalDateTime.of(2025, 1, 1, 12, 30);
         String result = strategy.generateId(123, ts);
 
-        assertEquals(result, "123_" + ts);
+        assertEquals("123_2025-01-01T12:30", result);
     }
 }
