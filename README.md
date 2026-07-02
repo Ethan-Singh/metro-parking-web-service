@@ -10,6 +10,7 @@
 
 A production-grade Spring Boot service that ingests, persists, and serves real-time and historical parking occupancy data from an external municipal API. Designed for resilience, idempotency, and long-running historical reconstruction with a clean analytics API on top.
 
+> **Frontend:** [metro-parking-app](https://github.com/Ethan-Singh/metro-parking-app) — React + TypeScript dashboard that consumes this service to display live and historical parking availability across the Transport for NSW network.
 ---
 
 ## Architecture
