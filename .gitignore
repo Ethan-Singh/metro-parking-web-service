@@ -36,3 +36,4 @@ build/
 src/main/resources/application-local.yaml
 src/main/resources/application-prod.yaml
 docker-compose.yaml
+/DEPLOYMENT.md
