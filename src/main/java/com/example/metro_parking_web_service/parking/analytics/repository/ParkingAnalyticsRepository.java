@@ -4,13 +4,15 @@ package com.example.metro_parking_web_service.parking.analytics.repository;
 import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
+import com.example.metro_parking_web_service.parking.client.service.ParkingSnapshot;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
-import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.aggregation.DateOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Repository;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Repository;
 public class ParkingAnalyticsRepository {
 
     private final MongoTemplate mongoTemplate;
+    private final ParkingSnapshot parkingSnapshot;
 
     public ParkingDocument findLatestByFacilityId(int facilityId) {
         var query =
@@ -32,24 +35,11 @@ public class ParkingAnalyticsRepository {
     }
 
     public List<ParkingDocument> findAllLatest() {
-        Aggregation agg =
-                Aggregation.newAggregation(
-                        Aggregation.sort(Sort.Direction.DESC, "sourceTimestamp"),
-                        Aggregation.group("facilityId")
-                                .first("facilityId")
-                                .as("facilityId")
-                                .first("facilityName")
-                                .as("facilityName")
-                                .first("spots")
-                                .as("spots")
-                                .first("occupancy")
-                                .as("occupancy")
-                                .first("sourceTimestamp")
-                                .as("sourceTimestamp"),
-                        Aggregation.sort(Sort.Direction.ASC, "facilityName"));
-        AggregationResults<ParkingDocument> results =
-                mongoTemplate.aggregate(agg, "parkingDocument", ParkingDocument.class);
-        return results.getMappedResults();
+        return parkingSnapshot.getFacilityIds().stream()
+                .map(this::findLatestByFacilityId)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ParkingDocument::getFacilityName))
+                .toList();
     }
 
     public List<ParkingDocument> findTenMinuteAveragesByFacilityAndRange(

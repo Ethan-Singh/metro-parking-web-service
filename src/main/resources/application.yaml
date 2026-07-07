@@ -4,6 +4,9 @@ spring:
     name: metro-parking-web-service
   mongodb:
     uri: "${MONGODB_URI:mongodb://localhost:27017/metro-parking-database}"
+  data:
+    mongodb:
+      auto-index-creation: true
 logging:
   level:
     root: INFO

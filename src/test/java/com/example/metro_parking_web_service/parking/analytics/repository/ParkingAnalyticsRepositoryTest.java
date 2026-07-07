@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.example.metro_parking_web_service.parking.analytics.dto.DailyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.analytics.dto.HourlyOccupancyAggregate;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
+import com.example.metro_parking_web_service.parking.client.service.ParkingSnapshot;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,8 @@ import org.springframework.data.mongodb.core.query.Query;
 class ParkingAnalyticsRepositoryTest {
 
     @Mock private MongoTemplate mongoTemplate;
+
+    @Mock private ParkingSnapshot parkingSnapshot;
 
     @Mock private AggregationResults<ParkingDocument> parkingAggResults;
 
@@ -49,15 +52,18 @@ class ParkingAnalyticsRepositoryTest {
 
     @Test
     void shouldFindAllLatest() {
-        when(mongoTemplate.aggregate(
-                        any(Aggregation.class), eq("parkingDocument"), eq(ParkingDocument.class)))
-                .thenReturn(parkingAggResults);
+        ParkingDocument doc = new ParkingDocument();
+        doc.setFacilityId(1);
+        doc.setFacilityName("Ashfield");
 
-        when(parkingAggResults.getMappedResults()).thenReturn(List.of(new ParkingDocument()));
+        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
+
+        when(mongoTemplate.findOne(any(Query.class), eq(ParkingDocument.class))).thenReturn(doc);
 
         List<ParkingDocument> result = repository.findAllLatest();
 
-        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getFacilityId()).isEqualTo(1);
     }
 
     @Test
