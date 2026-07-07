@@ -5,10 +5,12 @@ import com.example.metro_parking_web_service.parking.analytics.dto.Granularity;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistoryResponse;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingOverviewResponse;
 import com.example.metro_parking_web_service.parking.analytics.service.ParkingAnalyticsService;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,6 +54,8 @@ public class ParkingAnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "HOURLY") Granularity granularity) {
 
-        return ResponseEntity.ok(analyticsService.getHistory(slug, from, to, granularity));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)))
+                .body(analyticsService.getHistory(slug, from, to, granularity));
     }
 }
