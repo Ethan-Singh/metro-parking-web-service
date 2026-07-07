@@ -3,11 +3,13 @@ package com.example.metro_parking_web_service.parking.analytics.config;
 
 import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.connector.ClientAbortException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -57,6 +59,15 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse("Endpoint not found", Instant.now()));
+    }
+
+    @ExceptionHandler({ClientAbortException.class, AsyncRequestNotUsableException.class})
+    public void handleClientDisconnect(Exception exception) {
+        log.debug(
+                "event=request_aborted decision=ignore reason=client_disconnect error_type={}"
+                        + " message={}",
+                exception.getClass().getSimpleName(),
+                exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
