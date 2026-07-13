@@ -114,7 +114,7 @@ public class ParkingBackfillService {
     }
 
     private LocalDate nextForward(ParkingBackfillDocument document) {
-        LocalDate yesterday = LocalDate.now(parkingPolicy.SYDNEY_ZONE).minusDays(1);
+        LocalDate yesterday = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).minusDays(1);
         LocalDate lastForward = document.getLastForwardDate();
 
         if (lastForward == null) return yesterday;
@@ -162,7 +162,7 @@ public class ParkingBackfillService {
 
     public void cleanup() {
         LocalDateTime cutoff =
-                LocalDateTime.now(parkingPolicy.SYDNEY_ZONE)
+                LocalDateTime.now(ParkingPolicy.SYDNEY_ZONE)
                         .minusDays(parkingPolicy.getBackfillWindow());
 
         Query query = new Query(Criteria.where("sourceTimestamp").lt(cutoff));
