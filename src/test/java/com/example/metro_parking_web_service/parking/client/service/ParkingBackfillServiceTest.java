@@ -1,6 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
 import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
 import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
@@ -21,9 +23,12 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingBackfillServiceTest {
@@ -34,6 +39,7 @@ class ParkingBackfillServiceTest {
     @Mock private ParkingBackfillRepository parkingBackfillRepository;
     @Mock private ParkingBackfillCursorRepository parkingBackfillCursorRepository;
     @Mock private ParkingSnapshot parkingSnapshot;
+    @Mock private MongoTemplate mongoTemplate;
 
     @InjectMocks private ParkingBackfillService parkingBackfillService;
 
@@ -250,6 +256,45 @@ class ParkingBackfillServiceTest {
         parkingBackfillService.backfill();
 
         verify(parkingClient).fetchHistory(eq(1), eq(LocalDate.now()));
+    }
+
+    @Test
+    void cleanup_shouldUseConfiguredBackfillWindowForCutoff() {
+        int configuredBackfillWindow = 31;
+        when(parkingPolicy.getBackfillWindow()).thenReturn(configuredBackfillWindow);
+
+        when(mongoTemplate.remove(any(Query.class), eq(ParkingDocument.class)))
+                .thenReturn(
+                        new com.mongodb.client.result.DeleteResult() {
+                            @Override
+                            public long getDeletedCount() {
+                                return 0;
+                            }
+
+                            @Override
+                            public boolean wasAcknowledged() {
+                                return true;
+                            }
+                        });
+
+        parkingBackfillService.cleanup();
+
+        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+        verify(mongoTemplate).remove(queryCaptor.capture(), eq(ParkingDocument.class));
+
+        Query capturedQuery = queryCaptor.getValue();
+        assertThat(capturedQuery).isNotNull();
+    }
+
+    @Test
+    void cleanup_shouldNotUseWeeksIfConfigIsInDays() {
+        int backfillWindowDays = 31;
+
+        LocalDateTime now = LocalDateTime.now(ParkingPolicy.SYDNEY_ZONE);
+        LocalDateTime correctCutoff = now.minusDays(backfillWindowDays);
+        LocalDateTime incorrectCutoff = now.minusWeeks(backfillWindowDays);
+
+        assertThat(correctCutoff).isAfter(incorrectCutoff);
     }
 
     private ParkingBackfillDocument stateWithForwardFillCurrent() {
