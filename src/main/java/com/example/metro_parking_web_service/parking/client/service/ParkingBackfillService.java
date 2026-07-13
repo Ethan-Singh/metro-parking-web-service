@@ -114,7 +114,7 @@ public class ParkingBackfillService {
     }
 
     private LocalDate nextForward(ParkingBackfillDocument document) {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = LocalDate.now(parkingPolicy.SYDNEY_ZONE).minusDays(1);
         LocalDate lastForward = document.getLastForwardDate();
 
         if (lastForward == null) return yesterday;
@@ -161,17 +161,16 @@ public class ParkingBackfillService {
     }
 
     public void cleanup() {
-        LocalDate cutoff = LocalDate.now().minusWeeks(parkingPolicy.getBackfillWindow());
+        LocalDateTime cutoff =
+                LocalDateTime.now(parkingPolicy.SYDNEY_ZONE)
+                        .minusDays(parkingPolicy.getBackfillWindow());
 
-        LocalDateTime cutoffTime = cutoff.atStartOfDay();
-
-        Query query = new Query(Criteria.where("sourceTimestamp").lt(cutoffTime));
-
+        Query query = new Query(Criteria.where("sourceTimestamp").lt(cutoff));
         long deleted = mongoTemplate.remove(query, ParkingDocument.class).getDeletedCount();
 
         log.info(
                 "event=cleanup_parking_data decision=success cutoff={} deletedCount={}",
-                cutoffTime,
+                cutoff,
                 deleted);
     }
 }
