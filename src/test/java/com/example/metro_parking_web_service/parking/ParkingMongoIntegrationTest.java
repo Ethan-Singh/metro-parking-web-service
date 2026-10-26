@@ -87,6 +87,44 @@ class ParkingMongoIntegrationTest {
         assertThat(response.points().getFirst().getFirst()).isInstanceOf(Long.class);
     }
 
+    @Test
+    void storesHistorySampleByMessageDateWhenItFallsAfterRequestedEventDate() {
+        LocalDate eventDate = LocalDate.now(ZoneId.of("Australia/Sydney")).minusDays(1);
+        LocalDate messageDate = eventDate.plusDays(1);
+        CarParkApiRecord historySample = record(messageDate, 9, 48, "175");
+
+        // eventDate is only the upstream query key; the record's MessageDate determines storage.
+        ingestService.ingest(List.of(historySample));
+
+        ParkingDay storedDay =
+                parkingDayRepository
+                        .findByFacilityIdAndSydneyDate(42, messageDate.toString())
+                        .orElseThrow();
+        assertThat(storedDay.getSamples()).hasSize(1);
+        assertThat(storedDay.getSamples().getFirst().occupancy()).isEqualTo(175);
+        assertThat(parkingDayRepository.findByFacilityIdAndSydneyDate(42, eventDate.toString()))
+                .isEmpty();
+    }
+
+    @Test
+    void storesHistorySampleByMessageDateWhenItFallsBeforeRequestedEventDate() {
+        LocalDate eventDate = LocalDate.now(ZoneId.of("Australia/Sydney"));
+        LocalDate messageDate = eventDate.minusDays(1);
+        CarParkApiRecord historySample = record(messageDate, 23, 48, "173");
+
+        // A mismatched eventdate must not redirect this sample from its MessageDate.
+        ingestService.ingest(List.of(historySample));
+
+        ParkingDay storedDay =
+                parkingDayRepository
+                        .findByFacilityIdAndSydneyDate(42, messageDate.toString())
+                        .orElseThrow();
+        assertThat(storedDay.getSamples()).hasSize(1);
+        assertThat(storedDay.getSamples().getFirst().occupancy()).isEqualTo(173);
+        assertThat(parkingDayRepository.findByFacilityIdAndSydneyDate(42, eventDate.toString()))
+                .isEmpty();
+    }
+
     private CarParkApiRecord record(LocalDate date, int hour, int minute, String occupancy) {
         return new CarParkApiRecord(
                 "42",

@@ -57,6 +57,28 @@ public class CarParkApiClient {
 
         return Decorators.ofSupplier(supplier)
                 .withCircuitBreaker(parkingCircuitBreaker)
+                .withRetry(parkingRetry)
+                .decorate()
+                .get();
+    }
+
+    public CarParkApiRecord fetchLive(int facilityId) {
+        Supplier<CarParkApiRecord> supplier =
+                () ->
+                        restClient
+                                .get()
+                                .uri(
+                                        uriBuilder ->
+                                                uriBuilder
+                                                        .path("")
+                                                        .queryParam("facility", facilityId)
+                                                        .build())
+                                .retrieve()
+                                .body(CarParkApiRecord.class);
+
+        return Decorators.ofSupplier(supplier)
+                .withCircuitBreaker(parkingCircuitBreaker)
+                .withRetry(parkingRetry)
                 .decorate()
                 .get();
     }

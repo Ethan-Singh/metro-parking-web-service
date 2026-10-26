@@ -35,44 +35,31 @@ public class ParkingBackfillService {
     private final AtomicInteger backfillRotation = new AtomicInteger();
     private final AtomicInteger workSlot = new AtomicInteger();
 
-    /** Use one shared history loop for current-day refresh and older backfill. */
+    /** Rotate between direct live snapshots and historical date backfill. */
     public void syncHistory() {
         if (Math.floorMod(workSlot.getAndIncrement(), 5) == 4) {
             backfillOne();
         } else {
-            refreshCurrentHistory();
+            refreshLiveParking();
         }
     }
 
-    private void refreshCurrentHistory() {
+    private void refreshLiveParking() {
         Integer facilityId = parkingSnapshot.nextFacilityId();
         if (facilityId == null) {
-            log.warn("event=live_history_sync decision=skip reason=no_facilities");
+            log.warn("event=live_parking_sync decision=skip reason=no_facilities");
             return;
         }
 
-        LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
         try {
-            if (parkingDayRepository
-                    .findById(facilityId + "_" + DATE_KEY.format(today))
-                    .isEmpty()) {
-                claim(facilityId, today);
-            }
-            List<CarParkApiRecord> records = parkingClient.fetchHistory(facilityId, today);
-            parkingIngestService.ingest(records);
-            markComplete(facilityId, today);
+            CarParkApiRecord record = parkingClient.fetchLive(facilityId);
+            parkingIngestService.ingest(record == null ? List.of() : List.of(record));
             log.debug(
-                    "event=live_history_sync decision=success facilityId={} date={} recordCount={}",
+                    "event=live_parking_sync decision=success facilityId={} messageDate={}",
                     facilityId,
-                    today,
-                    records == null ? 0 : records.size());
+                    record == null ? null : record.messageDate());
         } catch (Exception exception) {
-            markRetry(facilityId, today);
-            log.warn(
-                    "event=live_history_sync decision=retry facilityId={} date={}",
-                    facilityId,
-                    today,
-                    exception);
+            log.warn("event=live_parking_sync decision=retry facilityId={}", facilityId, exception);
         }
     }
 

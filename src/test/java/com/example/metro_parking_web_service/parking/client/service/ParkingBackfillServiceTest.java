@@ -31,7 +31,7 @@ class ParkingBackfillServiceTest {
     @InjectMocks private ParkingBackfillService service;
 
     @Test
-    void fourOfFiveSlotsRefreshTodayAndFifthBackfillsYesterday() {
+    void fourOfFiveSlotsUseLiveEndpointAndFifthBackfillsYesterday() {
         LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
         when(catalog.nextFacilityId()).thenReturn(42);
         when(catalog.getFacilityIds()).thenReturn(List.of(42));
@@ -40,12 +40,11 @@ class ParkingBackfillServiceTest {
         when(repository.findById(anyString())).thenReturn(Optional.empty());
         when(repository.save(org.mockito.ArgumentMatchers.any(ParkingDay.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        when(client.fetchHistory(42, today)).thenReturn(List.of());
         when(client.fetchHistory(42, today.minusDays(1))).thenReturn(List.of());
 
         for (int slot = 0; slot < 5; slot++) service.syncHistory();
 
-        verify(client, times(4)).fetchHistory(42, today);
+        verify(client, times(4)).fetchLive(42);
         verify(client).fetchHistory(42, today.minusDays(1));
         verify(ingestService, times(5)).ingest(anyList());
     }
