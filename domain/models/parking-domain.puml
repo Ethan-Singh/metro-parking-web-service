@@ -1,0 +1,81 @@
+@startuml
+title Parking Domain and Daily Storage
+skinparam packageStyle rectangle
+
+enum HistoryResolution {
+  TEN_MINUTE
+  ONE_HOUR
+  SIX_HOUR
+  TWELVE_HOUR
+  TWENTY_FOUR_HOUR
+}
+
+enum BackfillState {
+  PROCESSING
+  RETRY_WAIT
+  COMPLETE
+}
+
+class ParkingDay <<Mongo document>> {
+  facilityId : String
+  sydneyDate : String (YYYY-MM-DD)
+  samples : List<Sample>
+  backfillState : BackfillState?
+  retryAfter : Instant?
+  leaseUntil : Instant?
+  completedAt : Instant?
+}
+
+class Sample <<embedded value>> {
+  bucketIndex : int
+  sourceTime : Instant
+  occupancy : int
+  capacity : int
+}
+
+class ParkingDayKey <<logical key>> {
+  facilityId : String
+  sydneyDate : LocalDate
+}
+
+class SydneyDayClock {
+  + startOfDay(date : LocalDate) : Instant
+  + bucketTime(date : LocalDate, index : int) : Instant
+}
+
+class UpstreamTimeMapper {
+  - toInstant(messageDate : LocalDateTime) : Instant
+}
+
+ParkingDay "1" *-- "0..150" Sample
+ParkingDay ..> ParkingDayKey : unique index
+Sample ..> SydneyDayClock : bucket index is 10 min
+UpstreamTimeMapper ..> Sample : source time
+
+note right of ParkingDay
+  One document per (facilityId, Sydney calendar date).
+  Query by facilityId + sydneyDate; do not derive the
+  calendar key by truncating a UTC instant.
+
+  samples is bounded to one latest observation per
+  10-minute Sydney bucket (max 150 for a 25-hour day).
+  bucketIndex is relative to Sydney start of day;
+  bucket time is startOfDay(date) + index * 10 min.
+
+  Backfill state shares the same date record. A COMPLETE
+  record with no samples means the upstream returned no data.
+end note
+
+note bottom of Sample
+  Store sourceTime as a UTC Instant/BSON date. Within a bucket,
+  retain the newest sourceTime so late arrivals cannot overwrite it.
+  API timestamps are computed from Sydney date + bucketIndex,
+  then serialized as epoch milliseconds.
+end note
+
+note left of BackfillState
+  Missing state means not requested. PROCESSING uses leaseUntil;
+  RETRY_WAIT uses retryAfter; COMPLETE records successful fetch,
+  including an empty response. No separate status object/collection.
+end note
+@enduml

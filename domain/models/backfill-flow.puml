@@ -1,0 +1,36 @@
+@startuml
+title Backfill Using Daily Parking Records
+start
+:Scheduled worker captures today's Sydney date;
+:Build inclusive rolling date window backwards;
+:Find eligible facility/date records within request budget;
+while (eligible work remains?) is (yes)
+  :Atomically claim ParkingDay with lease;
+  :Fetch upstream history for facility and Sydney date;
+  if (request successful?) then (yes)
+    :Convert upstream timestamps to UTC Instants;
+    :Upsert newest sample in each Sydney 10-minute bucket;
+    :Set same ParkingDay state to COMPLETE;
+    note right: Empty result is also COMPLETE.
+  else (no)
+    :Set same ParkingDay state to RETRY_WAIT;
+    :Record retryAfter;
+  endif
+endwhile (no)
+:Return;
+stop
+
+note right
+  The compound key is (facilityId, sydneyDate). Missing document/state
+  means not fetched. PROCESSING is protected by leaseUntil; expired
+  leases can be reclaimed. COMPLETE dates are skipped; due retries
+  are eligible again.
+
+  The daily record contains both the bounded samples and durable
+  backfill status. There is no separate marker collection or cursor.
+  If a worker fails after sample upsert, repeating the request is safe.
+
+  The worker scans today down through the configured inclusive window,
+  caps requests per run, and rotates facility tie-breaking for fairness.
+end note
+@enduml

@@ -1,0 +1,106 @@
+@startuml
+title Car Park API - Current Upstream and Proposed Read Contract
+skinparam packageStyle rectangle
+
+package "Upstream Car Park API" {
+  interface CarParkApi
+  class LiveCarParkRecord <<provider payload>> {
+    facilityId : provider identifier
+    facilityName
+    spots
+    occupancy
+    messageDate : Sydney local wall time (no offset)
+  }
+  class HistoryQuery {
+    facility
+    eventdate : YYYY-MM-DD
+  }
+  CarParkApi --> LiveCarParkRecord : GET /carpark
+  CarParkApi --> LiveCarParkRecord : GET /carpark/full-list
+  CarParkApi --> HistoryQuery : GET /carpark/history
+}
+
+package "This service - proposed read API" {
+  class LiveCarParkResponse {
+    slug
+    facilityName
+    spots
+    occupancy
+    available
+    occupancyRate
+    availability
+    timeMs : epoch milliseconds (UTC instant)
+    ariaLabel
+  }
+  class ParkingHistoryResponse {
+    from / to
+    resolution
+    points : List<HistoryPointTuple>
+  }
+  enum HistoryResolution {
+    TEN_MINUTE
+    ONE_HOUR
+    SIX_HOUR
+    TWELVE_HOUR
+    TWENTY_FOUR_HOUR
+  }
+  class HistoryPointTuple <<JSON tuple>> {
+    timeMs : epoch milliseconds
+    occupancyRate
+    available
+  }
+
+  class ParkingController
+  class UpstreamCarParkResponseMapper {
+    - toInstant(sydneyMessageDate : LocalDateTime) : Instant
+  }
+  class ApiTimestampMapper {
+    + toEpochMillis(instant : Instant) : long
+  }
+  class OverviewResponseMapper
+  class HistoryResponseMapper
+  ParkingController --> LiveCarParkResponse : GET /api/v1/parking
+  ParkingController --> LiveCarParkResponse : GET /{slug}/overview (or /live)
+  ParkingController --> ParkingHistoryResponse : GET /{slug}/history
+  OverviewResponseMapper --> ApiTimestampMapper : Instant -> epoch ms
+  HistoryResponseMapper --> ApiTimestampMapper : Instant -> epoch ms
+  ParkingHistoryResponse o-- "0..*" HistoryPointTuple
+  ParkingHistoryResponse --> HistoryResolution
+}
+
+note bottom of HistoryPointTuple
+  New contract has no legacy-shape requirement. Each compact tuple is
+  [timeMs, occupancyRate, available]. The frontend chart uses timeMs and
+  occupancyRate; its summary also needs available. Occupancy is omitted.
+  AUTO defaults to ten-minute through 1 day, hourly through 7 days, six-hour
+  through 14 days, then 24-hour through 31 days. Return actual resolution.
+end note
+
+note left of LiveCarParkRecord
+  Upstream mapper owns a private conversion helper: interpret
+  MessageDate as Australia/Sydney local time, then convert to Instant.
+  Do not parse it as UTC: the upstream value has no offset. Persist
+  that same instant as BSON UTC date.
+  Check the upstream's other time field or define a DST overlap policy:
+  an offset-free Sydney wall time can be ambiguous during clock changes.
+end note
+
+note right of ApiTimestampMapper
+  Shared outbound helper used by response mappers. Convert
+  an already-normalized Instant with toEpochMilli(); do not
+  apply Sydney timezone conversion a second time.
+end note
+
+note right of CarParkApi
+  carparkswagger_prod_2.yaml documents /carpark,
+  /carpark/full-list, and /carpark/history. Its success
+  schemas are opaque `file` types, so the Java provider DTO
+  and observed payloads currently supply field-level details.
+end note
+
+note right of LiveCarParkResponse
+  Current snapshot payload. The /overview to /live path change is optional
+  and requires a coordinated frontend route update; the response concept
+  can be renamed independently.
+end note
+@enduml

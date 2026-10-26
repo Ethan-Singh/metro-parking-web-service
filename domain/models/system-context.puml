@@ -1,0 +1,29 @@
+@startuml
+title Metro Parking Service - Current Context and Extension Point
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Web / Mobile Client" as User
+
+rectangle "Metro Mobility Service" as App {
+  component "Car Park / Parking" as Parking
+  component "Shared API / Security" as Api
+  component "Persistence" as Store
+}
+
+cloud "Transport for NSW Car Park API" as ParkingProvider
+cloud "Trip Planner API (future)" as TripProvider
+cloud "Toll Calculator API (future)" as TollProvider
+database "MongoDB" as Mongo
+
+User --> Api : HTTPS requests
+Api --> Parking
+Parking --> ParkingProvider : live + historical occupancy
+Parking --> Store
+Store --> Mongo
+
+note right of TripProvider
+  Future capability only. Model and integrate after
+  the car park contract and backend structure settle.
+end note
+@enduml
