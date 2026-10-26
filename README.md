@@ -48,10 +48,13 @@ Base path: `/api/v1/parking`.
 | `GET` | `/` | Latest stored sample for each allowed facility |
 | `GET` | `/{slug}/live` | Latest stored sample for one facility |
 | `GET` | `/{slug}/history` | Compact history for a date range |
+| `GET` | `/{slug}/metrics/daily` | Daily commuter metrics for up to three dates |
 
 History requests require `from` and `to` in `YYYY-MM-DD` format. Optional `resolution` accepts `AUTO`, `TEN_MINUTE`, `ONE_HOUR`, `SIX_HOUR`, `TWELVE_HOUR`, or `TWENTY_FOUR_HOUR`. `AUTO` selects a resolution based on the range. Requests are clamped to the configured inclusive Sydney-date window and capped at 31 dates and 200 points.
 
 Requests that include today bypass the history cache and return `Cache-Control: no-store`. Completed historical ranges can be cached for one hour. The frontend should format epoch milliseconds in `Australia/Sydney` for local display.
+
+Daily metrics accept inclusive `from` and `to` Sydney dates, return one result for each effective date including missing-data dates, and limit the range to the most recent three dates. They provide expected available spaces near 7 am and 8 am plus daily 50%, 90%, and full-capacity milestone timestamps. A day that lacks a qualifying sample returns `null` for that metric. The endpoint shares the daily collection's `(facilityId, sydneyDate)` index and reads at most three day documents.
 
 Example response:
 
@@ -64,7 +67,7 @@ Example response:
 }
 ```
 
-The full contract is available as [OpenAPI YAML](docs/apis/metro-parking-api-v1.yaml). Swagger UI and the generated JSON endpoint are described below.
+The full contract is available as [OpenAPI YAML](docs/apis/metro-parking-api-v1.yaml). Daily metric calculations are specified in [daily-parking-metrics-v1.md](domain/contracts/daily-parking-metrics-v1.md). Swagger UI and the generated JSON endpoint are described below.
 
 ## Configuration
 

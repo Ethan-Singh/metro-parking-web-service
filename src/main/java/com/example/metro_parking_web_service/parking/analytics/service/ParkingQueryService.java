@@ -1,6 +1,8 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.service;
 
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyParkingMetricsPayload;
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyParkingMetricsPayload.DailyMetric;
 import com.example.metro_parking_web_service.parking.analytics.dto.HistoryResolution;
 import com.example.metro_parking_web_service.parking.analytics.dto.LiveCarParkResponse;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistoryPayload;
@@ -12,12 +14,15 @@ import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
 import com.example.metro_parking_web_service.parking.client.document.ParkingDay.ParkingSample;
 import com.example.metro_parking_web_service.parking.client.time.SydneyTimeMapper;
 import com.github.benmanes.caffeine.cache.Cache;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -31,6 +36,8 @@ import org.springframework.stereotype.Service;
 public class ParkingQueryService {
 
     private static final int MAX_POINTS = 200;
+    private static final int MAX_DAILY_METRICS_DAYS = 3;
+    private static final Duration EXPECTED_FREE_WINDOW = Duration.ofMinutes(20);
 
     private final ParkingAnalyticsRepository analyticsRepository;
     private final ParkingSlugService slugService;
@@ -51,6 +58,99 @@ public class ParkingQueryService {
         ParkingDay day = analyticsRepository.findLatestByFacilityId(facilityId);
         if (day == null) throw new IllegalArgumentException("No data found for facility: " + slug);
         return liveMapper.toResponse(day, latestSample(day));
+    }
+
+    public DailyParkingMetricsPayload getDailyMetrics(
+            String slug, LocalDate requestedFrom, LocalDate requestedTo) {
+        if (requestedFrom == null || requestedTo == null) {
+            throw new IllegalArgumentException("from and to are required");
+        }
+        if (requestedFrom.isAfter(requestedTo)) {
+            throw new IllegalArgumentException("from must be on or before to");
+        }
+
+        LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
+        LocalDate from = parkingPolicy.clampFromDate(requestedFrom);
+        LocalDate to = parkingPolicy.clampToDate(requestedTo);
+        to = to.isAfter(today) ? today : to;
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("Requested date range is outside history");
+        }
+        if (ChronoUnit.DAYS.between(from, to) + 1 > MAX_DAILY_METRICS_DAYS) {
+            from = to.minusDays(MAX_DAILY_METRICS_DAYS - 1L);
+        }
+
+        int facilityId = slugService.facilityIdFromSlug(slug);
+        Map<LocalDate, ParkingDay> byDate = new HashMap<>();
+        for (ParkingDay day :
+                analyticsRepository.findByFacilityAndDateRange(facilityId, from, to)) {
+            byDate.put(LocalDate.parse(day.getSydneyDate()), day);
+        }
+
+        List<DailyMetric> metrics = new ArrayList<>();
+        for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
+            metrics.add(metricsForDate(date, byDate.get(date)));
+        }
+        return new DailyParkingMetricsPayload(
+                from.toString(), to.toString(), SydneyTimeMapper.SYDNEY, metrics);
+    }
+
+    private DailyMetric metricsForDate(LocalDate date, ParkingDay day) {
+        if (day == null || day.getSamples() == null || day.getSamples().isEmpty()) {
+            return new DailyMetric(date.toString(), null, null, null, null, null);
+        }
+
+        List<ParkingSample> samples =
+                day.getSamples().stream()
+                        .filter(
+                                sample ->
+                                        sample.sourceTime()
+                                                .atZone(ParkingPolicy.SYDNEY_ZONE)
+                                                .toLocalDate()
+                                                .equals(date))
+                        .sorted(Comparator.comparing(ParkingSample::sourceTime))
+                        .toList();
+
+        Integer expectedFreeAt7am = expectedFreeAt(samples, date, LocalTime.of(7, 0));
+        Integer expectedFreeAt8am = expectedFreeAt(samples, date, LocalTime.of(8, 0));
+        Long crossed50AtMs = firstAtOrAbove(samples, 0.50);
+        Long crossed90AtMs = firstAtOrAbove(samples, 0.90);
+        Long fullAtMs = firstAtOrAbove(samples, 1.00);
+
+        return new DailyMetric(
+                date.toString(),
+                expectedFreeAt7am,
+                expectedFreeAt8am,
+                crossed50AtMs,
+                crossed90AtMs,
+                fullAtMs);
+    }
+
+    private Integer expectedFreeAt(List<ParkingSample> samples, LocalDate date, LocalTime target) {
+        Instant targetTime = date.atTime(target).atZone(ParkingPolicy.SYDNEY_ZONE).toInstant();
+        ParkingSample closest = null;
+        Duration closestDistance = null;
+        for (ParkingSample sample : samples) {
+            Duration distance = Duration.between(targetTime, sample.sourceTime()).abs();
+            if (distance.compareTo(EXPECTED_FREE_WINDOW) > 0) continue;
+            if (closestDistance == null
+                    || distance.compareTo(closestDistance) < 0
+                    || (distance.equals(closestDistance)
+                            && sample.sourceTime().isBefore(closest.sourceTime()))) {
+                closest = sample;
+                closestDistance = distance;
+            }
+        }
+        return closest == null ? null : Math.max(0, closest.capacity() - closest.occupancy());
+    }
+
+    private Long firstAtOrAbove(List<ParkingSample> samples, double threshold) {
+        return samples.stream()
+                .filter(sample -> sample.capacity() > 0)
+                .filter(sample -> (double) sample.occupancy() / sample.capacity() >= threshold)
+                .map(sample -> timestampMapper.toEpochMillis(sample.sourceTime()))
+                .findFirst()
+                .orElse(null);
     }
 
     public ParkingHistoryPayload getHistoryPayload(

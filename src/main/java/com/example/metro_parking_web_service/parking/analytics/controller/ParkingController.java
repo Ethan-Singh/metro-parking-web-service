@@ -1,6 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.controller;
 
+import com.example.metro_parking_web_service.parking.analytics.dto.DailyParkingMetricsPayload;
 import com.example.metro_parking_web_service.parking.analytics.dto.HistoryResolution;
 import com.example.metro_parking_web_service.parking.analytics.dto.LiveCarParkResponse;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistoryPayload;
@@ -34,6 +35,19 @@ public class ParkingController {
     @GetMapping("/{slug}/live")
     public ResponseEntity<LiveCarParkResponse> getLiveCarPark(@PathVariable String slug) {
         return ResponseEntity.ok(parkingService.getLiveCarPark(slug));
+    }
+
+    @GetMapping("/{slug}/metrics/daily")
+    public ResponseEntity<DailyParkingMetricsPayload> getDailyMetrics(
+            @PathVariable String slug,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DailyParkingMetricsPayload metrics = parkingService.getDailyMetrics(slug, from, to);
+        CacheControl cacheControl =
+                LocalDate.parse(metrics.to()).isBefore(LocalDate.now(ZoneId.of("Australia/Sydney")))
+                        ? CacheControl.maxAge(Duration.ofHours(1))
+                        : CacheControl.noStore();
+        return ResponseEntity.ok().cacheControl(cacheControl).body(metrics);
     }
 
     @GetMapping("/{slug}/history")

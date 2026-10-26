@@ -165,9 +165,12 @@ actual resolution. Aggregate using Sydney-local boundaries, and derive
 occupancy rate and available from bucket occupancy and capacity. Cache keys
 include facility, clamped dates, and actual resolution.
 
-For ranges coarser than hourly, current 7am/8am summary chips cannot be computed
-faithfully from returned points. The later frontend pass should hide those
-chips or consume separate server-computed summary values for those ranges.
+Daily commuter summaries are served separately from chart history so they do
+not depend on the selected chart resolution. The contract is defined in
+[`domain/contracts/daily-parking-metrics-v1.md`](../contracts/daily-parking-metrics-v1.md).
+It returns expected-free estimates near 7am/8am and per-day occupancy milestones
+for up to three inclusive Sydney dates. The query uses the existing
+`(facilityId, sydneyDate)` index and reads at most three daily documents.
 
 The live API returns the newest point already stored from today's history
 response, so it does not require a second upstream feed. Use
@@ -189,8 +192,8 @@ facility; history uses the compact range response described above.
 6. Replace history/live timestamp serialization with epoch milliseconds
    and introduce the compact tuple response.
 7. Update configuration and operational docs. Frontend changes follow in a
-   separate pass: tuple types, explicit Sydney formatting, actual resolution
-   labels, and coarse-range summary behavior.
+   separate pass: tuple types, daily metric contract types, explicit Sydney
+   formatting, actual resolution labels, and mobile chart behavior.
 
 ## Acceptance criteria
 
