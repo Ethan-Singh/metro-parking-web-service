@@ -1,41 +1,56 @@
 @startuml
-title Unified Current History and Backfill Sync
+title Scheduled Live Refresh and Historical Backfill
 start
-:Run one scheduled slot (2.2 second fixed delay);
-if (facility lookup due?) then (yes)
-  :Call /carpark and cache allowed facility IDs/names;
+:Run one centrally paced scheduler slot;
+if (facility catalog refresh due?) then (yes)
+  :Call /carpark without facility;
+  :Cache facility IDs and names;
 else (no)
-  :Choose current-date refresh or older-date backfill work;
-  :Call /carpark/history once for facility and date;
+  :Select next work item within the shared request budget;
+  if (live refresh?) then (yes)
+    :Call /carpark?facility={facilityId};
+    :Map MessageDate from Sydney local time to UTC Instant;
+    :Derive sydneyDate from MessageDate;
+    :Upsert newest sample into the matching ten-minute bucket;
+    note right: Live ingestion does not mark historical coverage COMPLETE.
+  else (history backfill)
+    :Select facility and provider eventdate segment;
+    :Call /carpark/history?facility={facilityId}&eventdate={date};
+    :Map each MessageDate from Sydney local time to UTC Instant;
+    :Group and upsert records by their actual Sydney date;
+    :Record completion only when all provider segments
+    required for the Sydney date have succeeded;
+  endif
 endif
-if (request successful?) then (yes)
-  :Convert Sydney MessageDate values to UTC Instants;
-  :Upsert newest sample per ten-minute Sydney bucket;
-  :Set the same ParkingDay state COMPLETE;
-  note right: Today’s response supplies the live chart tail and history.
-else (no)
-  :Set the same ParkingDay state RETRY_WAIT;
+if (provider request failed?) then (yes)
+  :Set historical work to RETRY_WAIT when applicable;
   :Record retryAfter;
+else (no)
+  :Keep processing later scheduled slots;
 endif
 :Return;
 stop
 
 note right
-  A single scheduled loop calls the history endpoint for every date,
-  including today. The current-date response is also the live update;
-  there is no separate live data request or polling path.
+  /carpark?facility=... supplies the latest occupancy record for live refresh.
+  /carpark without facility supplies the catalog.
+  /carpark/history is only for historical retrieval.
 
-  The compound key is (facilityId, sydneyDate). The daily record stores
-  bounded samples and durable backfill status together. Missing means
-  not fetched; PROCESSING uses leaseUntil, RETRY_WAIT uses retryAfter,
-  and COMPLETE (including an empty result) is skipped for backfill.
-  Current-date polling continues after COMPLETE so its live tail stays fresh.
+  MessageDate is Sydney local time without an offset. Convert it using
+  Australia/Sydney and store the resulting Instant in UTC. Ignore the legacy
+  `time` field. Group all records by the Sydney date from MessageDate, not by
+  the requested eventdate.
 
-  Four of every five history work slots rotate through facilities for
-  today's date; every fifth slot selects the newest eligible older date.
-  Facility lookup refreshes consume a loop slot. Total provider traffic
-  stays under 39,273 calls/day and below 1 call per 2 seconds, including
-  cold start and initial backfill.
-  If a worker fails after sample upsert, retrying is safe.
+  TfNSW documents eventdate as a date but does not specify its timezone or
+  boundary behavior. Validate adjacent eventdate requests against MessageDate
+  before deciding which provider-date segments complete one Sydney day.
+  Do not seal a Sydney day as COMPLETE after a partial segment or an empty
+  live response. Empty historical completion is valid only after all required
+  provider segments have been fetched successfully.
+
+  Every provider request, including catalog, live, and history, consumes one
+  shared scheduler slot. Run no parallel upstream calls outside that budget.
+  Backfill may take additional slots when a Sydney date spans provider date
+  segments. Retry later through the scheduler; bucket upserts are idempotent.
 end note
 @enduml

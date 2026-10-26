@@ -40,10 +40,14 @@ rename an unchanged value.
 
 - Persist event moments as `Instant` / BSON UTC dates. Never persist
   `LocalDateTime` as if it were an instant.
-- The upstream `MessageDate` has no offset. Interpret it in
-  `Australia/Sydney` in a private provider mapper, then convert to `Instant`.
-  Resolve the rare DST overlap using an upstream unambiguous field if available;
-  otherwise document and apply one explicit overlap policy.
+- The upstream `MessageDate` has no offset and represents Sydney local time.
+  Interpret it in `Australia/Sydney` in a private provider mapper, then convert
+  to `Instant` for UTC storage. Resolve the rare DST overlap using an upstream
+  unambiguous field if available; otherwise document and apply one explicit
+  overlap policy.
+- Ignore the legacy upstream `time` field for date and time handling. The
+  provider documentation says it is seconds since year 2000 and directs
+  consumers to use `MessageDate` instead.
 - Backfill and collection partition dates are Sydney `LocalDate` values. Store
   the Mongo key as `sydneyDate: "YYYY-MM-DD"` (or an equivalent date-only
   representation that is never interpreted as UTC midnight).
@@ -77,15 +81,14 @@ size per `ParkingDay` document, leaving substantial headroom below MongoDB's
 service limit; never store the provider's full nested payload in a day record.
 MongoDB advises against unbounded arrays and limits a BSON document to 16 MiB.
 
-The saved `docs/apis/v1-carpark` examples are compatible with this mapping:
-`/carpark` returns a facility-name lookup; `/carpark?facility=...` and
-`/carpark/history?...` return records containing facility ID/name, spots,
-occupancy, and `MessageDate`. The history response is an array of those
-records. Map the ID and date from the provider record/request, retain only the
-latest occupancy/capacity per ten-minute Sydney bucket, and discard nested
-provider-only fields such as zones and location. Confirm the ambiguous provider
-`time` field's units/meaning before using it to resolve DST; it is not currently
-assumed to be epoch time.
+The saved `docs/apis/v1-carpark` examples show three provider uses:
+`/carpark` without a facility returns the facility-name lookup;
+`/carpark?facility=...` returns the latest occupancy record for one facility;
+`/carpark/history?...` returns an array of historical occupancy records. Both
+record endpoints include facility ID/name, capacity, occupancy, and
+`MessageDate`. Map each record's Sydney-local `MessageDate` to its actual
+`sydneyDate` and UTC `sourceTime`; do not infer the stored day from the history
+request's `eventdate`. Discard provider-only fields such as zones and location.
 
 Provider cadence varies by facility (counter-change/10-minute, 15-second, or
 60-second updates). That is upstream behavior, not a domain enum or a local
@@ -95,41 +98,59 @@ or advertise `FIVE_MINUTE` resolution.
 Start with an empty database using the new `parkingDay` collection and unique
 index. No migration or legacy collection support is required.
 
-## 4. Backfill state and flow
+## 4. Current occupancy and historical backfill
 
-- Keep one scheduled history-sync loop and make exactly one `/history` call per
-  work item. It uses the same endpoint for today's refresh and older-date
-  backfill; today's response is the live chart tail as well as that date's
-  stored history. Do not call `/full-list` for live occupancy.
+- Separate live refresh from historical backfill. For a live refresh, call
+  `/carpark?facility={facilityId}` and ingest its single latest record into the
+  `ParkingDay` selected by that record's Sydney-local `MessageDate`. Do not
+  call the provider for each frontend request; serve the latest stored sample
+  through the existing `/live` API. The facility-name lookup remains
+  `/carpark` without a facility parameter.
+- Use `/carpark/history?facility={facilityId}&eventdate={date}` only for
+  historical retrieval. Treat `eventdate` as the provider's request key, not
+  automatically as the Sydney date of the returned records. Always group
+  returned records by the Sydney date derived from `MessageDate`.
+- The provider documentation describes `eventdate` as a date but does not
+  specify its timezone or how results behave around Sydney midnight. A saved
+  response for `eventdate=2026-10-26` contains `MessageDate` values on
+  `2026-10-27` Sydney time. Before finalizing backfill boundaries, probe
+  adjacent `eventdate` values and compare all returned `MessageDate` values.
+  If an upstream date partition spans Sydney dates, fetch every required
+  provider date for a Sydney day and merge only records whose `MessageDate`
+  belongs to that day. Do not mark a Sydney day complete after fetching only
+  one partial provider date.
+- Keep current occupancy and historical coverage as separate concerns even
+  though their samples share the same daily Mongo collection. A successful
+  live response updates the current sample; it does not mark historical
+  coverage `COMPLETE`. Backfill completion means all provider date segments
+  required for that Sydney day have been fetched successfully.
+- Run all upstream calls through one centrally paced scheduler so catalog,
+  live, and history calls share the same quota budget. Make at most one
+  provider request per scheduler slot. Select the live polling interval and
+  history-to-live slot allocation from the enabled facility count and the
+  provider's published limits; keep those values configurable and document
+  the resulting worst-case daily call count. Do not launch parallel requests
+  that bypass this budget. A history day requiring adjacent provider dates
+  consumes one slot per provider request and may take longer to backfill.
 - Load the facility-name lookup from `/carpark`, cache it in memory, apply the
   configured excluded facility IDs, then rotate through the remaining IDs.
-  Refresh this small lookup infrequently; each refresh consumes a loop slot.
-- Use one scheduler loop at a 2.2-second fixed delay and make at most one
-  provider request in each slot. Four of every five history requests poll a
-  rotating facility for today's Sydney date; the fifth selects the newest
-  eligible older facility/date. Both use `/history`; no separate live-feed or
-  backfill request path exists.
-- This caps provider traffic, including a cold start, at about 39,273 requests
-  per day and below one request every two seconds, with catalog refreshes
-  replacing history slots. During the initial backlog, about 7,850 slots/day
-  go to older dates, enough to fetch 1,500 facility/date pairs in roughly five
-  hours. Do not retry history requests immediately; persist retry state and
-  use a later scheduled slot. This remains below the stated 60,000/day quota
-  and 5/second rate limit.
-- `windowDays` is a positive count of inclusive Sydney calendar days. The
-  older-date scan spans `today - 1` through `today - (windowDays - 1)` because
-  today's date is refreshed continuously by the same history loop.
-- Store status fields directly on the matching `ParkingDay` document. Missing
-  state means not requested; `PROCESSING` has a short `leaseUntil`,
-  `RETRY_WAIT` has `retryAfter`, and `COMPLETE` has `completedAt`.
-- A successful empty response still creates/completes the day document with an
-  empty sample array. Failures remain retryable; never mark them complete.
-- `COMPLETE` prevents redundant older-date backfill, but today's polling
-  continues after completion so the current chart remains fresh. Claim older
-  dates atomically with a lease; an expired lease can be reclaimed.
-- No separate status collection, global cursor, per-facility cursor, phase, or
-  run document. If the process fails after sample ingestion but before marking
-  complete, retry is safe because daily bucket upserts are idempotent.
+  Catalog refreshes consume a scheduler slot.
+- `windowDays` is a positive count of inclusive Sydney calendar days. Backfill
+  older Sydney dates from newest to oldest, while keeping provider `eventdate`
+  selection separate from the Mongo `sydneyDate` key.
+- Store historical coverage state on the matching `ParkingDay` document.
+  Missing state means not requested; `PROCESSING` has a short `leaseUntil`,
+  `RETRY_WAIT` has `retryAfter`, and `COMPLETE` has `completedAt`. Empty live
+  responses must not mark a day complete. An empty historical response only
+  counts as complete after the provider-date coverage for that Sydney day is
+  known to be complete.
+- Claim older dates atomically with a lease; an expired lease can be reclaimed.
+  If ingestion succeeds but status completion fails, retry safely because
+  daily bucket upserts are idempotent.
+- Avoid a separate status collection, run document, or per-event record. If
+  verifying provider-date coverage requires additional progress, keep the
+  smallest necessary checkpoint on the existing daily document or cursor
+  rather than adding one document per observation.
 
 ## 5. History API contract
 
@@ -172,11 +193,14 @@ It returns expected-free estimates near 7am/8am and per-day occupancy milestones
 for up to three inclusive Sydney dates. The query uses the existing
 `(facilityId, sydneyDate)` index and reads at most three daily documents.
 
-The live API returns the newest point already stored from today's history
-response, so it does not require a second upstream feed. Use
-`LiveCarParkResponse` for the current snapshot DTO and `/live` for its route.
-The all-facilities endpoint returns the newest stored sample for each allowed
-facility; history uses the compact range response described above.
+The live API returns the newest stored sample, with current-day samples
+refreshed from `/carpark?facility=...` and historical samples populated by the
+backfill path. Use `LiveCarParkResponse` for the snapshot DTO and `/live` for
+its route. The all-facilities endpoint returns each allowed facility's newest
+stored sample; history uses the compact range response described above. When
+no historical observations exist, return an empty `points` array and `null`
+daily metrics rather than inventing values. Define an explicit no-data
+response for live facilities that have not received a sample yet.
 
 ## 6. Implementation sequence
 
@@ -185,13 +209,20 @@ facility; history uses the compact range response described above.
    empty-database startup.
 3. Align provider, ingestion, analytics, and Mongo code with the package
    boundaries above.
-4. Replace cursor backfill and `/full-list` live ingestion with the unified,
-   quota-aware history sync loop and leased state on daily documents.
-5. Replace analytics granularity branching with the resolution policy and
+4. Add a scheduled per-facility live adapter using `/carpark?facility=...` and
+   persist each observation in its Sydney-day bucket without changing
+   historical coverage state.
+5. Verify `/history` `eventdate` behavior across Sydney midnight using
+   adjacent request dates and `MessageDate` values; encode the confirmed
+   provider-date-to-Sydney-day coverage rule in the backfill worker.
+6. Separate leased history backfill from live refresh, keep all provider calls
+   under one quota-aware scheduler, and complete a Sydney date only after its
+   required provider-date segments succeed.
+7. Replace analytics granularity branching with the resolution policy and
    Sydney-aligned aggregation.
-6. Replace history/live timestamp serialization with epoch milliseconds
+8. Replace history/live timestamp serialization with epoch milliseconds
    and introduce the compact tuple response.
-7. Update configuration and operational docs. Frontend changes follow in a
+9. Update configuration and operational docs. Frontend changes follow in a
    separate pass: tuple types, daily metric contract types, explicit Sydney
    formatting, actual resolution labels, and mobile chart behavior.
 
@@ -203,8 +234,14 @@ facility; history uses the compact range response described above.
   samples per daily document; encoded document size is at most
   1 MiB, below MongoDB's 16 MiB limit.
 - Upserts retain the newest source sample per Sydney bucket.
-- Backfill retries failures, records successful empty dates, survives restarts,
-  and needs no separate status collection.
+- Live refresh uses the provider's single-facility current endpoint; frontend
+  requests never call the upstream API directly.
+- Backfill retries failures, stores coverage separately from live refresh,
+  survives restarts, and only records an empty completed Sydney day after all
+  required provider-date segments are confirmed empty.
+- Provider history request dates are not assumed to equal Sydney storage dates;
+  returned rows are grouped by Sydney `MessageDate` and boundary behavior is
+  covered by tests.
 - A seven-day AUTO query returns hourly tuples; a 31-day query returns
   24-hour tuples; responses stay within 200 points.
 - Provider schemas and provider cadence details do not leak into the API/domain

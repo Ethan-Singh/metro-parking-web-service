@@ -1,5 +1,5 @@
 @startuml
-title Parking Domain and Daily Storage
+title Parking Domain, Live Samples, and Historical Coverage
 skinparam packageStyle rectangle
 
 enum HistoryResolution {
@@ -45,13 +45,25 @@ class SydneyDayClock {
 }
 
 class UpstreamTimeMapper {
-  - toInstant(messageDate : LocalDateTime) : Instant
+  - fromSydneyMessageDate(messageDate : LocalDateTime) : Instant
+}
+
+class CurrentCarParkFeed {
+  GET /carpark?facility={id}
+  returns latest record
+}
+
+class HistoricalCarParkFeed {
+  GET /carpark/history?facility={id}&eventdate={date}
+  returns history records
 }
 
 ParkingDay "1" *-- "0..150" Sample
 ParkingDay ..> ParkingDayKey : unique index
 Sample ..> SydneyDayClock : bucket index is 10 min
-UpstreamTimeMapper ..> Sample : source time
+CurrentCarParkFeed ..> UpstreamTimeMapper : MessageDate
+HistoricalCarParkFeed ..> UpstreamTimeMapper : MessageDate; eventdate is only a fetch key
+UpstreamTimeMapper ..> Sample : Sydney local -> UTC Instant
 
 note right of ParkingDay
   One document per (facilityId, Sydney calendar date).
@@ -63,20 +75,25 @@ note right of ParkingDay
   bucketIndex is relative to Sydney start of day;
   bucket time is startOfDay(date) + index * 10 min.
 
-  Backfill state shares the same date record. A COMPLETE
-  record with no samples means the upstream returned no data.
+  Historical coverage state shares the daily record, but live refresh
+  does not set it COMPLETE. Mark COMPLETE only after every upstream
+  eventdate segment required for that Sydney date has succeeded.
 end note
 
 note bottom of Sample
   Store sourceTime as a UTC Instant/BSON date. Within a bucket,
   retain the newest sourceTime so late arrivals cannot overwrite it.
+  MessageDate is Sydney local time and is the source of truth for
+  sydneyDate. Ignore the legacy `time` field for timestamp conversion.
   API timestamps are computed from Sydney date + bucketIndex,
   then serialized as epoch milliseconds.
 end note
 
 note left of BackfillState
   Missing state means not requested. PROCESSING uses leaseUntil;
-  RETRY_WAIT uses retryAfter; COMPLETE records successful fetch,
-  including an empty response. No separate status object/collection.
+  RETRY_WAIT uses retryAfter; COMPLETE means historical provider-date
+  coverage for the Sydney day is complete. A live response or an empty
+  partial history response cannot complete the historical day.
+  No separate status object/collection.
 end note
 @enduml
