@@ -13,9 +13,9 @@ class RestClientConfigTest {
             new ApplicationContextRunner()
                     .withUserConfiguration(RestClientConfig.class)
                     .withBean(
-                            ParkingProperties.class,
+                            CarParkApiProperties.class,
                             () ->
-                                    new ParkingProperties(
+                                    new CarParkApiProperties(
                                             "https://base-url", "/parking", "test-key"));
 
     @Test

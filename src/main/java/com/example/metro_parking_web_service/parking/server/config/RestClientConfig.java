@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClient;
 public class RestClientConfig {
 
     @Bean("parkingRestClient")
-    RestClient parkingRestClient(ParkingProperties parkingProperties) {
+    RestClient parkingRestClient(CarParkApiProperties parkingProperties) {
         String url = parkingProperties.baseUrl() + parkingProperties.api();
 
         log.info("parkingRestClient.url={}", url);

@@ -2,22 +2,20 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
-import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
-import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
-import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
-import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
-import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDay.BackfillState;
+import com.example.metro_parking_web_service.parking.client.repository.ParkingDayRepository;
+import com.example.metro_parking_web_service.parking.server.dto.CarParkApiRecord;
+import com.example.metro_parking_web_service.parking.server.service.CarParkApiClient;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,152 +23,175 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ParkingBackfillService {
 
+    private static final DateTimeFormatter DATE_KEY = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final int MAX_RETRY_SECONDS = 3600;
+    private static final long LEASE_SECONDS = 300;
+
     private final ParkingPolicy parkingPolicy;
-    private final ParkingClient parkingClient;
-    private final ParkingIngestService parkingIngestService;
-    private final ParkingBackfillRepository parkingBackfillRepository;
-    private final ParkingBackfillCursorRepository parkingBackfillCursorRepository;
-    private final ParkingSnapshot parkingSnapshot;
-    private final MongoTemplate mongoTemplate;
+    private final CarParkApiClient parkingClient;
+    private final ParkingDayIngestService parkingIngestService;
+    private final ParkingDayRepository parkingDayRepository;
+    private final ParkingFacilityCatalog parkingSnapshot;
+    private final AtomicInteger backfillRotation = new AtomicInteger();
+    private final AtomicInteger workSlot = new AtomicInteger();
 
-    public void backfill() {
-        List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
+    /** Use one shared history loop for current-day refresh and older backfill. */
+    public void syncHistory() {
+        if (Math.floorMod(workSlot.getAndIncrement(), 5) == 4) {
+            backfillOne();
+        } else {
+            refreshCurrentHistory();
+        }
+    }
 
-        if (facilityIds == null || facilityIds.isEmpty()) {
-            log.warn("event=backfill decision=skip reason=no_valid_facility_ids");
+    private void refreshCurrentHistory() {
+        Integer facilityId = parkingSnapshot.nextFacilityId();
+        if (facilityId == null) {
+            log.warn("event=live_history_sync decision=skip reason=no_facilities");
             return;
         }
 
-        int facilityId = resolveNextFacility(facilityIds);
-        log.debug(
-                "event=backfill decision=process facilityId={} facilityCount={}",
-                facilityId,
-                facilityIds.size());
-
+        LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
         try {
-            backfillFacility(facilityId);
-        } catch (Exception e) {
-            log.error(
-                    "event=backfill decision=failed facilityId={} reason=exception", facilityId, e);
+            if (parkingDayRepository
+                    .findById(facilityId + "_" + DATE_KEY.format(today))
+                    .isEmpty()) {
+                claim(facilityId, today);
+            }
+            List<CarParkApiRecord> records = parkingClient.fetchHistory(facilityId, today);
+            parkingIngestService.ingest(records);
+            markComplete(facilityId, today);
+            log.debug(
+                    "event=live_history_sync decision=success facilityId={} date={} recordCount={}",
+                    facilityId,
+                    today,
+                    records == null ? 0 : records.size());
+        } catch (Exception exception) {
+            markRetry(facilityId, today);
+            log.warn(
+                    "event=live_history_sync decision=retry facilityId={} date={}",
+                    facilityId,
+                    today,
+                    exception);
         }
-
-        advanceCursor(facilityId);
     }
 
-    private int resolveNextFacility(List<Integer> facilityIds) {
-        int lastId =
-                parkingBackfillCursorRepository
-                        .findById("cursor")
-                        .map(ParkingBackfillCursorDocument::getLastFacilityId)
-                        .orElse(-1);
-        return facilityIds.stream()
-                .filter(id -> id > lastId)
-                .findFirst()
-                .orElse(facilityIds.getFirst());
+    /** Backfill one older facility/date per run, newest date first. */
+    private void backfillOne() {
+        List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
+        if (facilityIds.isEmpty()) return;
+
+        LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
+        LocalDate earliest = parkingPolicy.getEarliestBackfillDate();
+        int start = Math.floorMod(backfillRotation.getAndIncrement(), facilityIds.size());
+
+        for (int offset = 0; offset < facilityIds.size(); offset++) {
+            int facilityId = facilityIds.get((start + offset) % facilityIds.size());
+            for (LocalDate date = today.minusDays(1);
+                    !date.isBefore(earliest);
+                    date = date.minusDays(1)) {
+                ParkingDay claim = claim(facilityId, date);
+                if (claim == null) continue;
+                fetchAndSave(facilityId, date);
+                return;
+            }
+        }
     }
 
-    void backfillFacility(int facilityId) {
-        ParkingBackfillDocument document = findOrCreateBackfillDocument(facilityId);
+    private ParkingDay claim(int facilityId, LocalDate date) {
+        Instant now = Instant.now();
+        String dateKey = DATE_KEY.format(date);
+        String id = facilityId + "_" + dateKey;
 
-        if (backfillForward(facilityId, document)) return;
-        backfillBackward(facilityId, document);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            ParkingDay day = parkingDayRepository.findById(id).orElse(null);
+            if (day == null) {
+                day = new ParkingDay();
+                day.setId(id);
+                day.setFacilityId(facilityId);
+                day.setFacilityName(parkingSnapshot.getFacilityName(facilityId));
+                day.setSydneyDate(dateKey);
+                day.setSamples(List.of());
+            } else if (!isEligible(day, now)) {
+                return null;
+            }
+
+            day.setBackfillState(BackfillState.PROCESSING);
+            day.setLeaseUntil(now.plusSeconds(LEASE_SECONDS));
+            try {
+                return parkingDayRepository.save(day);
+            } catch (DuplicateKeyException | OptimisticLockingFailureException exception) {
+                // Another scheduler instance created or claimed the same unique facility/date.
+            }
+        }
+        return null;
     }
 
-    private void advanceCursor(int facilityId) {
-        ParkingBackfillCursorDocument cursor =
-                parkingBackfillCursorRepository
-                        .findById("cursor")
-                        .orElseGet(ParkingBackfillCursorDocument::new);
-        cursor.setLastFacilityId(facilityId);
-        cursor.setUpdatedAt(Instant.now());
-        parkingBackfillCursorRepository.save(cursor);
+    private boolean isEligible(ParkingDay day, Instant now) {
+        return switch (day.getBackfillState()) {
+            case null -> true;
+            case COMPLETE -> false;
+            case RETRY_WAIT -> day.getRetryAfter() == null || !day.getRetryAfter().isAfter(now);
+            case PROCESSING -> day.getLeaseUntil() == null || !day.getLeaseUntil().isAfter(now);
+        };
     }
 
-    private ParkingBackfillDocument findOrCreateBackfillDocument(int facilityId) {
-        return parkingBackfillRepository
-                .findById(facilityId)
-                .orElseGet(
-                        () -> {
-                            ParkingBackfillDocument document = new ParkingBackfillDocument();
-                            document.setFacilityId(facilityId);
-                            document.setComplete(false);
-                            document.setUpdatedAt(Instant.now());
-                            return document;
+    private void fetchAndSave(int facilityId, LocalDate date) {
+        try {
+            List<CarParkApiRecord> history = parkingClient.fetchHistory(facilityId, date);
+            parkingIngestService.ingest(history);
+            markComplete(facilityId, date);
+            log.info(
+                    "event=parking_backfill decision=complete facilityId={} date={} recordCount={}",
+                    facilityId,
+                    date,
+                    history == null ? 0 : history.size());
+        } catch (Exception exception) {
+            markRetry(facilityId, date);
+            log.warn(
+                    "event=parking_backfill decision=retry facilityId={} date={}",
+                    facilityId,
+                    date,
+                    exception);
+        }
+    }
+
+    private void markComplete(int facilityId, LocalDate date) {
+        parkingDayRepository
+                .findById(facilityId + "_" + DATE_KEY.format(date))
+                .ifPresent(
+                        day -> {
+                            day.setBackfillState(BackfillState.COMPLETE);
+                            day.setCompletedAt(Instant.now());
+                            day.setRetryAfter(null);
+                            day.setLeaseUntil(null);
+                            day.setRetryCount(0);
+                            parkingDayRepository.save(day);
                         });
     }
 
-    private boolean backfillForward(int facilityId, ParkingBackfillDocument document) {
-        LocalDate nextForward = nextForward(document);
-        if (nextForward == null) return false;
-
-        fetchHistoryAndIngest(facilityId, nextForward);
-        document.setLastForwardDate(nextForward);
-        saveBackfillDocument(document);
-        log.info(
-                "event=backfill_facility decision=forward facilityId={} date={}",
-                facilityId,
-                nextForward);
-        return true;
-    }
-
-    private LocalDate nextForward(ParkingBackfillDocument document) {
-        LocalDate yesterday = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).minusDays(1);
-        LocalDate lastForward = document.getLastForwardDate();
-
-        if (lastForward == null) return yesterday;
-
-        LocalDate candidate = lastForward.plusDays(1);
-        return candidate.isAfter(yesterday) ? null : candidate;
-    }
-
-    private void backfillBackward(int facilityId, ParkingBackfillDocument document) {
-        if (document.isComplete() || parkingPolicy.isBeforeBackfillWindow(document)) {
-            log.debug(
-                    "event=backfill_facility decision=skip facilityId={} reason={}",
-                    facilityId,
-                    document.isComplete() ? "complete" : "outside_window");
-            return;
-        }
-
-        LocalDate nextBackwardDay = nextBackward(document);
-        fetchHistoryAndIngest(facilityId, nextBackwardDay);
-        document.setLastProcessedDate(nextBackwardDay);
-        saveBackfillDocument(document);
-        log.info(
-                "event=backfill_facility decision=backward facilityId={} date={}",
-                facilityId,
-                nextBackwardDay);
-    }
-
-    private LocalDate nextBackward(ParkingBackfillDocument document) {
-        return document.getLastProcessedDate() != null
-                ? document.getLastProcessedDate().minusDays(1)
-                : LocalDate.now();
-    }
-
-    private void fetchHistoryAndIngest(int facilityId, LocalDate date) {
-        List<ParkingResponse> history = parkingClient.fetchHistory(facilityId, date);
-        if (!history.isEmpty()) {
-            parkingIngestService.ingest(history);
-        }
-    }
-
-    private void saveBackfillDocument(ParkingBackfillDocument document) {
-        document.setUpdatedAt(Instant.now());
-        parkingBackfillRepository.save(document);
+    private void markRetry(int facilityId, LocalDate date) {
+        parkingDayRepository
+                .findById(facilityId + "_" + DATE_KEY.format(date))
+                .ifPresent(
+                        day -> {
+                            int retryCount = day.getRetryCount() + 1;
+                            long retrySeconds =
+                                    Math.min(MAX_RETRY_SECONDS, 30L << Math.min(retryCount - 1, 7));
+                            day.setBackfillState(BackfillState.RETRY_WAIT);
+                            day.setRetryCount(retryCount);
+                            day.setRetryAfter(Instant.now().plusSeconds(retrySeconds));
+                            day.setLeaseUntil(null);
+                            parkingDayRepository.save(day);
+                        });
     }
 
     public void cleanup() {
-        LocalDateTime cutoff =
-                LocalDateTime.now(ParkingPolicy.SYDNEY_ZONE)
-                        .minusDays(parkingPolicy.getBackfillWindow());
-
-        Query query = new Query(Criteria.where("sourceTimestamp").lt(cutoff));
-        long deleted = mongoTemplate.remove(query, ParkingDocument.class).getDeletedCount();
-
+        String earliest = DATE_KEY.format(parkingPolicy.getEarliestBackfillDate());
+        long deleted = parkingDayRepository.deleteBySydneyDateLessThan(earliest);
         log.info(
-                "event=cleanup_parking_data decision=success cutoff={} deletedCount={}",
-                cutoff,
+                "event=cleanup_parking_day decision=success earliestDate={} deletedCount={}",
+                earliest,
                 deleted);
     }
 }

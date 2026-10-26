@@ -6,13 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class ParkingPolicyTest {
 
     @Autowired private ParkingPolicy parkingPolicy;
@@ -25,14 +27,14 @@ class ParkingPolicyTest {
 
     @Test
     void isFacilityAllowed_shouldReturnFalse_whenFacilityDisabled() {
-        Parking parking = new Parking(1, "A", 10, 5, LocalDateTime.now());
+        Parking parking = parking(1);
 
         assertFalse(parkingPolicy.isParkingFacilityAllowed(parking));
     }
 
     @Test
     void isFacilityAllowed_shouldReturnTrue_whenFacilityEnabled() {
-        Parking parking = new Parking(99, "A", 10, 5, LocalDateTime.now());
+        Parking parking = parking(99);
 
         assertTrue(parkingPolicy.isParkingFacilityAllowed(parking));
     }
@@ -40,7 +42,7 @@ class ParkingPolicyTest {
     @Test
     void clampFromDate_shouldClamp_whenBeforeMinimumAllowed() {
         LocalDate from = LocalDate.now().minusDays(100);
-        LocalDate expected = LocalDate.now().minusDays(31);
+        LocalDate expected = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).minusDays(30);
         LocalDate result = parkingPolicy.clampFromDate(from);
 
         assertThat(result).isEqualTo(expected);
@@ -48,7 +50,7 @@ class ParkingPolicyTest {
 
     @Test
     void clampFromDate_shouldNotClamp_whenWithinWindow() {
-        LocalDate from = LocalDate.now().minusDays(10);
+        LocalDate from = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).minusDays(10);
         LocalDate result = parkingPolicy.clampFromDate(from);
 
         assertThat(result).isEqualTo(from);
@@ -56,17 +58,23 @@ class ParkingPolicyTest {
 
     @Test
     void clampToDate_shouldClamp_whenAfterToday() {
-        LocalDate to = LocalDate.now().plusDays(10);
+        LocalDate to = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).plusDays(10);
         LocalDate result = parkingPolicy.clampToDate(to);
 
-        assertThat(result).isEqualTo(LocalDate.now());
+        assertThat(result).isEqualTo(LocalDate.now(ParkingPolicy.SYDNEY_ZONE));
     }
 
     @Test
     void clampToDate_shouldNotClamp_whenBeforeOrEqualToday() {
-        LocalDate to = LocalDate.now().minusDays(1);
+        LocalDate to = LocalDate.now(ParkingPolicy.SYDNEY_ZONE).minusDays(1);
         LocalDate result = parkingPolicy.clampToDate(to);
 
         assertThat(result).isEqualTo(to);
+    }
+
+    private Parking parking(int facilityId) {
+        LocalDate date = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
+        Instant timestamp = Instant.now();
+        return new Parking(facilityId, "A", 10, 5, timestamp, date, 0);
     }
 }

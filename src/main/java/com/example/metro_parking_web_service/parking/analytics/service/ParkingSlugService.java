@@ -1,15 +1,15 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.analytics.service;
 
-import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
+import com.example.metro_parking_web_service.parking.client.repository.ParkingDayRepository;
 import java.text.Normalizer;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,8 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ParkingSlugService {
 
-    private final MongoTemplate mongoTemplate;
-
+    private final ParkingDayRepository parkingDayRepository;
     private final Map<String, Integer> slugIndex = new ConcurrentHashMap<>();
 
     public String toSlug(String facilityName) {
@@ -32,32 +31,19 @@ public class ParkingSlugService {
     }
 
     public int facilityIdFromSlug(String slug) {
-        if (slugIndex.containsKey(slug)) {
-            return slugIndex.get(slug);
+        if (slugIndex.isEmpty()) {
+            parkingDayRepository.findAll(Sort.by(Sort.Direction.DESC, "sydneyDate")).stream()
+                    .filter(day -> day.getFacilityName() != null)
+                    .sorted(Comparator.comparing(ParkingDay::getSydneyDate).reversed())
+                    .forEach(
+                            day ->
+                                    slugIndex.putIfAbsent(
+                                            toSlug(day.getFacilityName()), day.getFacilityId()));
         }
 
-        Query query = new Query().with(Sort.by("facilityId"));
-        mongoTemplate
-                .findDistinct(query, "facilityName", ParkingDocument.class, String.class)
-                .forEach(
-                        name -> {
-                            Query q =
-                                    new Query(
-                                                    org.springframework.data.mongodb.core.query
-                                                            .Criteria.where("facilityName")
-                                                            .is(name))
-                                            .with(Sort.by(Sort.Direction.DESC, "sourceTimestamp"))
-                                            .limit(1);
-                            ParkingDocument doc = mongoTemplate.findOne(q, ParkingDocument.class);
-                            if (doc != null) {
-                                slugIndex.put(toSlug(name), doc.getFacilityId());
-                            }
-                        });
-
-        if (!slugIndex.containsKey(slug)) {
+        Integer facilityId = slugIndex.get(slug);
+        if (facilityId == null)
             throw new IllegalArgumentException("Unknown facility slug: " + slug);
-        }
-
-        return slugIndex.get(slug);
+        return facilityId;
     }
 }

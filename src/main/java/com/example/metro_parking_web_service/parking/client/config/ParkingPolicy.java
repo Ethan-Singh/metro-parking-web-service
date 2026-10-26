@@ -1,7 +1,6 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.config;
 
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
 import com.example.metro_parking_web_service.parking.client.dto.Parking;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -23,12 +22,7 @@ public class ParkingPolicy {
     private int backfillWindow;
 
     public LocalDate getEarliestBackfillDate() {
-        return LocalDate.now(SYDNEY_ZONE).minusDays(backfillWindow);
-    }
-
-    public boolean isBeforeBackfillWindow(ParkingBackfillDocument parkingBackfillDocument) {
-        LocalDate last = parkingBackfillDocument.getLastProcessedDate();
-        return last != null && last.isBefore(getEarliestBackfillDate());
+        return LocalDate.now(SYDNEY_ZONE).minusDays(Math.max(0, backfillWindow - 1L));
     }
 
     public LocalDate clampFromDate(LocalDate from) {
@@ -42,6 +36,10 @@ public class ParkingPolicy {
     }
 
     public boolean isParkingFacilityAllowed(Parking parking) {
-        return !disabledFacilities.contains(parking.facilityId());
+        return isFacilityAllowed(parking.facilityId());
+    }
+
+    public boolean isFacilityAllowed(int facilityId) {
+        return disabledFacilities == null || !disabledFacilities.contains(facilityId);
     }
 }

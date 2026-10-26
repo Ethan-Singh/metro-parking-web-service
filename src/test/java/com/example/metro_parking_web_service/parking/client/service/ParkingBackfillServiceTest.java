@@ -1,321 +1,52 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.client.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillCursorDocument;
-import com.example.metro_parking_web_service.parking.client.document.ParkingBackfillDocument;
-import com.example.metro_parking_web_service.parking.client.document.ParkingDocument;
-import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillCursorRepository;
-import com.example.metro_parking_web_service.parking.client.repository.ParkingBackfillRepository;
-import com.example.metro_parking_web_service.parking.server.dto.ParkingResponse;
-import com.example.metro_parking_web_service.parking.server.service.ParkingClient;
+import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
+import com.example.metro_parking_web_service.parking.client.repository.ParkingDayRepository;
+import com.example.metro_parking_web_service.parking.server.service.CarParkApiClient;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Query;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingBackfillServiceTest {
 
-    @Mock private ParkingPolicy parkingPolicy;
-    @Mock private ParkingClient parkingClient;
-    @Mock private ParkingIngestService parkingIngestService;
-    @Mock private ParkingBackfillRepository parkingBackfillRepository;
-    @Mock private ParkingBackfillCursorRepository parkingBackfillCursorRepository;
-    @Mock private ParkingSnapshot parkingSnapshot;
-    @Mock private MongoTemplate mongoTemplate;
-
-    @InjectMocks private ParkingBackfillService parkingBackfillService;
+    @Mock private ParkingPolicy policy;
+    @Mock private CarParkApiClient client;
+    @Mock private ParkingDayIngestService ingestService;
+    @Mock private ParkingDayRepository repository;
+    @Mock private ParkingFacilityCatalog catalog;
+    @InjectMocks private ParkingBackfillService service;
 
     @Test
-    void backfill_shouldSkipWhenNull() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(null);
-
-        parkingBackfillService.backfill();
-
-        verifyNoInteractions(parkingBackfillRepository);
-        verifyNoInteractions(parkingClient);
-    }
-
-    @Test
-    void backfill_shouldSkipWhenEmpty() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of());
-
-        parkingBackfillService.backfill();
-
-        verifyNoInteractions(parkingBackfillRepository);
-        verifyNoInteractions(parkingClient);
-    }
-
-    @Test
-    void backfill_shouldAdvanceCursorAfterProcessing() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        ParkingBackfillDocument state = fullyProcessedState();
-
-        when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.empty());
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-
-        parkingBackfillService.backfill();
-
-        verify(parkingBackfillCursorRepository).save(any(ParkingBackfillCursorDocument.class));
-    }
-
-    @Test
-    void backfillNext_shouldPickFacilityAfterCursor() {
-        ParkingBackfillCursorDocument cursor = new ParkingBackfillCursorDocument();
-        cursor.setLastFacilityId(1);
-
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1, 2));
-
-        ParkingBackfillDocument state = fullyProcessedState();
-
-        when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.of(cursor));
-        when(parkingBackfillRepository.findById(2)).thenReturn(Optional.of(state));
-
-        parkingBackfillService.backfill();
-
-        verify(parkingBackfillRepository).findById(2);
-        verify(parkingBackfillRepository, never()).findById(1);
-    }
-
-    @Test
-    void backfill_shouldWrapAroundWhenCursorExceedsAllIds() {
-        ParkingBackfillCursorDocument cursor = new ParkingBackfillCursorDocument();
-        cursor.setLastFacilityId(99);
-
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1, 2));
-
-        ParkingBackfillDocument state = fullyProcessedState();
-
-        when(parkingBackfillCursorRepository.findById("cursor")).thenReturn(Optional.of(cursor));
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-
-        parkingBackfillService.backfill();
-
-        verify(parkingBackfillRepository).findById(1);
-    }
-
-    @Test
-    void backfillFacility_shouldForwardFillYesterdayWhenNoLastForwardDate() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
-        state.setComplete(true);
-
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-
-        when(parkingClient.fetchHistory(eq(1), eq(LocalDate.now().minusDays(1))))
-                .thenReturn(List.of());
-
-        parkingBackfillService.backfill();
-
-        verify(parkingClient).fetchHistory(eq(1), eq(LocalDate.now().minusDays(1)));
-        verify(parkingBackfillRepository)
-                .save(
-                        argThat(
-                                saved ->
-                                        LocalDate.now()
-                                                .minusDays(1)
-                                                .equals(saved.getLastForwardDate())));
-    }
-
-    @Test
-    void backfillFacility_shouldForwardFillNextDayAfterLastForwardDate() {
-        LocalDate twoDaysAgo = LocalDate.now().minusDays(2);
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
-        state.setComplete(true);
-        state.setLastForwardDate(twoDaysAgo);
-
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingClient.fetchHistory(eq(1), eq(yesterday))).thenReturn(List.of());
-
-        parkingBackfillService.backfill();
-
-        verify(parkingClient).fetchHistory(eq(1), eq(yesterday));
-    }
-
-    @Test
-    void backfillFacility_shouldNotForwardFillWhenLastForwardDateIsYesterday() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        ParkingBackfillDocument state = fullyProcessedState();
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-
-        parkingBackfillService.backfill();
-
-        verifyNoInteractions(parkingClient);
-        verifyNoInteractions(parkingIngestService);
-    }
-
-    @Test
-    void backfillFacility_shouldSkipBackwardWhenComplete() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(fullyProcessedState()));
-
-        parkingBackfillService.backfill();
-
-        verifyNoInteractions(parkingClient);
-        verifyNoInteractions(parkingIngestService);
-    }
-
-    @Test
-    void backfillFacility_shouldSkipBackwardWhenOutsideWindow() {
-        ParkingBackfillDocument state = stateWithForwardFillCurrent();
-
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingPolicy.isBeforeBackfillWindow(state)).thenReturn(true);
-
-        parkingBackfillService.backfill();
-
-        verifyNoInteractions(parkingClient);
-        verifyNoInteractions(parkingIngestService);
-    }
-
-    @Test
-    void backfillFacility_shouldCreateStateWhenMissing() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.empty());
-        when(parkingClient.fetchHistory(anyInt(), any())).thenReturn(Collections.emptyList());
-
-        parkingBackfillService.backfill();
-
-        verify(parkingBackfillRepository).save(any(ParkingBackfillDocument.class));
-    }
-
-    @Test
-    void backfillFacility_shouldIngestAndAdvanceBackwardWhenHistoryFound() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        ParkingBackfillDocument state = stateWithForwardFillCurrent();
-        state.setLastProcessedDate(LocalDate.of(2025, 1, 2));
-
-        ParkingResponse response = mockResponse("1");
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingClient.fetchHistory(eq(1), eq(LocalDate.of(2025, 1, 1))))
-                .thenReturn(List.of(response));
-
-        parkingBackfillService.backfill();
-
-        verify(parkingIngestService).ingest(List.of(response));
-    }
-
-    @Test
-    void backfillFacility_shouldAdvanceBackwardDateEvenWhenHistoryEmpty() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        ParkingBackfillDocument state = stateWithForwardFillCurrent();
-        state.setLastProcessedDate(LocalDate.of(2025, 1, 2));
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingClient.fetchHistory(anyInt(), any())).thenReturn(Collections.emptyList());
-
-        parkingBackfillService.backfill();
-
-        verify(parkingBackfillRepository)
-                .save(
-                        argThat(
-                                saved ->
-                                        LocalDate.of(2025, 1, 1)
-                                                .equals(saved.getLastProcessedDate())));
-    }
-
-    @Test
-    void backfillFacility_shouldUseYesterdayWhenLastProcessedIsNull() {
-        when(parkingSnapshot.getFacilityIds()).thenReturn(List.of(1));
-
-        ParkingBackfillDocument state = stateWithForwardFillCurrent();
-
-        when(parkingBackfillRepository.findById(1)).thenReturn(Optional.of(state));
-        when(parkingClient.fetchHistory(eq(1), any(LocalDate.class)))
-                .thenReturn(Collections.emptyList());
-
-        parkingBackfillService.backfill();
-
-        verify(parkingClient).fetchHistory(eq(1), eq(LocalDate.now()));
-    }
-
-    @Test
-    void cleanup_shouldUseConfiguredBackfillWindowForCutoff() {
-        int configuredBackfillWindow = 31;
-        when(parkingPolicy.getBackfillWindow()).thenReturn(configuredBackfillWindow);
-
-        when(mongoTemplate.remove(any(Query.class), eq(ParkingDocument.class)))
-                .thenReturn(
-                        new com.mongodb.client.result.DeleteResult() {
-                            @Override
-                            public long getDeletedCount() {
-                                return 0;
-                            }
-
-                            @Override
-                            public boolean wasAcknowledged() {
-                                return true;
-                            }
-                        });
-
-        parkingBackfillService.cleanup();
-
-        ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
-        verify(mongoTemplate).remove(queryCaptor.capture(), eq(ParkingDocument.class));
-
-        Query capturedQuery = queryCaptor.getValue();
-        assertThat(capturedQuery).isNotNull();
-    }
-
-    @Test
-    void cleanup_shouldNotUseWeeksIfConfigIsInDays() {
-        int backfillWindowDays = 31;
-
-        LocalDateTime now = LocalDateTime.now(ParkingPolicy.SYDNEY_ZONE);
-        LocalDateTime correctCutoff = now.minusDays(backfillWindowDays);
-        LocalDateTime incorrectCutoff = now.minusWeeks(backfillWindowDays);
-
-        assertThat(correctCutoff).isAfter(incorrectCutoff);
-    }
-
-    private ParkingBackfillDocument stateWithForwardFillCurrent() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
-        state.setLastForwardDate(LocalDate.now().minusDays(1));
-        return state;
-    }
-
-    private ParkingBackfillDocument fullyProcessedState() {
-        ParkingBackfillDocument state = new ParkingBackfillDocument();
-        state.setComplete(true);
-        state.setLastForwardDate(LocalDate.now().minusDays(1));
-        return state;
-    }
-
-    private ParkingResponse mockResponse(String facilityId) {
-        return new ParkingResponse(
-                facilityId,
-                "Kolombo Creek",
-                "500",
-                new ParkingResponse.Occupancy("200"),
-                LocalDateTime.of(2025, 1, 1, 10, 15));
+    void fourOfFiveSlotsRefreshTodayAndFifthBackfillsYesterday() {
+        LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
+        when(catalog.nextFacilityId()).thenReturn(42);
+        when(catalog.getFacilityIds()).thenReturn(List.of(42));
+        when(catalog.getFacilityName(42)).thenReturn("Central Station");
+        when(policy.getEarliestBackfillDate()).thenReturn(today.minusDays(1));
+        when(repository.findById(anyString())).thenReturn(Optional.empty());
+        when(repository.save(org.mockito.ArgumentMatchers.any(ParkingDay.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(client.fetchHistory(42, today)).thenReturn(List.of());
+        when(client.fetchHistory(42, today.minusDays(1))).thenReturn(List.of());
+
+        for (int slot = 0; slot < 5; slot++) service.syncHistory();
+
+        verify(client, times(4)).fetchHistory(42, today);
+        verify(client).fetchHistory(42, today.minusDays(1));
+        verify(ingestService, times(5)).ingest(anyList());
     }
 }

@@ -6,25 +6,27 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.metro_parking_web_service.parking.analytics.service.ParkingAnalyticsService;
+import com.example.metro_parking_web_service.parking.analytics.service.ParkingQueryService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class RateLimitFilterTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private RateLimitFilter rateLimitFilter;
 
     @MockitoBean private SecurityProperties securityProperties;
-    @MockitoBean private ParkingAnalyticsService analyticsService;
+    @MockitoBean private ParkingQueryService analyticsService;
 
     @BeforeEach
     void setup() {
@@ -37,7 +39,7 @@ class RateLimitFilterTest {
         when(securityProperties.rateLimit())
                 .thenReturn(new SecurityProperties.RateLimit(10, 10, 60));
 
-        when(analyticsService.getAllOverviews()).thenReturn(List.of());
+        when(analyticsService.getAllLiveCarParks()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/parking")).andExpect(status().isOk());
     }
@@ -47,7 +49,7 @@ class RateLimitFilterTest {
 
         when(securityProperties.rateLimit()).thenReturn(new SecurityProperties.RateLimit(1, 1, 60));
 
-        when(analyticsService.getAllOverviews()).thenReturn(List.of());
+        when(analyticsService.getAllLiveCarParks()).thenReturn(List.of());
 
         mockMvc.perform(get("/api/v1/parking")).andExpect(status().isOk());
 
