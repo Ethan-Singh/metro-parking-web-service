@@ -2,9 +2,10 @@
 spring:
   application:
     name: metro-parking-web-service
+  mongodb:
+    uri: mongodb://localhost:27017/metro-parking-test
   data:
     mongodb:
-      uri: mongodb://localhost:27017/metro-parking-test
       auto-index-creation: true
 external-server:
   parking:

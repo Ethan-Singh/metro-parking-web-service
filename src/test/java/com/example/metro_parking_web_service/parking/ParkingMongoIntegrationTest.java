@@ -35,7 +35,7 @@ class ParkingMongoIntegrationTest {
 
     @DynamicPropertySource
     static void mongoProperties(DynamicPropertyRegistry properties) {
-        properties.add("spring.data.mongodb.uri", () -> "mongodb://localhost:27017/" + DATABASE);
+        properties.add("spring.mongodb.uri", () -> "mongodb://localhost:27017/" + DATABASE);
         properties.add("spring.data.mongodb.auto-index-creation", () -> "true");
     }
 
@@ -48,11 +48,14 @@ class ParkingMongoIntegrationTest {
 
     @AfterEach
     void clearTestDatabase() {
-        mongoTemplate.getDb().drop();
+        if (DATABASE.equals(mongoTemplate.getDb().getName())) {
+            mongoTemplate.getDb().drop();
+        }
     }
 
     @Test
     void persistsDailySamplesAndServesCompactHistoryFromMongo() {
+        assertThat(mongoTemplate.getDb().getName()).isEqualTo(DATABASE);
         LocalDate sydneyDate = LocalDate.now(ZoneId.of("Australia/Sydney")).minusDays(1);
         List<CarParkApiRecord> providerRecords =
                 List.of(record(sydneyDate, 9, 11, "62"), record(sydneyDate, 9, 19, "55"));
