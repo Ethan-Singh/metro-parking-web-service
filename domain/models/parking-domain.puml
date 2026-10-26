@@ -3,6 +3,7 @@ title Parking Domain and Daily Storage
 skinparam packageStyle rectangle
 
 enum HistoryResolution {
+  AUTO
   TEN_MINUTE
   ONE_HOUR
   SIX_HOUR
@@ -17,7 +18,7 @@ enum BackfillState {
 }
 
 class ParkingDay <<Mongo document>> {
-  facilityId : String
+  facilityId : int
   sydneyDate : String (YYYY-MM-DD)
   samples : List<Sample>
   backfillState : BackfillState?
@@ -34,7 +35,7 @@ class Sample <<embedded value>> {
 }
 
 class ParkingDayKey <<logical key>> {
-  facilityId : String
+  facilityId : int
   sydneyDate : LocalDate
 }
 

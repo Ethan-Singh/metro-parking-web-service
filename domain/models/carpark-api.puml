@@ -1,5 +1,5 @@
 @startuml
-title Car Park API - Current Upstream and Proposed Read Contract
+title Car Park API - Upstream and Read Contract
 skinparam packageStyle rectangle
 
 package "Upstream Car Park API" {
@@ -16,7 +16,6 @@ package "Upstream Car Park API" {
     eventdate : YYYY-MM-DD
   }
   CarParkApi --> LiveCarParkRecord : GET /carpark
-  CarParkApi --> LiveCarParkRecord : GET /carpark/full-list
   CarParkApi --> HistoryQuery : GET /carpark/history
 }
 
@@ -32,7 +31,7 @@ package "This service - proposed read API" {
     timeMs : epoch milliseconds (UTC instant)
     ariaLabel
   }
-  class ParkingHistoryResponse {
+  class ParkingHistoryPayload {
     from / to
     resolution
     points : List<HistoryPointTuple>
@@ -51,21 +50,20 @@ package "This service - proposed read API" {
   }
 
   class ParkingController
-  class UpstreamCarParkResponseMapper {
+  class CarParkApiRecordMapper {
     - toInstant(sydneyMessageDate : LocalDateTime) : Instant
   }
   class ApiTimestampMapper {
     + toEpochMillis(instant : Instant) : long
   }
-  class OverviewResponseMapper
-  class HistoryResponseMapper
   ParkingController --> LiveCarParkResponse : GET /api/v1/parking
-  ParkingController --> LiveCarParkResponse : GET /{slug}/overview (or /live)
-  ParkingController --> ParkingHistoryResponse : GET /{slug}/history
-  OverviewResponseMapper --> ApiTimestampMapper : Instant -> epoch ms
-  HistoryResponseMapper --> ApiTimestampMapper : Instant -> epoch ms
-  ParkingHistoryResponse o-- "0..*" HistoryPointTuple
-  ParkingHistoryResponse --> HistoryResolution
+  CarParkApiRecordMapper --> LiveCarParkRecord : map provider record
+  ParkingController --> LiveCarParkResponse : GET /{slug}/live
+  ParkingController --> ParkingHistoryPayload : GET /{slug}/history
+  LiveCarParkResponse --> ApiTimestampMapper : Instant -> epoch ms
+  ParkingHistoryPayload --> ApiTimestampMapper : Instant -> epoch ms
+  ParkingHistoryPayload o-- "0..*" HistoryPointTuple
+  ParkingHistoryPayload --> HistoryResolution
 }
 
 note bottom of HistoryPointTuple
@@ -93,14 +91,14 @@ end note
 
 note right of CarParkApi
   carparkswagger_prod_2.yaml documents /carpark,
-  /carpark/full-list, and /carpark/history. Its success
+  /carpark?facility=..., and /carpark/history. Its success
   schemas are opaque `file` types, so the Java provider DTO
   and observed payloads currently supply field-level details.
 end note
 
 note right of LiveCarParkResponse
-  Current snapshot payload. The /overview to /live path change is optional
-  and requires a coordinated frontend route update; the response concept
-  can be renamed independently.
+  Current snapshot payload is derived from today's /history response.
+  History responses that include today bypass the response cache and
+  use Cache-Control: no-store so charts can receive fresh samples.
 end note
 @enduml

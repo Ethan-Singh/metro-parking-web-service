@@ -1,0 +1,301 @@
+openapi: 3.1.0
+info:
+  title: Metro Parking Web Service API
+  version: 1.0.0
+  description: >-
+    Read API for current and historical NSW car park occupancy. Timestamps are
+    Unix epoch milliseconds. Format timestamps for display in Australia/Sydney.
+servers:
+  - url: http://localhost:8080
+    description: Local Spring Boot service
+tags:
+  - name: Car parks
+    description: Latest stored occupancy for one or all facilities
+  - name: History
+    description: Compact time series sourced from daily parking history
+paths:
+  /api/v1/parking:
+    get:
+      tags: [Car parks]
+      operationId: listLiveCarParks
+      summary: List the latest stored sample for each allowed car park
+      description: >-
+        Values come from the most recent sample stored from the NSW history
+        endpoint. The sample timestamp is its source event time.
+      responses:
+        '200':
+          description: Latest stored samples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LiveCarPark'
+              example:
+                - slug: central-station
+                  facilityName: Central Station
+                  spots: 100
+                  occupancy: 55
+                  available: 45
+                  occupancyRate: 0.55
+                  availability: AVAILABLE
+                  timeMs: 1792964400000
+                  ariaLabel: Central Station, 45 of 100 spots available
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/parking/{slug}/live:
+    get:
+      tags: [Car parks]
+      operationId: getLiveCarPark
+      summary: Get the latest stored sample for one car park
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+      responses:
+        '200':
+          description: Latest stored sample
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveCarPark'
+              example:
+                slug: central-station
+                facilityName: Central Station
+                spots: 100
+                occupancy: 55
+                available: 45
+                occupancyRate: 0.55
+                availability: AVAILABLE
+                timeMs: 1792964400000
+                ariaLabel: Central Station, 45 of 100 spots available
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /api/v1/parking/{slug}/history:
+    get:
+      tags: [History]
+      operationId: getCarParkHistory
+      summary: Get compact occupancy history for a date range
+      description: >-
+        Dates are Sydney calendar dates. The range is clamped to the configured
+        history window and to today, with a maximum of 31 inclusive dates.
+        AUTO selects a resolution based on range length. Explicit resolutions
+        may be coarsened to keep the response at or below 200 points; the
+        response reports the actual resolution. A range including today is
+        returned with Cache-Control: no-store so the latest history sample can
+        appear in charts promptly.
+      parameters:
+        - $ref: '#/components/parameters/Slug'
+        - name: from
+          in: query
+          required: true
+          description: Start Sydney calendar date, inclusive.
+          schema:
+            type: string
+            format: date
+          example: '2026-10-26'
+        - name: to
+          in: query
+          required: true
+          description: End Sydney calendar date, inclusive.
+          schema:
+            type: string
+            format: date
+          example: '2026-10-26'
+        - name: resolution
+          in: query
+          required: false
+          description: Desired point interval, or AUTO to select based on range.
+          schema:
+            $ref: '#/components/schemas/RequestedHistoryResolution'
+          example: AUTO
+      responses:
+        '200':
+          description: History points, ordered by ascending timestamp
+          headers:
+            Cache-Control:
+              description: No-store when the requested range includes today; otherwise may be cached for one hour.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParkingHistory'
+              example:
+                from: '2026-10-26'
+                to: '2026-10-26'
+                resolution: TEN_MINUTE
+                points:
+                  - [1792964400000, 0.55, 45]
+                  - [1792965000000, 0.53, 47]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  parameters:
+    Slug:
+      name: slug
+      in: path
+      required: true
+      description: Lowercase hyphenated car park name, for example central-station.
+      schema:
+        type: string
+      example: central-station
+  schemas:
+    LiveCarPark:
+      type: object
+      required:
+        - slug
+        - facilityName
+        - spots
+        - occupancy
+        - available
+        - occupancyRate
+        - availability
+        - timeMs
+        - ariaLabel
+      properties:
+        slug:
+          type: string
+          example: central-station
+        facilityName:
+          type: string
+          example: Central Station
+        spots:
+          type: integer
+          description: Total facility capacity.
+          example: 100
+        occupancy:
+          type: integer
+          description: Number of occupied spaces.
+          example: 55
+        available:
+          type: integer
+          description: Available spaces, never below zero.
+          example: 45
+        occupancyRate:
+          type: number
+          format: double
+          description: Occupancy divided by capacity.
+          example: 0.55
+        availability:
+          type: string
+          enum: [AVAILABLE, ALMOST_FULL, FULL]
+          example: AVAILABLE
+        timeMs:
+          type: integer
+          format: int64
+          description: Source sample timestamp in Unix epoch milliseconds.
+          example: 1792964400000
+        ariaLabel:
+          type: string
+          example: Central Station, 45 of 100 spots available
+    RequestedHistoryResolution:
+      type: string
+      enum:
+        - AUTO
+        - TEN_MINUTE
+        - ONE_HOUR
+        - SIX_HOUR
+        - TWELVE_HOUR
+        - TWENTY_FOUR_HOUR
+      default: AUTO
+    ResolvedHistoryResolution:
+      type: string
+      enum:
+        - TEN_MINUTE
+        - ONE_HOUR
+        - SIX_HOUR
+        - TWELVE_HOUR
+        - TWENTY_FOUR_HOUR
+    ParkingHistory:
+      type: object
+      required: [from, to, resolution, points]
+      properties:
+        from:
+          type: string
+          format: date
+          example: '2026-10-26'
+        to:
+          type: string
+          format: date
+          example: '2026-10-26'
+        resolution:
+          $ref: '#/components/schemas/ResolvedHistoryResolution'
+        points:
+          type: array
+          description: >-
+            Ordered tuples of [timeMs, occupancyRate, available]. timeMs is a
+            Unix epoch-millisecond timestamp. The chart can plot timeMs against
+            occupancyRate.
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/HistoryPoint'
+          example:
+            - [1792964400000, 0.55, 45]
+            - [1792965000000, 0.53, 47]
+    HistoryPoint:
+      type: array
+      minItems: 3
+      maxItems: 3
+      prefixItems:
+        - type: integer
+          format: int64
+          description: Unix epoch milliseconds.
+        - type: number
+          format: double
+          description: Occupancy rate for the bucket.
+        - type: integer
+          description: Available spaces for the bucket.
+      items: false
+      example: [1792964400000, 0.55, 45]
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: Invalid request parameters
+        timestamp:
+          type: string
+          format: date-time
+          description: Included in standard API errors; omitted from rate-limit responses.
+          example: '2026-10-26T12:00:00Z'
+  responses:
+    BadRequest:
+      description: Invalid date range, resolution, or facility slug.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Invalid request parameters
+            timestamp: '2026-10-26T12:00:00Z'
+    RateLimited:
+      description: The client exceeded the configured per-IP rate limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Too many requests
+            timestamp: '2026-10-26T12:00:00Z'
+    ServerError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: An unexpected error occurred
+            timestamp: '2026-10-26T12:00:00Z'

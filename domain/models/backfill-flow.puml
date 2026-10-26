@@ -1,36 +1,41 @@
 @startuml
-title Backfill Using Daily Parking Records
+title Unified Current History and Backfill Sync
 start
-:Scheduled worker captures today's Sydney date;
-:Build inclusive rolling date window backwards;
-:Find eligible facility/date records within request budget;
-while (eligible work remains?) is (yes)
-  :Atomically claim ParkingDay with lease;
-  :Fetch upstream history for facility and Sydney date;
-  if (request successful?) then (yes)
-    :Convert upstream timestamps to UTC Instants;
-    :Upsert newest sample in each Sydney 10-minute bucket;
-    :Set same ParkingDay state to COMPLETE;
-    note right: Empty result is also COMPLETE.
-  else (no)
-    :Set same ParkingDay state to RETRY_WAIT;
-    :Record retryAfter;
-  endif
-endwhile (no)
+:Run one scheduled slot (2.2 second fixed delay);
+if (facility lookup due?) then (yes)
+  :Call /carpark and cache allowed facility IDs/names;
+else (no)
+  :Choose current-date refresh or older-date backfill work;
+  :Call /carpark/history once for facility and date;
+endif
+if (request successful?) then (yes)
+  :Convert Sydney MessageDate values to UTC Instants;
+  :Upsert newest sample per ten-minute Sydney bucket;
+  :Set the same ParkingDay state COMPLETE;
+  note right: Today’s response supplies the live chart tail and history.
+else (no)
+  :Set the same ParkingDay state RETRY_WAIT;
+  :Record retryAfter;
+endif
 :Return;
 stop
 
 note right
-  The compound key is (facilityId, sydneyDate). Missing document/state
-  means not fetched. PROCESSING is protected by leaseUntil; expired
-  leases can be reclaimed. COMPLETE dates are skipped; due retries
-  are eligible again.
+  A single scheduled loop calls the history endpoint for every date,
+  including today. The current-date response is also the live update;
+  there is no separate live data request or polling path.
 
-  The daily record contains both the bounded samples and durable
-  backfill status. There is no separate marker collection or cursor.
-  If a worker fails after sample upsert, repeating the request is safe.
+  The compound key is (facilityId, sydneyDate). The daily record stores
+  bounded samples and durable backfill status together. Missing means
+  not fetched; PROCESSING uses leaseUntil, RETRY_WAIT uses retryAfter,
+  and COMPLETE (including an empty result) is skipped for backfill.
+  Current-date polling continues after COMPLETE so its live tail stays fresh.
 
-  The worker scans today down through the configured inclusive window,
-  caps requests per run, and rotates facility tie-breaking for fairness.
+  Four of every five history work slots rotate through facilities for
+  today's date; every fifth slot selects the newest eligible older date.
+  Facility lookup refreshes consume a loop slot. Total provider traffic
+  stays under 39,273 calls/day and below 1 call per 2 seconds, including
+  cold start and initial backfill.
+  If a worker fails after sample upsert, retrying is safe.
 end note
 @enduml
