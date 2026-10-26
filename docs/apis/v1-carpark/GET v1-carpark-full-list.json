@@ -1,18 +1,22 @@
+//curl -X 'GET' \
+//'https://api.transport.nsw.gov.au/v1/carpark/full-list' \
+//-H 'accept: application/json' \
+
 [
   {
     "tsn": "213110",
-    "time": "833413141",
+    "time": "846362573",
     "spots": "228",
     "zones": [
       {
         "spots": "228",
         "zone_id": "1",
         "occupancy": {
-          "loop": "41",
+          "loop": "58",
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "71"
+          "transients": "85"
         },
         "zone_name": "MainArea",
         "parent_zone_id": "0"
@@ -27,30 +31,30 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "41",
+      "total": "58",
       "monthlies": "0",
       "open_gate": "0",
-      "transients": "76"
+      "transients": "88"
     },
-    "MessageDate": "2026-05-29T23:39:01",
+    "MessageDate": "2026-10-26T20:42:53",
     "facility_id": "486",
     "facility_name": "Park&Ride - Ashfield",
     "tfnsw_facility_id": "213110TPR001"
   },
   {
     "tsn": "221710",
-    "time": "833413057",
+    "time": "846362266",
     "spots": "259",
     "zones": [
       {
         "spots": "259",
         "zone_id": "2",
         "occupancy": {
-          "loop": "29",
+          "loop": "27",
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "15"
+          "transients": "30"
         },
         "zone_name": "MainArea",
         "parent_zone_id": "0"
@@ -65,30 +69,30 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "29",
+      "total": "27",
       "monthlies": "0",
       "open_gate": "0",
-      "transients": "16"
+      "transients": "32"
     },
-    "MessageDate": "2026-05-29T23:37:37",
+    "MessageDate": "2026-10-26T20:37:46",
     "facility_id": "487",
     "facility_name": "Park&Ride - Kogarah",
     "tfnsw_facility_id": "221710TPR001"
   },
   {
     "tsn": "214710",
-    "time": "833413081",
+    "time": "846362564",
     "spots": "1613",
     "zones": [
       {
         "spots": "874",
         "zone_id": "4",
         "occupancy": {
-          "loop": "696",
+          "loop": "647",
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "119"
+          "transients": "71"
         },
         "zone_name": "Multi Level",
         "parent_zone_id": "0"
@@ -101,7 +105,7 @@
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "1"
+          "transients": "11"
         },
         "zone_name": "on grade",
         "parent_zone_id": "0"
@@ -168,19 +172,19 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "0",
+      "total": "1",
       "monthlies": "0",
       "open_gate": "0",
-      "transients": "0"
+      "transients": "1"
     },
-    "MessageDate": "2026-05-29T23:38:01",
+    "MessageDate": "2026-10-26T20:42:44",
     "facility_id": "488",
     "facility_name": "Park&Ride - Seven Hills",
     "tfnsw_facility_id": "214710TPR001"
-  },+
+  },
   {
     "tsn": "2093117",
-    "time": "833413134",
+    "time": "846362559",
     "spots": "142",
     "zones": [
       {
@@ -191,7 +195,7 @@
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "10"
+          "transients": "14"
         },
         "zone_name": "MainArea",
         "parent_zone_id": "0"
@@ -209,16 +213,16 @@
       "total": "6",
       "monthlies": "0",
       "open_gate": "0",
-      "transients": "25"
+      "transients": "32"
     },
-    "MessageDate": "2026-05-29T23:38:54",
+    "MessageDate": "2026-10-26T20:42:39",
     "facility_id": "489",
     "facility_name": "Park&Ride - Manly Vale",
     "tfnsw_facility_id": "2093117TPR001"
   },
   {
     "tsn": "207210",
-    "time": "833376915",
+    "time": "846321190",
     "spots": "213",
     "zones": [
       {
@@ -226,7 +230,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "8",
+          "total": "40",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -244,19 +248,19 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "8",
+      "total": "40",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:35:15",
+    "MessageDate": "2026-10-26T20:13:10",
     "facility_id": "6",
     "facility_name": "Park&Ride - Gordon Henry St (north)",
     "tfnsw_facility_id": "207210TPR001"
   },
   {
     "tsn": "253330",
-    "time": "833377156",
+    "time": "846322968",
     "spots": "42",
     "zones": [
       {
@@ -264,7 +268,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "5",
+          "total": "0",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -282,27 +286,27 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "5",
+      "total": "0",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:39:16",
+    "MessageDate": "2026-10-26T20:42:48",
     "facility_id": "7",
     "facility_name": "Park&Ride - Kiama",
     "tfnsw_facility_id": "253330TPR001"
   },
   {
     "tsn": "221210",
-    "time": "833376849",
+    "time": "846322913",
     "spots": "931",
     "zones": [
       {
         "spots": "931",
         "zone_id": "1",
         "occupancy": {
-          "loop": "625660",
-          "total": "35",
+          "loop": "68276",
+          "total": "51",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -319,28 +323,28 @@
       "longitude": "151.0168491"
     },
     "occupancy": {
-      "loop": "625660",
-      "total": "35",
+      "loop": "68276",
+      "total": "51",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:34:09",
+    "MessageDate": "2026-10-26T20:41:53",
     "facility_id": "9",
     "facility_name": "Park&Ride - Revesby",
     "tfnsw_facility_id": "221210TPR001"
   },
   {
     "tsn": "2101130",
-    "time": "833376770",
+    "time": "846322472",
     "spots": "46",
     "zones": [
       {
         "spots": "46",
         "zone_id": "1",
         "occupancy": {
-          "loop": "155171",
-          "total": "2",
+          "loop": "172981",
+          "total": "7",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -357,28 +361,28 @@
       "longitude": "151.29699"
     },
     "occupancy": {
-      "loop": "155171",
-      "total": "2",
+      "loop": "172981",
+      "total": "7",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:32:50",
+    "MessageDate": "2026-10-26T20:34:32",
     "facility_id": "11",
     "facility_name": "Park&Ride - Narrabeen",
     "tfnsw_facility_id": "2101130TPR001"
   },
   {
     "tsn": "2099207",
-    "time": "833376621",
+    "time": "846322670",
     "spots": "121",
     "zones": [
       {
         "spots": "121",
         "zone_id": "1",
         "occupancy": {
-          "loop": "168545",
-          "total": "4",
+          "loop": "192976",
+          "total": "9",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -395,20 +399,20 @@
       "longitude": "151.286717"
     },
     "occupancy": {
-      "loop": "168545",
-      "total": "4",
+      "loop": "192976",
+      "total": "9",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:30:21",
+    "MessageDate": "2026-10-26T20:37:50",
     "facility_id": "13",
     "facility_name": "Park&Ride - Dee Why",
     "tfnsw_facility_id": "2099207TPR001"
   },
   {
     "tsn": "2103108",
-    "time": "833376019",
+    "time": "846320304",
     "spots": "68",
     "zones": [
       {
@@ -416,7 +420,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "18",
+          "total": "16",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -434,19 +438,19 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "18",
+      "total": "16",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:20:19",
+    "MessageDate": "2026-10-26T19:58:24",
     "facility_id": "12",
     "facility_name": "Park&Ride - Mona Vale",
     "tfnsw_facility_id": "2103108TPR001"
   },
   {
     "tsn": "2101131",
-    "time": "833376667",
+    "time": "846322670",
     "spots": "233",
     "zones": [
       {
@@ -477,25 +481,25 @@
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:31:07",
+    "MessageDate": "2026-10-26T20:37:50",
     "facility_id": "10",
     "facility_name": "Park&Ride - Warriewood",
     "tfnsw_facility_id": "2101131TPR001"
   },
   {
     "tsn": "210020",
-    "time": "833412724",
+    "time": "846362201",
     "spots": "246",
     "zones": [
       {
         "spots": "246",
         "zone_id": "1",
         "occupancy": {
-          "loop": "12",
+          "loop": "21",
           "total": null,
           "monthlies": "0",
           "open_gate": null,
-          "transients": "83"
+          "transients": "69"
         },
         "zone_name": "MainArea",
         "parent_zone_id": "0"
@@ -510,27 +514,27 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "12",
+      "total": "21",
       "monthlies": "0",
       "open_gate": "0",
-      "transients": "400"
+      "transients": "259"
     },
-    "MessageDate": "2026-05-29T23:32:04",
+    "MessageDate": "2026-10-26T20:36:41",
     "facility_id": "490",
     "facility_name": "Park&Ride - Brookvale",
     "tfnsw_facility_id": "210020TPR001"
   },
   {
     "tsn": "211420",
-    "time": "833376962",
+    "time": "846322776",
     "spots": "151",
     "zones": [
       {
         "spots": "151",
         "zone_id": "1",
         "occupancy": {
-          "loop": "528483",
-          "total": "11",
+          "loop": "587137",
+          "total": "12",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -547,28 +551,28 @@
       "longitude": "151.091248"
     },
     "occupancy": {
-      "loop": "528483",
-      "total": "11",
+      "loop": "587137",
+      "total": "12",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:36:02",
+    "MessageDate": "2026-10-26T20:39:36",
     "facility_id": "14",
     "facility_name": "Park&Ride - West Ryde",
     "tfnsw_facility_id": "211420TPR001"
   },
   {
     "tsn": "217933",
-    "time": "833377145",
+    "time": "846322970",
     "spots": "1684",
     "zones": [
       {
         "spots": "1684",
         "zone_id": "1",
         "occupancy": {
-          "loop": "2456305",
-          "total": "73",
+          "loop": "2788141",
+          "total": "89",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -585,28 +589,28 @@
       "longitude": "150.806971"
     },
     "occupancy": {
-      "loop": "2456305",
-      "total": "73",
+      "loop": "2788141",
+      "total": "89",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:39:05",
+    "MessageDate": "2026-10-26T20:42:50",
     "facility_id": "16",
     "facility_name": "Park&Ride - Leppington",
     "tfnsw_facility_id": "217933TPR001"
   },
   {
     "tsn": "217426",
-    "time": "833377106",
+    "time": "846322895",
     "spots": "1431",
     "zones": [
       {
         "spots": "1431",
         "zone_id": "1",
         "occupancy": {
-          "loop": "2188835",
-          "total": "76",
+          "loop": "2485282",
+          "total": "96",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -623,20 +627,20 @@
       "longitude": "150.856259"
     },
     "occupancy": {
-      "loop": "2188835",
-      "total": "76",
+      "loop": "2485282",
+      "total": "96",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:38:26",
+    "MessageDate": "2026-10-26T20:41:35",
     "facility_id": "17",
     "facility_name": "Park&Ride - Edmondson Park (south)",
     "tfnsw_facility_id": "217426TPR001"
   },
   {
     "tsn": "223210",
-    "time": "833376955",
+    "time": "846322897",
     "spots": "373",
     "zones": [
       {
@@ -644,7 +648,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "45",
+          "total": "54",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -662,19 +666,19 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "45",
+      "total": "54",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:35:55",
+    "MessageDate": "2026-10-26T20:41:37",
     "facility_id": "15",
     "facility_name": "Park&Ride - Sutherland",
     "tfnsw_facility_id": "223210TPR001"
   },
   {
     "tsn": "276010",
-    "time": "833376679",
+    "time": "846322338",
     "spots": "684",
     "zones": [
       {
@@ -682,7 +686,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "65",
+          "total": "44",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -700,19 +704,19 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "65",
+      "total": "44",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:31:19",
+    "MessageDate": "2026-10-26T20:32:18",
     "facility_id": "18",
     "facility_name": "Park&Ride - St Marys",
     "tfnsw_facility_id": "276010TPR001"
   },
   {
     "tsn": "225040",
-    "time": "833376220",
+    "time": "846322932",
     "spots": "1059",
     "zones": [
       {
@@ -720,7 +724,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "8",
+          "total": "133",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -738,27 +742,27 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "8",
+      "total": "133",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:23:40",
+    "MessageDate": "2026-10-26T20:42:12",
     "facility_id": "8",
     "facility_name": "Park&Ride - Gosford",
     "tfnsw_facility_id": "225040TPR001"
   },
   {
     "tsn": "256020",
-    "time": "833376966",
+    "time": "846322856",
     "spots": "68",
     "zones": [
       {
         "spots": "68",
         "zone_id": "1",
         "occupancy": {
-          "loop": "387367",
-          "total": "25",
+          "loop": "433016",
+          "total": "35",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -775,28 +779,28 @@
       "longitude": "150.815283"
     },
     "occupancy": {
-      "loop": "387367",
-      "total": "25",
+      "loop": "433016",
+      "total": "35",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:36:06",
+    "MessageDate": "2026-10-26T20:40:56",
     "facility_id": "19",
     "facility_name": "Park&Ride - Campbelltown Farrow Rd (north)",
     "tfnsw_facility_id": "256020TPR001"
   },
   {
     "tsn": "256020",
-    "time": "833376819",
+    "time": "846322790",
     "spots": "113",
     "zones": [
       {
         "spots": "113",
         "zone_id": "1",
         "occupancy": {
-          "loop": "446006",
-          "total": "20",
+          "loop": "492589",
+          "total": "22",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -813,27 +817,27 @@
       "longitude": "150.812432"
     },
     "occupancy": {
-      "loop": "446006",
-      "total": "20",
+      "loop": "492589",
+      "total": "22",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:33:39",
+    "MessageDate": "2026-10-26T20:39:50",
     "facility_id": "20",
     "facility_name": "Park&Ride - Campbelltown Hurley St",
     "tfnsw_facility_id": "256020TPR002"
   },
   {
     "tsn": "275010",
-    "time": "833376779",
+    "time": "846322792",
     "spots": "229",
     "zones": [
       {
         "spots": "229",
         "zone_id": "1",
         "occupancy": {
-          "loop": "236439",
+          "loop": "274440",
           "total": "11",
           "monthlies": null,
           "open_gate": null,
@@ -851,28 +855,28 @@
       "longitude": "150.69444"
     },
     "occupancy": {
-      "loop": "236439",
+      "loop": "274440",
       "total": "11",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:32:59",
+    "MessageDate": "2026-10-26T20:39:52",
     "facility_id": "21",
     "facility_name": "Park&Ride - Penrith (at-grade)",
     "tfnsw_facility_id": "275010TPR001"
   },
   {
     "tsn": "275010",
-    "time": "833376868",
+    "time": "846322939",
     "spots": "1129",
     "zones": [
       {
         "spots": "1129",
         "zone_id": "1",
         "occupancy": {
-          "loop": "1419998",
-          "total": "38",
+          "loop": "1592917",
+          "total": "48",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -889,20 +893,20 @@
       "longitude": "150.695171"
     },
     "occupancy": {
-      "loop": "1419998",
-      "total": "38",
+      "loop": "1592917",
+      "total": "48",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:34:28",
+    "MessageDate": "2026-10-26T20:42:19",
     "facility_id": "22",
     "facility_name": "Park&Ride - Penrith (multi-level)",
     "tfnsw_facility_id": "275010TPR002"
   },
   {
     "tsn": "217010",
-    "time": "833377022",
+    "time": "846322775",
     "spots": "906",
     "zones": [
       {
@@ -910,7 +914,7 @@
         "zone_id": "1",
         "occupancy": {
           "loop": null,
-          "total": "45",
+          "total": "53",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -928,27 +932,27 @@
     },
     "occupancy": {
       "loop": null,
-      "total": "45",
+      "total": "53",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:37:02",
+    "MessageDate": "2026-10-26T20:39:35",
     "facility_id": "23",
     "facility_name": "Park&Ride - Warwick Farm",
     "tfnsw_facility_id": "217010TPR001"
   },
   {
     "tsn": "276220",
-    "time": "833376938",
+    "time": "846322949",
     "spots": "700",
     "zones": [
       {
         "spots": "700",
         "zone_id": "1",
         "occupancy": {
-          "loop": "1790910",
-          "total": "21",
+          "loop": "2063957",
+          "total": "22",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -965,28 +969,28 @@
       "longitude": "150.870861"
     },
     "occupancy": {
-      "loop": "1790910",
-      "total": "21",
+      "loop": "2063957",
+      "total": "22",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:35:38",
+    "MessageDate": "2026-10-26T20:42:29",
     "facility_id": "24",
     "facility_name": "Park&Ride - Schofields",
     "tfnsw_facility_id": "276220TPR001"
   },
   {
     "tsn": "207720",
-    "time": "833376992",
+    "time": "846322528",
     "spots": "145",
     "zones": [
       {
         "spots": "145",
         "zone_id": "1",
         "occupancy": {
-          "loop": "348675",
-          "total": "10",
+          "loop": "394631",
+          "total": "13",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1003,28 +1007,28 @@
       "longitude": "151.098004"
     },
     "occupancy": {
-      "loop": "348675",
-      "total": "10",
+      "loop": "394631",
+      "total": "13",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:36:32",
+    "MessageDate": "2026-10-26T20:35:28",
     "facility_id": "25",
     "facility_name": "Park&Ride - Hornsby",
     "tfnsw_facility_id": "207720TPR001"
   },
   {
     "tsn": "2155384",
-    "time": "833377060",
+    "time": "846322946",
     "spots": "123",
     "zones": [
       {
         "spots": "123",
         "zone_id": "1",
         "occupancy": {
-          "loop": "15927",
-          "total": "47",
+          "loop": "137437",
+          "total": "38",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1041,28 +1045,28 @@
       "longitude": "150.9052577"
     },
     "occupancy": {
-      "loop": "15927",
-      "total": "47",
+      "loop": "137437",
+      "total": "38",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:37:40",
+    "MessageDate": "2026-10-26T20:42:26",
     "facility_id": "26",
     "facility_name": "Park&Ride - Tallawong P1",
     "tfnsw_facility_id": "2155384TPR001"
   },
   {
     "tsn": "2155384",
-    "time": "833376994",
+    "time": "846322957",
     "spots": "397",
     "zones": [
       {
         "spots": "397",
         "zone_id": "1",
         "occupancy": {
-          "loop": "380623",
-          "total": "16",
+          "loop": "487196",
+          "total": "12",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1079,28 +1083,28 @@
       "longitude": "150.903874"
     },
     "occupancy": {
-      "loop": "380623",
-      "total": "16",
+      "loop": "487196",
+      "total": "12",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:36:34",
+    "MessageDate": "2026-10-26T20:42:37",
     "facility_id": "28",
     "facility_name": "Park&Ride - Tallawong P3",
     "tfnsw_facility_id": "2155384TPR003"
   },
   {
     "tsn": "2155384",
-    "time": "833377156",
+    "time": "846322901",
     "spots": "455",
     "zones": [
       {
         "spots": "455",
         "zone_id": "1",
         "occupancy": {
-          "loop": "48410",
-          "total": "95",
+          "loop": "239729",
+          "total": "59",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1117,28 +1121,28 @@
       "longitude": "150.9043098"
     },
     "occupancy": {
-      "loop": "48410",
-      "total": "95",
+      "loop": "239729",
+      "total": "59",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:39:16",
+    "MessageDate": "2026-10-26T20:41:41",
     "facility_id": "27",
     "facility_name": "Park&Ride - Tallawong P2",
     "tfnsw_facility_id": "2155384TPR002"
   },
   {
     "tsn": "2155382",
-    "time": "833377149",
+    "time": "846322524",
     "spots": "351",
     "zones": [
       {
         "spots": "351",
         "zone_id": "1",
         "occupancy": {
-          "loop": "528157",
-          "total": "13",
+          "loop": "69884",
+          "total": "19",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1155,28 +1159,28 @@
       "longitude": "150.934364"
     },
     "occupancy": {
-      "loop": "528157",
-      "total": "13",
+      "loop": "69884",
+      "total": "19",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:39:09",
+    "MessageDate": "2026-10-26T20:35:24",
     "facility_id": "29",
     "facility_name": "Park&Ride - Kellyville (north)",
     "tfnsw_facility_id": "2155382TPR001"
   },
   {
     "tsn": "2155382",
-    "time": "833376863",
+    "time": "846322531",
     "spots": "964",
     "zones": [
       {
         "spots": "964",
         "zone_id": "1",
         "occupancy": {
-          "loop": "336601",
-          "total": "100",
+          "loop": "623130",
+          "total": "60",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1193,28 +1197,28 @@
       "longitude": "150.9363451"
     },
     "occupancy": {
-      "loop": "336601",
-      "total": "100",
+      "loop": "623130",
+      "total": "60",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:34:23",
+    "MessageDate": "2026-10-26T20:35:31",
     "facility_id": "30",
     "facility_name": "Park&Ride - Kellyville (south)",
     "tfnsw_facility_id": "2155382TPR002"
   },
   {
     "tsn": "2153478",
-    "time": "833377151",
+    "time": "846322892",
     "spots": "774",
     "zones": [
       {
         "spots": "774",
         "zone_id": "1",
         "occupancy": {
-          "loop": "257835",
-          "total": "101",
+          "loop": "503536",
+          "total": "72",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1231,28 +1235,28 @@
       "longitude": "150.941761"
     },
     "occupancy": {
-      "loop": "257835",
-      "total": "101",
+      "loop": "503536",
+      "total": "72",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:39:11",
+    "MessageDate": "2026-10-26T20:41:32",
     "facility_id": "31",
     "facility_name": "Park&Ride - Bella Vista",
     "tfnsw_facility_id": "2153478TPR001"
   },
   {
     "tsn": "2154392",
-    "time": "833377104",
+    "time": "846322711",
     "spots": "584",
     "zones": [
       {
         "spots": "584",
         "zone_id": "1",
         "occupancy": {
-          "loop": "109956",
-          "total": "75",
+          "loop": "332112",
+          "total": "68",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1269,28 +1273,28 @@
       "longitude": "150.98505"
     },
     "occupancy": {
-      "loop": "109956",
-      "total": "75",
+      "loop": "332112",
+      "total": "68",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:38:24",
+    "MessageDate": "2026-10-26T20:38:31",
     "facility_id": "32",
     "facility_name": "Park&Ride - Hills Showground",
     "tfnsw_facility_id": "2154392TPR001"
   },
   {
     "tsn": "2126158",
-    "time": "833377136",
+    "time": "846322922",
     "spots": "384",
     "zones": [
       {
         "spots": "384",
         "zone_id": "1",
         "occupancy": {
-          "loop": "322177",
-          "total": "97",
+          "loop": "521696",
+          "total": "89",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1307,28 +1311,28 @@
       "longitude": "151.033431"
     },
     "occupancy": {
-      "loop": "322177",
-      "total": "97",
+      "loop": "521696",
+      "total": "89",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:38:56",
+    "MessageDate": "2026-10-26T20:42:02",
     "facility_id": "33",
     "facility_name": "Park&Ride - Cherrybrook",
     "tfnsw_facility_id": "2126158TPR001"
   },
   {
     "tsn": "207010",
-    "time": "833376693",
+    "time": "846322402",
     "spots": "94",
     "zones": [
       {
         "spots": "94",
         "zone_id": "1",
         "occupancy": {
-          "loop": "1135",
-          "total": "8",
+          "loop": "29051",
+          "total": "14",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1345,28 +1349,28 @@
       "longitude": "151.170549"
     },
     "occupancy": {
-      "loop": "1135",
-      "total": "8",
+      "loop": "29051",
+      "total": "14",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:31:33",
+    "MessageDate": "2026-10-26T20:33:22",
     "facility_id": "34",
     "facility_name": "Park&Ride - Lindfield Village Green",
     "tfnsw_facility_id": "207010TPR001"
   },
   {
     "tsn": "275020",
-    "time": "833376791",
+    "time": "846322917",
     "spots": "750",
     "zones": [
       {
         "spots": "750",
         "zone_id": "1",
         "occupancy": {
-          "loop": "22664",
-          "total": "3",
+          "loop": "41283",
+          "total": "1",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1383,28 +1387,28 @@
       "longitude": "150.66987"
     },
     "occupancy": {
-      "loop": "22664",
-      "total": "3",
+      "loop": "41283",
+      "total": "1",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:33:11",
+    "MessageDate": "2026-10-26T20:41:57",
     "facility_id": "36",
     "facility_name": "Park&Ride - Emu Plains",
     "tfnsw_facility_id": "275020TPR001"
   },
   {
     "tsn": "220910",
-    "time": "833377022",
+    "time": "846322769",
     "spots": "200",
     "zones": [
       {
         "spots": "200",
         "zone_id": "1",
         "occupancy": {
-          "loop": "33739",
-          "total": "20",
+          "loop": "76788",
+          "total": "12",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1421,28 +1425,28 @@
       "longitude": "151.0801"
     },
     "occupancy": {
-      "loop": "33739",
-      "total": "20",
+      "loop": "76788",
+      "total": "12",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:37:02",
+    "MessageDate": "2026-10-26T20:39:29",
     "facility_id": "35",
     "facility_name": "Park&Ride - Beverly Hills",
     "tfnsw_facility_id": "220910TPR001"
   },
   {
     "tsn": "221010",
-    "time": "833376942",
+    "time": "846322828",
     "spots": "124",
     "zones": [
       {
         "spots": "124",
         "zone_id": "1",
         "occupancy": {
-          "loop": "749",
-          "total": "6",
+          "loop": "5927",
+          "total": "5",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1459,28 +1463,28 @@
       "longitude": "151.050035"
     },
     "occupancy": {
-      "loop": "749",
-      "total": "6",
+      "loop": "5927",
+      "total": "5",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:35:42",
+    "MessageDate": "2026-10-26T20:40:28",
     "facility_id": "37",
     "facility_name": "Park&Ride - Riverwood",
     "tfnsw_facility_id": "221010TPR001"
   },
   {
     "tsn": "2151161",
-    "time": "833376805",
+    "time": "846322964",
     "spots": "139",
     "zones": [
       {
         "spots": "139",
         "zone_id": "1",
         "occupancy": {
-          "loop": "15369",
-          "total": "5",
+          "loop": "293",
+          "total": "4",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1497,28 +1501,28 @@
       "longitude": "151.014131"
     },
     "occupancy": {
-      "loop": "15369",
-      "total": "5",
+      "loop": "293",
+      "total": "4",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:33:25",
+    "MessageDate": "2026-10-26T20:42:44",
     "facility_id": "38",
     "facility_name": "Park&Ride - North Rocks",
     "tfnsw_facility_id": "2151161TPR001"
   },
   {
     "tsn": "217426",
-    "time": "833376806",
+    "time": "846322685",
     "spots": "917",
     "zones": [
       {
         "spots": "917",
         "zone_id": "1",
         "occupancy": {
-          "loop": "13513",
-          "total": "7",
+          "loop": "15866",
+          "total": "9",
           "monthlies": null,
           "open_gate": null,
           "transients": null
@@ -1535,15 +1539,91 @@
       "longitude": "150.8616"
     },
     "occupancy": {
-      "loop": "13513",
-      "total": "7",
+      "loop": "15866",
+      "total": "9",
       "monthlies": null,
       "open_gate": null,
       "transients": null
     },
-    "MessageDate": "2026-05-29T23:33:26",
+    "MessageDate": "2026-10-26T20:38:05",
     "facility_id": "39",
     "facility_name": "Park&Ride - Edmondson Park (north)",
     "tfnsw_facility_id": "217426CCP001"
+  },
+  {
+    "tsn": "207210",
+    "time": "846322933",
+    "spots": "331",
+    "zones": [
+      {
+        "spots": "331",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "39854",
+          "total": "11",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD431 Park&Ride - Gordon Henry St (south)",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Gordon",
+      "address": "Henry Street",
+      "latitude": "-33.7579",
+      "longitude": "151.1553"
+    },
+    "occupancy": {
+      "loop": "39854",
+      "total": "11",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-10-26T20:42:13",
+    "facility_id": "40",
+    "facility_name": "Park&Ride - Gordon Henry St (south)",
+    "tfnsw_facility_id": "207210CCP001"
+  },
+  {
+    "tsn": "277010",
+    "time": "846322754",
+    "spots": "208",
+    "zones": [
+      {
+        "spots": "208",
+        "zone_id": "1",
+        "occupancy": {
+          "loop": "9222",
+          "total": "6",
+          "monthlies": null,
+          "open_gate": null,
+          "transients": null
+        },
+        "zone_name": "SYD433 Park&Ride - Mount Druitt",
+        "parent_zone_id": "0"
+      }
+    ],
+    "ParkID": "1",
+    "location": {
+      "suburb": "Mount Druitt",
+      "address": "63 North Parade",
+      "latitude": "-33.769635",
+      "longitude": "150.822987"
+    },
+    "occupancy": {
+      "loop": "9222",
+      "total": "6",
+      "monthlies": null,
+      "open_gate": null,
+      "transients": null
+    },
+    "MessageDate": "2026-10-26T20:39:14",
+    "facility_id": "41",
+    "facility_name": "Park&Ride - Mount Druitt",
+    "tfnsw_facility_id": "277010TPR001"
   }
 ]
