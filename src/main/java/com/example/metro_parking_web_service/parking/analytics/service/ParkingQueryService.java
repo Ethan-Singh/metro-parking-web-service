@@ -92,7 +92,7 @@ public class ParkingQueryService {
             metrics.add(metricsForDate(date, byDate.get(date)));
         }
         return new DailyParkingMetricsPayload(
-                from.toString(), to.toString(), SydneyTimeMapper.SYDNEY, metrics);
+                from.toString(), to.toString(), SydneyTimeMapper.SYDNEY.getId(), metrics);
     }
 
     private DailyMetric metricsForDate(LocalDate date, ParkingDay day) {
