@@ -1,0 +1,260 @@
+basePath: /v2/roads
+consumes:
+- '*/*'
+definitions:
+    CoordinatesLocationName:
+        properties:
+            lat:
+                example: -33.8819
+                type: number
+            lng:
+                example: 151.2517
+                type: number
+            name:
+                maxLength: 100
+                type: string
+        required:
+        - lat
+        - lng
+        type: object
+    Match:
+        properties:
+            accuracy:
+                example: 10
+                type: number
+            departureTime:
+                format: date-time
+                type: string
+            includeSteps:
+                default: false
+                type: boolean
+            polyline:
+                example: tc_mEgb_y[@Nz@jK@@BX@?@@@??@@?@@?@?@?@?@?@?@A@?@A@A?@H?NABb@`E\`DJpAhAhI?V?FB?B@@@BB?D?BABABC@C@~@dJhD~\l@CnAK~@MlB[j@Mz@U`Bg@pAc@~Ag@t@Sf@Kl@It@I\PRHh@ZFHDLBP?DPtDBb@RnENnCHhCDz@DlAD~@LbCHhARvBVnCbB|KV~AZnBbArFPp@X`ATv@Vv@Tn@Zr@b@|@d@t@^l@^j@bA~AfAfBbAbBf@v@\n@`@x@`@bA`@hAPn@TbAThAVjBJdADr@DtA@nACbBIdBKlAQrAUnA_@zAc@xAi@zAu@xBY~@Sr@Qp@Ov@Y~AQlAKz@IjAGnACr@At@AnA@fADtAFnAJlAJfALx@Jr@ThAXhAd@|AtAvDv@pBf@tAbAlC|@`Cx@lCZhAXdAV~A^tB^rBZvBHv@Ht@NxATjAF|@NxBJ`BLlBJfBj@bJV|DFhANfAHhAVzDNfCL|ANbBLzALrA^lCPnAl@zDb@`CXbBXhBZfCT`BV`Bx@rEn@vDrAxHZ`BT`Ap@dDd@jCz@pFZtBVlBJn@XxBDZr@rGLjAJrAL|A`@zFz@nMn@jNTbDCbDIlCCn@E`@OdBK~@OfAY`B[xAm@zB]lAs@lB{@bBe@~@iBfC}AjBuAvAuBhB{A~@i@\mGbEaJvFs@b@cCzA{CpB_DrBqD|ByClBqDdCqDpCm@f@uAjAwBnBwDpDsDzDcD|D_DbEkA~AwFlI}A`CwDxFgC~D{BlD{CvFwFlKsAtCeChFqAvCOZsBfFiB`FuAjDeBfFeBxFmBtGcAvDqAhFo@nCuAdGgB~IiBfKyA`Ig@rCiArGo@lD_DxQaAhGa@jCiAjHa@jD]~CYrC]|CoAlNcFpo@i@lIk@hMShFQrGSnIUlHi@zRUrKYhJc@lKSxH[|JIrCKfDSvGMdCQzCWtDSvBSlBc@xDa@rD{ArMm@xEm@tF{@dH}@tH_AhI{@jHs@xFOjAg@jEYxBu@lGMxAGlACxA?xADfBL`BNjAV|AZpAXbAf@tA^x@`@x@h@|@j@t@l@v@|@|@p@j@f@\b@Xh@Z`@RzBz@z@Rn@Lt@JvAR`CX`MzAp@HtOjBfPlB|MjB~IfA~Dd@lAJvAD|AA`BEbCYlB_@xPiFnAYxB[zAMrAIhCC`DNlKtArFt@fP~BfCZpAHpBFzBEzCSpCe@tBm@bBm@lB}@rAu@rAcApAmA^a@z@cA|@iABCv@gA`B{Cp@wAnAoCdAiCrAsCtAcCjBeDzAmBfBqB|AuAlCuBxAy@|A{@bCeA~Ak@`Bc@xBi@jB[hBQn@G~GIbERrAL|AVzDt@~@RrBb@`B\`BZ`Dl@dE~@|Bd@pAXjATbEv@tKtBdC^tCb@rDn@~RfCpOfBjAN|Q|B~Fp@xFp@vAHf@BpGZzBJ`JLzB?tCBjFGpA@rND|EFzEMjDg@fA[zBy@hDmB|D_CzDuBbFsCjBcApDsAlEqArC_@jHo@dE@dELbL\~H^~F\x@Fj@D~@HnCTnMnArKrApIfBzIvBhA^`D`AlC~@|DvAhChAnCjAxAl@~Al@rBr@jCh@hEn@|Cj@bARjEz@tE`ArFlA|Bl@jBf@xBp@bCj@`B`@xBh@hDz@pDr@jB`@hBX`BVnBVpE`@|Df@hGh@bKhAj@Fx@JvBZj@FdC^zCt@j@PlD~AvAr@`Ah@rBhAxBxAh@ZPWzEoGjBwEhAsCjB{DbBsBjDyDtBoBfDeEtBkDfAsCf@yDN{CIsGU{JAc@?QVATAjAI|@Ib@EHEHAHBDD@BBJAJEHEDEb@Er@Gj@Qv@O~@K`AGlAAbA?x@DdANrAN`ARz@Rv@d@bARb@P\b@n@b@f@f@f@d@b@lAv@TVTVRXPXRb@|@bCrAjDLTLNFBFH~@Ld@?\C`@I\Qf@e@j@s@b@k@f@g@f@a@j@[d@Qd@Oh@Kj@Gt@Av@Bp@J|@RbAf@z@n@h@^p@`@|@Vd@Fr@Dn@Ah@Gl@Md@Q^ORU@EBEDEDCFAD@B@BBDD@F@FAFADCD@f@F\Jp@Fx@B|@?b@?^C~@Et@In@I\S`@[n@M`@G`@?XF?DBDDBF?F~CD@G@EDCDCD?D@FYVm@PWZa@d@a@^Sf@Qt@KTAxAGP@B@LUDMHQ`@c@b@aAJOFM^_@v@[t@YHITQVYHKp@wA
+                type: string
+            vehicleClass:
+                $ref: '#/definitions/VehicleClass'
+            vehicleClassByMotorway:
+                $ref: '#/definitions/VehicleClassByMotorway'
+        required:
+        - origin
+        - destination
+        type: object
+    MatchApiResponse:
+        properties:
+            match:
+                $ref: '#/definitions/TollCalculationResponse'
+        type: object
+    Route:
+        properties:
+            departureTime:
+                format: date-time
+                type: string
+            destination:
+                $ref: '#/definitions/CoordinatesLocationName'
+            excludeToll:
+                default: false
+                type: boolean
+            includeSteps:
+                default: false
+                type: boolean
+            origin:
+                $ref: '#/definitions/CoordinatesLocationName'
+            vehicleClass:
+                $ref: '#/definitions/VehicleClass'
+            vehicleClassByMotorway:
+                $ref: '#/definitions/VehicleClassByMotorway'
+        required:
+        - origin
+        - destination
+        type: object
+    RouteApiResponse:
+        properties:
+            routes:
+                items:
+                    $ref: '#/definitions/TollCalculationResponse'
+                type: array
+        type: object
+    TollCalculationResponse:
+        properties:
+            confidence:
+                type: number
+            distance:
+                type: number
+            duration:
+                type: number
+            geometry:
+                type: string
+            isCheapest:
+                type: boolean
+            isQuickest:
+                type: boolean
+            isShortest:
+                type: boolean
+            maxChargeInCents:
+                type: number
+            minChargeInCents:
+                type: number
+            summary:
+                type: string
+            tollsCharged:
+                items:
+                    $ref: '#/definitions/TollResponse'
+                type: array
+        type: object
+    TollResponse:
+        properties:
+            chargeType:
+                enum:
+                - Fixed
+                - TimeOfDay
+                - Distance
+                type: string
+            charges:
+                items:
+                    properties:
+                        chargeInCents:
+                            type: number
+                        vehicleClass:
+                            $ref: '#/definitions/VehicleClass'
+                    type: object
+                type: array
+            maxChargeInCents:
+                type: number
+            minChargeInCents:
+                type: number
+        type: object
+    VehicleClass:
+        enum:
+        - A
+        - B
+        type: string
+    VehicleClassByMotorway:
+        properties:
+            CCT:
+                $ref: '#/definitions/VehicleClass'
+            ED:
+                $ref: '#/definitions/VehicleClass'
+            LCT:
+                $ref: '#/definitions/VehicleClass'
+            M2:
+                $ref: '#/definitions/VehicleClass'
+            M4:
+                $ref: '#/definitions/VehicleClass'
+            M5:
+                $ref: '#/definitions/VehicleClass'
+            M7:
+                $ref: '#/definitions/VehicleClass'
+            SHB:
+                $ref: '#/definitions/VehicleClass'
+            SHT:
+                $ref: '#/definitions/VehicleClass'
+        type: object
+host: api.transport.nsw.gov.au
+info:
+    title: Toll Calculator
+    version: '2.0'
+paths:
+    /toll_calc/data:
+        get:
+            consumes:
+            - application/json
+            operationId: getData
+            produces:
+            - application/json
+            responses:
+                '200':
+                    description: successful operation
+                '201':
+                    description: Created
+                '400':
+                    description: Bad Request
+                '401':
+                    description: Unauthorized
+                '403':
+                    description: Forbidden
+                '404':
+                    description: Not Found
+            summary: Get information about toll road pricing in NSW
+            tags:
+            - pricing
+    /toll_calc/match:
+        post:
+            consumes:
+            - application/json
+            operationId: getMatch
+            parameters:
+            -   description: Request object representing the journey
+                in: body
+                name: body
+                required: true
+                schema:
+                    $ref: '#/definitions/Match'
+            produces:
+            - application/json
+            responses:
+                '200':
+                    description: successful operation
+                    schema:
+                        $ref: '#/definitions/MatchApiResponse'
+                '201':
+                    description: Created
+                '400':
+                    description: Bad Request
+                '401':
+                    description: Unauthorized
+                '403':
+                    description: Forbidden
+                '404':
+                    description: Not Found
+            summary: Returns the toll cost breakdown for the supplied route
+            tags:
+            - pricing
+    /toll_calc/route:
+        post:
+            consumes:
+            - application/json
+            operationId: getRoutes
+            parameters:
+            -   description: Request object representing the journey
+                in: body
+                name: body
+                required: true
+                schema:
+                    $ref: '#/definitions/Route'
+            produces:
+            - application/json
+            responses:
+                '200':
+                    description: successful operation
+                    schema:
+                        $ref: '#/definitions/RouteApiResponse'
+                '201':
+                    description: Created
+                '400':
+                    description: Bad Request
+                '401':
+                    description: Unauthorized
+                '403':
+                    description: Forbidden
+                '404':
+                    description: Not Found
+            summary: Returns possible routes between an origin and destination and
+                the toll cost breakdown for the routes
+            tags:
+            - pricing
+produces:
+- application/json
+schemes:
+- https
+security:
+-   APIKey: []
+securityDefinitions:
+    APIKey:
+        description: 'Expected Format: apikey [TOKEN]'
+        in: header
+        name: Authorization
+        type: apiKey
+swagger: '2.0'
+tags:
+-   description: the pricing API
+    name: pricing-api-controller

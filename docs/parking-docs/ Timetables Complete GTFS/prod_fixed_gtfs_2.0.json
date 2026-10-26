@@ -1,0 +1,129 @@
+{
+    "basePath": "/v1/publictransport/timetables/complete",
+    "consumes": [
+        "*/*"
+    ],
+    "definitions": {
+        "ErrorDetails": {
+            "description": "Error response",
+            "example": {
+                "ErrorDetails": {
+                    "ErrorDateTime": "XXXXXXXXXX",
+                    "Message": "XXXXXXXXXX",
+                    "RequestedMethod": "XXXXXXXXXX",
+                    "RequestedUrl": "XXXXXXXXXX",
+                    "TransactionId": "XXXXXXXXXX"
+                }
+            },
+            "properties": {
+                "ErrorDateTime": {
+                    "type": "string"
+                },
+                "Message": {
+                    "type": "string"
+                },
+                "RequestedMethod": {
+                    "type": "string"
+                },
+                "RequestedUrl": {
+                    "type": "string"
+                },
+                "TransactionId": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "TransactionId",
+                "ErrorDateTime",
+                "Message",
+                "RequestedUrl",
+                "RequestedMethod"
+            ],
+            "type": "object"
+        }
+    },
+    "host": "api.transport.nsw.gov.au",
+    "info": {
+        "title": "Get Complete GTFS Timetables",
+        "version": "1.0"
+    },
+    "paths": {
+        "/gtfs": {
+            "get": {
+                "consumes": [],
+                "description": "Please see the General Transit Feed Specification (GTFS) documentation here: https://gtfs.org/\n\nReturns ZIP file containing CSV files.\n\nNote: Identifiers do not match the GTFS-realtime APIs and data.\n\nPlease review the GTFS release notes for ALL Greater Sydney transport operators (2015-06-29).\n\nThe HEAD operation can be used to tell you if the content has changed (as GET may not return an HTTP 304 when no content has changed.)\n\nFor example, you may compare the Last-Modified header retrieved during a HEAD operation with the Last-Modified header retrieved during a previous GET operation. If the headers are the same, the content has not changed since the previous GET operation. If the headers are different, the content has changed since the previous GET operation.",
+                "operationId": "GetSydPubTransGTFS",
+                "parameters": [],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "The request has been processed successfully.",
+                        "examples": {},
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "401": {
+                        "description": "The application calling the API has not been authenticated.",
+                        "examples": {},
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        }
+                    },
+                    "404": {
+                        "description": "The requested resource could not be found.",
+                        "examples": {},
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        }
+                    },
+                    "500": {
+                        "description": "An internal error has occured.",
+                        "examples": {},
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        }
+                    },
+                    "503": {
+                        "description": "The server is currently unavailable.",
+                        "examples": {},
+                        "schema": {
+                            "$ref": "#/definitions/ErrorDetails"
+                        }
+                    }
+                },
+                "summary": "General Transit Feed Specification (GTFS) timetables, stops, and route shapes",
+                "tags": [
+                    "gtfs"
+                ]
+            }
+        }
+    },
+    "produces": [
+        "application/octet-stream"
+    ],
+    "schemes": [
+        "https"
+    ],
+    "security": [
+        {
+            "APIKey": []
+        }
+    ],
+    "securityDefinitions": {
+        "APIKey": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Expected Format: apikey [TOKEN]"
+        }
+    },
+    "swagger": "2.0",
+    "tags": [
+        {
+            "name": "gtfs"
+        }
+    ]
+}
