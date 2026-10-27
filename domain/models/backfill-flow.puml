@@ -12,14 +12,13 @@ else (no)
     :Map MessageDate from Sydney local time to UTC Instant;
     :Derive sydneyDate from MessageDate;
     :Upsert newest sample into the matching ten-minute bucket;
-    note right: Live ingestion does not mark historical coverage COMPLETE.
+    note right: Live ingestion does not mark historical request work COMPLETE.
   else (history backfill)
-    :Select facility and provider eventdate segment;
+    :Select facility and provider eventdate request;
     :Call /carpark/history?facility={facilityId}&eventdate={date};
     :Map each MessageDate from Sydney local time to UTC Instant;
     :Group and upsert records by their actual Sydney date;
-    :Record completion only when all provider segments
-    required for the Sydney date have succeeded;
+    :Complete the history request work item on success;
   endif
 endif
 if (provider request failed?) then (yes)
@@ -41,16 +40,16 @@ note right
   `time` field. Group all records by the Sydney date from MessageDate, not by
   the requested eventdate.
 
-  TfNSW documents eventdate as a date but does not specify its timezone or
-  boundary behavior. Validate adjacent eventdate requests against MessageDate
-  before deciding which provider-date segments complete one Sydney day.
-  Do not seal a Sydney day as COMPLETE after a partial segment or an empty
-  live response. Empty historical completion is valid only after all required
-  provider segments have been fetched successfully.
+  Treat eventdate as an untrusted request parameter, not a storage date.
+  Persist every returned sample according to its Sydney-local MessageDate,
+  even when that falls before or after the requested eventdate. A successful
+  live response never completes historical request work. History completion
+  records that the requested history operation succeeded; it does not claim
+  complete sample coverage for that Sydney date.
 
   Every provider request, including catalog, live, and history, consumes one
   shared scheduler slot. Run no parallel upstream calls outside that budget.
-  Backfill may take additional slots when a Sydney date spans provider date
-  segments. Retry later through the scheduler; bucket upserts are idempotent.
+  Retry failed history requests later through the scheduler; bucket upserts
+  are idempotent.
 end note
 @enduml

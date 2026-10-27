@@ -44,6 +44,12 @@ class SydneyDayClock {
   + bucketTime(date : LocalDate, index : int) : Instant
 }
 
+class ParkingSlugService {
+  slugIndex : Map<String, int>
+  + facilityIdFromSlug(slug : String) : int
+  - refreshSlugIndex() : Map<String, int>
+}
+
 class UpstreamTimeMapper {
   - fromSydneyMessageDate(messageDate : LocalDateTime) : Instant
 }
@@ -61,6 +67,7 @@ class HistoricalCarParkFeed {
 ParkingDay "1" *-- "0..150" Sample
 ParkingDay ..> ParkingDayKey : unique index
 Sample ..> SydneyDayClock : bucket index is 10 min
+ParkingSlugService ..> ParkingDay : build index and refresh on slug miss
 CurrentCarParkFeed ..> UpstreamTimeMapper : MessageDate
 HistoricalCarParkFeed ..> UpstreamTimeMapper : MessageDate; eventdate is only a fetch key
 UpstreamTimeMapper ..> Sample : Sydney local -> UTC Instant
@@ -75,9 +82,9 @@ note right of ParkingDay
   bucketIndex is relative to Sydney start of day;
   bucket time is startOfDay(date) + index * 10 min.
 
-  Historical coverage state shares the daily record, but live refresh
-  does not set it COMPLETE. Mark COMPLETE only after every upstream
-  eventdate segment required for that Sydney date has succeeded.
+  Historical request state shares the daily record, but live refresh
+  does not set it COMPLETE. COMPLETE records success for the history
+  request work item, not full sample coverage of the Sydney date.
 end note
 
 note bottom of Sample
@@ -92,8 +99,15 @@ end note
 note left of BackfillState
   Missing state means not requested. PROCESSING uses leaseUntil;
   RETRY_WAIT uses retryAfter; COMPLETE means historical provider-date
-  coverage for the Sydney day is complete. A live response or an empty
-  partial history response cannot complete the historical day.
-  No separate status object/collection.
+  request work completed. It does not claim complete sample coverage for
+  the Sydney date because samples are placed by MessageDate. A live response
+  never completes historical request work. No separate status
+  object/collection.
+end note
+
+note right of ParkingSlugService
+  Cache normalized facility names as slugs. Ingestion can add facilities
+  after the initial index is built, so a cache miss refreshes the index
+  from Mongo before reporting an unknown slug.
 end note
 @enduml
