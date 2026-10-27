@@ -2,6 +2,7 @@
 package com.example.metro_parking_web_service.parking;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import com.example.metro_parking_web_service.parking.analytics.dto.HistoryResolution;
 import com.example.metro_parking_web_service.parking.analytics.dto.ParkingHistoryPayload;
@@ -10,12 +11,15 @@ import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy
 import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
 import com.example.metro_parking_web_service.parking.client.repository.ParkingDayRepository;
 import com.example.metro_parking_web_service.parking.client.service.ParkingDayIngestService;
+import com.example.metro_parking_web_service.parking.client.service.ParkingFacilityCatalog;
 import com.example.metro_parking_web_service.parking.server.dto.CarParkApiRecord;
 import com.example.metro_parking_web_service.parking.server.dto.CarParkApiRecordMapper;
+import com.example.metro_parking_web_service.parking.server.service.CarParkApiClient;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -25,6 +29,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -45,6 +50,8 @@ class ParkingMongoIntegrationTest {
     @Autowired private ParkingQueryService queryService;
     @Autowired private CarParkApiRecordMapper recordMapper;
     @Autowired private ParkingPolicy parkingPolicy;
+    @Autowired private ParkingFacilityCatalog parkingFacilityCatalog;
+    @MockitoBean private CarParkApiClient parkingClient;
 
     @AfterEach
     void clearTestDatabase() {
@@ -76,6 +83,8 @@ class ParkingMongoIntegrationTest {
         assertThat(mongoTemplate.indexOps(ParkingDay.class).getIndexInfo())
                 .anyMatch(index -> index.getName().equals("facility_sydney_date_unique"));
 
+        when(parkingClient.fetchFacilities()).thenReturn(Map.of("42", "Central Station"));
+        assertThat(parkingFacilityCatalog.refresh()).isTrue();
         ParkingHistoryPayload response =
                 queryService.getHistoryPayload(
                         "central-station", sydneyDate, sydneyDate, HistoryResolution.AUTO);
@@ -85,6 +94,31 @@ class ParkingMongoIntegrationTest {
         assertThat(response.points().getFirst().get(1)).isEqualTo(0.55);
         assertThat(response.points().getFirst().get(2)).isEqualTo(45);
         assertThat(response.points().getFirst().getFirst()).isInstanceOf(Long.class);
+    }
+
+    @Test
+    void catalogRefreshMakesNewFacilitiesAppearWithoutRestarting() {
+        LocalDate sydneyDate = LocalDate.now(ZoneId.of("Australia/Sydney")).minusDays(1);
+        ingestService.ingest(
+                List.of(
+                        record(42, "Central Station", sydneyDate, 9, 11, "62"),
+                        record(486, "Park&Ride - Ashfield", sydneyDate, 9, 11, "175")));
+        when(parkingClient.fetchFacilities())
+                .thenReturn(
+                        Map.of("42", "Central Station"),
+                        Map.of("42", "Central Station", "486", "Park&Ride - Ashfield"));
+
+        assertThat(parkingFacilityCatalog.refresh()).isTrue();
+        assertThat(queryService.getAllLiveCarParks())
+                .extracting(response -> response.facilityName())
+                .containsExactly("Central Station");
+
+        assertThat(parkingFacilityCatalog.refresh()).isTrue();
+        assertThat(queryService.getAllLiveCarParks())
+                .extracting(response -> response.facilityName())
+                .containsExactly("Central Station", "Park&Ride - Ashfield");
+        assertThat(queryService.getLiveCarPark("park-ride-ashfield").facilityName())
+                .isEqualTo("Park&Ride - Ashfield");
     }
 
     @Test
@@ -126,9 +160,19 @@ class ParkingMongoIntegrationTest {
     }
 
     private CarParkApiRecord record(LocalDate date, int hour, int minute, String occupancy) {
+        return record(42, "Central Station", date, hour, minute, occupancy);
+    }
+
+    private CarParkApiRecord record(
+            int facilityId,
+            String facilityName,
+            LocalDate date,
+            int hour,
+            int minute,
+            String occupancy) {
         return new CarParkApiRecord(
-                "42",
-                "Central Station",
+                Integer.toString(facilityId),
+                facilityName,
                 "100",
                 new CarParkApiRecord.Occupancy(occupancy),
                 LocalDateTime.of(

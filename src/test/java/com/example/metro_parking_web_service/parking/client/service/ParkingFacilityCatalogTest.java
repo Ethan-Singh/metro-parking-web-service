@@ -30,6 +30,7 @@ class ParkingFacilityCatalogTest {
         assertThat(catalog.refresh()).isTrue();
         assertThat(catalog.getFacilityIds()).containsExactly(42);
         assertThat(catalog.getFacilityName(42)).isEqualTo("Central Station");
+        assertThat(catalog.facilityIdForSlug("central-station")).isEqualTo(42);
     }
 
     @Test

@@ -8,7 +8,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -22,16 +21,17 @@ public class ParkingAnalyticsRepository {
     private final ParkingFacilityCatalog parkingSnapshot;
 
     public ParkingDay findLatestByFacilityId(int facilityId) {
-        return parkingDayRepository.findByFacilityIdOrderBySydneyDateDesc(facilityId).stream()
-                .filter(day -> day.getSamples() != null && !day.getSamples().isEmpty())
-                .max(Comparator.comparing(this::latestSourceTime))
+        return parkingDayRepository
+                .findLatestPopulatedDaysByFacilityIds(List.of(facilityId))
+                .stream()
+                .findFirst()
                 .orElse(null);
     }
 
     public List<ParkingDay> findAllLatest() {
-        return parkingSnapshot.getFacilityIds().stream()
-                .map(this::findLatestByFacilityId)
-                .filter(Objects::nonNull)
+        List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
+        if (facilityIds.isEmpty()) return List.of();
+        return parkingDayRepository.findLatestPopulatedDaysByFacilityIds(facilityIds).stream()
                 .sorted(Comparator.comparing(ParkingDay::getFacilityName))
                 .toList();
     }
@@ -40,12 +40,5 @@ public class ParkingAnalyticsRepository {
             int facilityId, LocalDate from, LocalDate to) {
         return parkingDayRepository.findByFacilityIdAndSydneyDateBetweenOrderBySydneyDateAsc(
                 facilityId, DATE_KEY.format(from), DATE_KEY.format(to));
-    }
-
-    private java.time.Instant latestSourceTime(ParkingDay day) {
-        return day.getSamples().stream()
-                .map(ParkingDay.ParkingSample::sourceTime)
-                .max(Comparator.naturalOrder())
-                .orElse(java.time.Instant.MIN);
     }
 }

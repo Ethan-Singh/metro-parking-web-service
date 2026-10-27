@@ -2,12 +2,13 @@
 package com.example.metro_parking_web_service.parking.client.service;
 
 import com.example.metro_parking_web_service.parking.client.config.ParkingPolicy;
+import com.example.metro_parking_web_service.parking.domain.FacilitySlug;
 import com.example.metro_parking_web_service.parking.server.service.CarParkApiClient;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -21,7 +22,7 @@ public class ParkingFacilityCatalog {
     private final ParkingPolicy parkingPolicy;
     private final AtomicInteger rotation = new AtomicInteger();
 
-    @Getter private volatile Map<Integer, String> facilities = Map.of();
+    private volatile CatalogSnapshot snapshot = new CatalogSnapshot(Map.of(), Map.of());
 
     public boolean refresh() {
         Map<String, String> upstream = client.fetchFacilities();
@@ -38,7 +39,11 @@ public class ParkingFacilityCatalog {
                 .forEach(entry -> next.put(entry.getKey(), entry.getValue()));
 
         if (!next.isEmpty()) {
-            facilities = Map.copyOf(next);
+            Map<String, Integer> slugIndex = new HashMap<>();
+            next.forEach(
+                    (facilityId, facilityName) ->
+                            slugIndex.putIfAbsent(FacilitySlug.fromName(facilityName), facilityId));
+            snapshot = new CatalogSnapshot(Map.copyOf(next), Map.copyOf(slugIndex));
             log.info(
                     "event=parking_facilities_refresh decision=success facilityCount={}"
                             + " excludedCount={}",
@@ -50,11 +55,19 @@ public class ParkingFacilityCatalog {
     }
 
     public List<Integer> getFacilityIds() {
-        return facilities.keySet().stream().sorted().toList();
+        return snapshot.facilities().keySet().stream().sorted().toList();
     }
 
     public String getFacilityName(int facilityId) {
-        return facilities.get(facilityId);
+        return snapshot.facilities().get(facilityId);
+    }
+
+    public Map<Integer, String> getFacilities() {
+        return snapshot.facilities();
+    }
+
+    public Integer facilityIdForSlug(String slug) {
+        return snapshot.facilityIdsBySlug().get(slug);
     }
 
     public Integer nextFacilityId() {
@@ -72,4 +85,7 @@ public class ParkingFacilityCatalog {
             return null;
         }
     }
+
+    private record CatalogSnapshot(
+            Map<Integer, String> facilities, Map<String, Integer> facilityIdsBySlug) {}
 }

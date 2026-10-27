@@ -23,12 +23,10 @@ Use car park as the first vertical slice:
 - **API adapter:** controllers and response mapping. A shared
   `ApiTimestampMapper.toEpochMillis(Instant)` serves live and history.
 
-Facility slugs are derived from facility names and resolved by
-`ParkingSlugService`. Its in-memory index may start from a partial set of
-`ParkingDay` documents while ingestion is still filling the collection. On a
-slug miss, refresh the index from Mongo before returning an unknown-facility
-error. This keeps newly ingested facilities resolvable without restarting the
-service.
+Facility slugs are derived from facility names in the authoritative
+`ParkingFacilityCatalog`. Rebuild the immutable slug-to-ID map atomically each
+time a catalog refresh succeeds. Slug resolution must not scan `ParkingDay`,
+which contains repeated history documents and is not the facility directory.
 
 Keep Trip Planner and Toll Calculator as separate future integrations; do not
 create generic provider abstractions before a second integration needs them.
@@ -87,6 +85,48 @@ size per `ParkingDay` document, leaving substantial headroom below MongoDB's
 16 MiB BSON document limit. Reject or compact a write that would exceed this
 service limit; never store the provider's full nested payload in a day record.
 MongoDB advises against unbounded arrays and limits a BSON document to 16 MiB.
+
+### Mongo query shapes and index plan
+
+- `GET /api/v1/parking` must fetch latest populated data for all allowed
+  facilities with one Mongo aggregation, not one repository query per
+  facility. Match `facilityId` against the catalog IDs and require a non-empty
+  `samples` array; sort by `facilityId` descending and `sydneyDate` descending;
+  group by facility and keep the first full document; then replace the root
+  with that document. Sort the small result set by facility name in the
+  application. The existing `{ facilityId: 1, sydneyDate: 1 }` compound index
+  supports this reverse scan and the `(facilityId, sydneyDate)` uniqueness
+  constraint; do not add a second latest-read index unless
+  `explain("executionStats")` shows it is needed.
+- `GET /api/v1/parking/{slug}/live` should use the same latest-populated-day
+  query constrained to one facility and return one document. Do not load every
+  `ParkingDay` for the facility just to find the newest sample.
+- History and daily-metrics date-range reads already constrain both
+  `facilityId` and `sydneyDate`; retain the compound index and their existing
+  31-day and three-day range limits.
+- Backfill selection must not probe every facility/date pair with an `_id`
+  lookup on every scheduler slot. The nested scan can issue up to
+  `facilityCount * windowDays` point queries after most work is complete.
+  Do not add or reuse a persistent singleton cursor or queue collection.
+  Build an in-memory candidate plan from the facility catalog and a projected
+  query of only backfill metadata (`facilityId`, `sydneyDate`, state, retry
+  time, and lease time). Rebuild it when the catalog/window changes and
+  periodically to observe work claimed by other instances. Select candidates
+  in memory, then claim one with the existing atomic daily-document lease.
+  Refresh the affected metadata after a claim conflict; keep retry and expired
+  lease dates in the projection so they remain eligible when due. Remove the
+  unused `ParkingBackfillCursorDocument` and repository.
+- Rebuild the catalog's slug-to-ID map as part of every successful facility
+  catalog refresh. Publish facility names and slug mappings as one immutable
+  snapshot; unknown slug lookups must not query the history collection.
+- Cleanup filters globally by `sydneyDate`, which is not the leading field of
+  the compound unique index. Keep the scheduled cleanup as a collection scan
+  while the collection remains small: the measured plan examined 306 documents
+  in 0 ms. Do not add a date index until collection growth makes that scan
+  measurable; verify again with `explain("executionStats")`.
+- Keep the facility/date compound index for reads and the unique constraint.
+  Add indexes only for measured query shapes, since each additional index
+  increases storage and ingestion write work.
 
 The saved `docs/apis/v1-carpark` examples show three provider uses:
 `/carpark` without a facility returns the facility-name lookup;
@@ -218,8 +258,8 @@ response for live facilities that have not received a sample yet.
   by `MessageDate` and persist it under that record's Sydney date.
 6. Separate leased history retrieval from live refresh and keep all provider
   calls under one quota-aware scheduler.
-7. Refresh the facility slug index when a requested slug is missing so
-  facilities added during progressive ingestion become resolvable.
+7. Rebuild the facility slug index atomically whenever the catalog refreshes;
+  resolve slugs from the catalog without scanning Mongo history.
 8. Replace analytics granularity branching with the resolution policy and
    Sydney-aligned aggregation.
 9. Replace history/live timestamp serialization with epoch milliseconds
@@ -235,11 +275,17 @@ response for live facilities that have not received a sample yet.
 - Mongo has one document per facility/Sydney date and at most 150 ten-minute
   samples per daily document; encoded document size is at most
   1 MiB, below MongoDB's 16 MiB limit.
+- The all-facilities live endpoint uses one aggregation to select one latest
+  populated day per allowed facility; it performs no per-facility query loop.
+- Backfill candidate selection does not scan every facility/date combination
+  with individual Mongo lookups on each scheduler slot. It loads projected
+  backfill metadata into an in-memory candidate plan and claims one candidate
+  at a time using the daily-document lease.
 - Upserts retain the newest source sample per Sydney bucket.
 - A history record is persisted under the Sydney date from `MessageDate`,
   including when that date differs from the request's `eventdate`.
-- A slug index initialized before a facility is ingested refreshes on a miss
-  and resolves that facility after its `ParkingDay` document appears.
+- The slug index is rebuilt from the catalog on refresh and resolves current
+  facilities even before their first `ParkingDay` document is written.
 - Live refresh uses the provider's single-facility current endpoint; frontend
   requests never call the upstream API directly.
 - Backfill retries failed requests and stores request progress separately from

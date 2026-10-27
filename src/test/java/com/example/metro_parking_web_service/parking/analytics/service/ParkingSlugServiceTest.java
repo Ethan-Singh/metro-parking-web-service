@@ -2,39 +2,28 @@
 package com.example.metro_parking_web_service.parking.analytics.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
-import com.example.metro_parking_web_service.parking.client.document.ParkingDay;
-import com.example.metro_parking_web_service.parking.client.repository.ParkingDayRepository;
-import java.util.List;
+import com.example.metro_parking_web_service.parking.client.service.ParkingFacilityCatalog;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingSlugServiceTest {
 
-    @Mock private ParkingDayRepository parkingDayRepository;
+    @Mock private ParkingFacilityCatalog parkingCatalog;
 
     @Test
-    void refreshesSlugIndexWhenFacilityDocumentAppearsAfterInitialLookup() {
-        ParkingSlugService service = new ParkingSlugService(parkingDayRepository);
-        ParkingDay ashfield = new ParkingDay();
-        ashfield.setFacilityId(486);
-        ashfield.setFacilityName("Park&Ride - Ashfield");
-        ashfield.setSydneyDate("2026-10-27");
-        ParkingDay gordon = new ParkingDay();
-        gordon.setFacilityId(6);
-        gordon.setFacilityName("Park&Ride - Gordon Henry St (north)");
-        gordon.setSydneyDate("2026-10-27");
+    void resolvesSlugFromCurrentCatalogSnapshot() {
+        ParkingSlugService service = new ParkingSlugService(parkingCatalog);
+        when(parkingCatalog.facilityIdForSlug("park-ride-ashfield")).thenReturn(null, 486);
 
-        when(parkingDayRepository.findAll(any(Sort.class)))
-                .thenReturn(List.of(gordon), List.of(gordon, ashfield));
-
-        assertThat(service.facilityIdFromSlug("park-ride-gordon-henry-st-north")).isEqualTo(6);
+        assertThatThrownBy(() -> service.facilityIdFromSlug("park-ride-ashfield"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown facility slug");
         assertThat(service.facilityIdFromSlug("park-ride-ashfield")).isEqualTo(486);
     }
 }
