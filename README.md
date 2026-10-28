@@ -22,7 +22,9 @@ The PlantUML sources are maintained in [`domain/models`](domain/models/README.md
 | [Parking domain](domain/models/parking-domain.puml) | Parking data, storage structure, and API concepts |
 | [Backfill flow](domain/models/backfill-flow.puml) | Scheduled history retrieval and backfill lifecycle |
 | [Car Park API](domain/models/carpark-api.puml) | Upstream provider integration |
-| [Journey domain](domain/models/journey-domain.puml) | Model for planned journey-related capabilities |
+| [Timetable routing domain](domain/models/timetable-domain.puml) | Draft normalized schedule and journey model from captured TfNSW feeds |
+| [Timetable model spec](domain/models/timetable-model-spec.md) | Captured feed observations, proposed concepts, and open modeling questions |
+| [Toll domain](domain/models/toll-domain.puml) | Separate road toll calculation model |
 | [Implementation spec](domain/models/implementation-spec.md) | Current implementation decisions |
 
 ## Data collection and storage
