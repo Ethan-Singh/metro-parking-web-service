@@ -37,4 +37,13 @@ src/main/resources/application-local.yaml
 src/main/resources/application-prod.yaml
 docker-compose.yaml
 /DEPLOYMENT.md
-docs/parking-docs/ Timetables Complete GTFS/full_greater_sydney_gtfs_static_0/
+
+### Local provider data and generated reports ###
+# Production GTFS archives and expanded tables are large local analysis inputs.
+/docs/apis/v1-gtfs/schedules/
+/docs/apis/v1-publictransport/timetables-complete-gtfs/
+/docs/apis/v2-gtfs/schedules/
+
+# Local database dumps and Lighthouse output are generated artifacts.
+/docs/dumps/
+/docs/lighthouse/
