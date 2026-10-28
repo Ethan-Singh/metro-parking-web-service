@@ -4,7 +4,11 @@ skinparam packageStyle rectangle
 
 package "Upstream Car Park API" {
   interface CarParkApi
-  class LiveCarParkRecord <<provider payload>> {
+  class FacilityCatalog <<provider payload>> {
+    facility IDs
+    facility names
+  }
+  class CarParkApiRecord <<provider payload>> {
     facilityId : provider identifier
     facilityName
     spots
@@ -15,8 +19,10 @@ package "Upstream Car Park API" {
     facility
     eventdate : YYYY-MM-DD
   }
-  CarParkApi --> LiveCarParkRecord : GET /carpark
-  CarParkApi --> HistoryQuery : GET /carpark/history
+  CarParkApi --> FacilityCatalog : GET /carpark without facility
+  CarParkApi --> CarParkApiRecord : GET /carpark?facility={id}
+  CarParkApi --> HistoryQuery : accepts eventdate/facility
+  CarParkApi --> "0..*" CarParkApiRecord : GET /carpark/history
 }
 
 package "This service - proposed read API" {
@@ -57,7 +63,7 @@ package "This service - proposed read API" {
     + toEpochMillis(instant : Instant) : long
   }
   ParkingController --> LiveCarParkResponse : GET /api/v1/parking
-  CarParkApiRecordMapper --> LiveCarParkRecord : map provider record
+  CarParkApiRecordMapper --> CarParkApiRecord : map provider record
   ParkingController --> LiveCarParkResponse : GET /{slug}/live
   ParkingController --> ParkingHistoryPayload : GET /{slug}/history
   LiveCarParkResponse --> ApiTimestampMapper : Instant -> epoch ms
@@ -74,7 +80,7 @@ note bottom of HistoryPointTuple
   through 14 days, then 24-hour through 31 days. Return actual resolution.
 end note
 
-note left of LiveCarParkRecord
+note left of CarParkApiRecord
   Upstream mapper owns a private conversion helper: interpret
   MessageDate as Australia/Sydney local time, then convert to Instant.
   Do not parse it as UTC: the upstream value has no offset. Persist
@@ -97,8 +103,9 @@ note right of CarParkApi
 end note
 
 note right of LiveCarParkResponse
-  Current snapshot payload is derived from today's /history response.
-  History responses that include today bypass the response cache and
-  use Cache-Control: no-store so charts can receive fresh samples.
+  Return the newest persisted sample. Current samples come from scheduled
+  /carpark?facility refreshes; historical samples come from backfill. Frontend
+  reads do not trigger provider calls. History responses that include today
+  bypass the response cache and use Cache-Control: no-store.
 end note
 @enduml

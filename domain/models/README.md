@@ -1,14 +1,17 @@
 # Domain models
 
-These models and the [implementation spec](implementation-spec.md) describe
-the proposed backend refactor, based on the current car park provider contract
-and the data the existing frontend consumes.
+These models and specs describe the current parking backend and draft timetable
+routing domain. The timetable draft is based on the captured Sydney Trains,
+Metro, Complete GTFS, and GTFS-Realtime provider data in `docs/apis/`.
 
 - [System context](system-context.puml)
 - [Car park domain and daily storage](parking-domain.puml)
 - [Backfill flow](backfill-flow.puml)
 - [Car park API contract](carpark-api.puml)
-- [Future journey domain](journey-domain.puml)
+- [Timetable routing domain (draft)](timetable-domain.puml)
+- [Timetable model notes (draft)](timetable-model-spec.md)
+- Opal fare calculation domain: `src/main/java/com/example/metro_parking_web_service/timetable/opal/domain/`
+- [Toll calculation domain](toll-domain.puml)
 
 ## Decisions
 
@@ -31,4 +34,4 @@ and the data the existing frontend consumes.
   window and keeps state on the day document.
 
 The provider's varying update frequencies are described in
-[Car Park API v2.3](../../docs/parking-docs/Car%20park%20API/car-park-api-documentation-v2.3.pdf).
+[Car Park API v2.3](../../docs/provider-docs/car-park-api/car-park-api-documentation-v2.3.pdf).

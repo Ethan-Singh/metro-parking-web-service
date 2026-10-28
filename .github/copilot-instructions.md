@@ -27,9 +27,11 @@ design system.
 | `docs/apis/metro-parking-api-v1.yaml` | Public endpoint paths, request/response schemas, and examples |
 | `domain/models/` | PlantUML context, domain, provider, and backfill-flow models |
 | `domain/models/implementation-spec.md` | Current architectural decisions and implementation plan |
+| `domain/models/timetable-model-spec.md` | Draft normalized timetable and routing model based on captured provider feeds |
 | `domain/contracts/` | Focused behavior contracts, especially `daily-parking-metrics-v1.md` |
 | `docs/apis/v1-carpark/` | Saved examples of the upstream catalog, live, and history payloads |
-| `docs/parking-docs/` | Provider Swagger and official field semantics, including the Car Park API v2.3 PDF |
+| `docs/apis/v1-gtfs/`, `docs/apis/v1-publictransport/`, `docs/apis/v2-gtfs/` | Captured TfNSW schedule and realtime feed responses; retain feed provenance and IDs |
+| `docs/provider-docs/` | Provider Swagger and official field semantics, including the Car Park API v2.3 PDF |
 | `README.md`, `DEPLOYMENT.md` | Developer setup and deployed configuration |
 
 When code and docs disagree, verify the current implementation and public
@@ -46,6 +48,7 @@ implementation spec, or current API contract.
 | `parking.client` | Facility catalog, scheduled live/history sync, Mongo documents/repositories, backfill and retention |
 | `parking.analytics` | Versioned controllers, query services, response DTOs/mappers, validation, API caching and rate limiting |
 | `parking.domain` | Small domain-level value/normalization helpers shared across features |
+| `timetable.opal.domain` | Opal fare profiles, versioned fare rules, normalized fare-table types, and timetable fare-estimate rules |
 
 Keep upstream DTOs, Mongo documents, and public response DTOs separate. Do not
 return Mongo document shapes or full upstream payloads from the API. Avoid

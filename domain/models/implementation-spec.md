@@ -5,7 +5,7 @@
 Reorganise the car park backend around provider, domain, application, persistence,
 and API boundaries. Reduce MongoDB writes and history response size, simplify
 backfill state, and make Sydney calendar dates distinct from UTC instants.
-Trip Planner and Toll Calculator remain future capabilities.
+The map-based Trip Planner and Toll Calculator remain separate future capabilities.
 
 ## 1. Domain and package boundaries
 
@@ -28,7 +28,7 @@ Facility slugs are derived from facility names in the authoritative
 time a catalog refresh succeeds. Slug resolution must not scan `ParkingDay`,
 which contains repeated history documents and is not the facility directory.
 
-Keep Trip Planner and Toll Calculator as separate future integrations; do not
+Keep the map-based Trip Planner and Toll Calculator as separate future integrations; do not
 create generic provider abstractions before a second integration needs them.
 
 ### Naming

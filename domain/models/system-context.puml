@@ -7,23 +7,31 @@ actor "Web / Mobile Client" as User
 
 rectangle "Metro Mobility Service" as App {
   component "Car Park / Parking" as Parking
+  component "Timetable Data and Route Search" as Timetable
   component "Shared API / Security" as Api
   component "Persistence" as Store
 }
 
 cloud "Transport for NSW Car Park API" as ParkingProvider
-cloud "Trip Planner API (future)" as TripProvider
+cloud "TfNSW GTFS Schedules and Realtime" as TransitProvider
+cloud "TfNSW Opal Fare Dataset" as OpalProvider
 cloud "Toll Calculator API (future)" as TollProvider
+database "Versioned Transit Snapshot Storage (TBD)" as TransitStore
 database "MongoDB" as Mongo
 
 User --> Api : HTTPS requests
 Api --> Parking
+Api --> Timetable : versioned snapshots and realtime data
 Parking --> ParkingProvider : live + historical occupancy
 Parking --> Store
+Timetable --> TransitProvider : scheduled ingestion
+Timetable --> OpalProvider : versioned fare data
+Timetable --> TransitStore : publish active and last-known-good snapshots
 Store --> Mongo
 
-note right of TripProvider
-  Future capability only. Model and integrate after
-  the car park contract and backend structure settle.
+note right of Timetable
+  Timetable route search is planned in the client against a compact
+  normalized schedule package. This service owns ingestion,
+  snapshot publication, and separate fare/realtime data.
 end note
 @enduml

@@ -45,9 +45,12 @@ class SydneyDayClock {
 }
 
 class ParkingSlugService {
-  slugIndex : Map<String, int>
   + facilityIdFromSlug(slug : String) : int
-  - refreshSlugIndex() : Map<String, int>
+}
+
+class ParkingFacilityCatalog {
+  snapshot : immutable catalog maps
+  + refresh() : CatalogSnapshot
 }
 
 class UpstreamTimeMapper {
@@ -67,7 +70,8 @@ class HistoricalCarParkFeed {
 ParkingDay "1" *-- "0..150" Sample
 ParkingDay ..> ParkingDayKey : unique index
 Sample ..> SydneyDayClock : bucket index is 10 min
-ParkingSlugService ..> ParkingDay : build index and refresh on slug miss
+ParkingSlugService ..> ParkingFacilityCatalog : resolve current slug snapshot
+ParkingFacilityCatalog ..> CurrentCarParkFeed : refresh names and IDs
 CurrentCarParkFeed ..> UpstreamTimeMapper : MessageDate
 HistoricalCarParkFeed ..> UpstreamTimeMapper : MessageDate; eventdate is only a fetch key
 UpstreamTimeMapper ..> Sample : Sydney local -> UTC Instant
@@ -106,8 +110,8 @@ note left of BackfillState
 end note
 
 note right of ParkingSlugService
-  Cache normalized facility names as slugs. Ingestion can add facilities
-  after the initial index is built, so a cache miss refreshes the index
-  from Mongo before reporting an unknown slug.
+  Resolve slugs from the immutable facility-catalog snapshot. A successful
+  provider catalog refresh rebuilds and atomically publishes both ID/name and
+  slug/ID maps. Do not query Mongo history on a slug miss.
 end note
 @enduml

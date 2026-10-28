@@ -1,0 +1,38 @@
+@startuml
+title Toll calculation domain - conceptual model
+skinparam packageStyle rectangle
+
+package "Toll capability - separate from timetable routing" {
+  class TollQuoteRequest {
+    origin : Coordinate
+    destination : Coordinate
+    departureTime : Instant
+    vehicleClass
+    excludeTolls
+  }
+  class TollQuote {
+    totalCost
+    currency
+    distance
+    duration
+    routeGeometry
+    tollSegments
+  }
+  class TollSegment {
+    roadOrTollPoint
+    amount
+    currency
+  }
+  interface TollCalculatorPort
+  class TollCalculationService
+  TollCalculationService --> TollCalculatorPort
+  TollCalculationService --> TollQuoteRequest
+  TollCalculationService --> TollQuote
+  TollQuote o-- "0..*" TollSegment
+}
+
+note bottom
+  Toll Calculator remains a road-route integration. It does not provide the
+  timetable route model in timetable-domain.puml.
+end note
+@enduml
