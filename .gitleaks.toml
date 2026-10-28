@@ -23,3 +23,13 @@ entropy = 3.0
 id = "jwt-token"
 description = "Detect JWT tokens"
 regex = '''eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*'''
+
+# Ignore JWT-rule matches in local development profiles only.
+[[rules.allowlists]]
+description = "Ignore the local development profiles"
+paths = ['''(^|/)src/main/resources/application-local\.yaml$''']
+
+# Build output is generated locally and can contain random test credentials.
+[allowlist]
+description = "Ignore generated build output"
+paths = ['''(^|/)target/''']
