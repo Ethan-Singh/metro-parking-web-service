@@ -12,6 +12,7 @@ provenance through normalization.
 | Planned Contingency Bus (PCBC) | [TfNSW endpoint notice](https://opendataforum.transport.nsw.gov.au/t/new-schedule-endpoint-for-planned-contingency-bus-services/10471); `GET /v1/gtfs/schedule/buses/PCBC` | [`docs/apis/v1-gtfs/schedules/buses/pcbc`](../../../docs/apis/v1-gtfs/schedules/buses/pcbc/) |
 | Sydney Trains / Metro alerts | [Alerts v2 Swagger](../../../docs/provider-docs/public-transport/realtime/alerts-v2/v2-gtfs-alerts-swaggerprod_1.yaml) | [`docs/apis/v2-gtfs/alerts-all`](../../../docs/apis/v2-gtfs/alerts-all/) |
 | Sydney Trains / Metro trip updates | [Trip Updates v2 Swagger](../../../docs/provider-docs/public-transport/realtime/trip-updates-v2/getrealtime_v2_03.yml) | [`docs/apis/v2-gtfs/realtime`](../../../docs/apis/v2-gtfs/realtime/) |
+| Vehicle positions | [Vehicle Positions dataset](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-vehicle-positions) provides the v1 feeds for buses/NSW Trains and regional buses; [Vehicle Positions v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-vehicle-positions-v2) provides Sydney Trains, Metro, and Inner West Light Rail. V2 Swagger documents `GET /v2/gtfs/vehiclepos/{sydneytrains,metro,lightrail/innerwest}` and supports `HEAD`/`Last-Modified` checks. | No vehicle-position response captured yet. Capture the v1 bus and v2 Sydney Trains/Metro feeds and verify trip IDs against static schedule namespaces. In particular, confirm whether replacement-bus trips appear in the broad bus feed before joining positions to `ReplacementBus`/PCBC. |
 | Stop Finder and locality metadata | [Trip Planner Swagger](../../../docs/provider-docs/public-transport/trip-planner/tripplanner_v1_swag_efa11_20251002.yml); `GET /stop_finder` accepts a stop/global ID with `type_sf=stop` | The saved [Trip Planner response](../../../docs/apis/v1-tp/response.json) has Central's parent locality (`Sydney`); it is not a standalone Stop Finder response. Capture one Stop Finder response before treating its stop-ID lookup and parent hierarchy as validated for timetable enrichment. This API is metadata/search support only, not the journey-routing engine. |
 | Bus trip updates | [Realtime Trip Update dataset](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update); `GET /v1/gtfs/realtime/buses` | Capture pending; compare provider namespace IDs with ReplacementBus and PCBC before joining. |
 | Opal fare data and rules | [Fare files](../../../docs/provider-docs/Opal%20Fares/) | Workbook and rules PDF are captured. |
@@ -49,3 +50,13 @@ Sydney Trains, Metro, ReplacementBus, and PCBC structures only. Ferry, regional
 train/coach, general regional bus, light rail, and school-bus offerings need
 their selected authoritative schedule captures and validation before
 activation.
+
+Vehicle-position API status currently lists the bus and NSW Trains feeds as
+available, while the v2 Swagger specifies Sydney Trains, Metro, and Inner West
+Light Rail. These are promising sources for live map positions, not proof that
+every replacement-bus trip has a matching position entity. Keep stop locations
+from the static timetable snapshot; realtime vehicle feeds update vehicles,
+not the underlying stop catalogue. A stop departures board should use trip
+updates/departure data rather than polling vehicle positions as if they were
+stop updates. Validate each feed's update cadence and call quota before setting
+backend polling intervals. Never let frontend requests cause provider polls.

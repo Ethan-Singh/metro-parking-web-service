@@ -413,6 +413,26 @@ claim; otherwise show the static scheduled time without implying a live report.
 When a prediction exists, keep it visually and contractually distinct from the
 scheduled departure/arrival.
 
+Model `RealtimeVehiclePosition` separately from stop-time predictions. Preserve
+provider namespace, optional trip and vehicle IDs, coordinates, bearing, speed,
+current stop sequence/status, vehicle timestamp, feed timestamp, and retrieval
+time where supplied. Match trip IDs only within a verified provider namespace;
+keep positions unmatched when no reliable static trip link exists. Vehicle
+positions add moving-vehicle locations, while stop names/platforms come from the
+static timetable and departure changes come from trip updates. Poll each feed
+on a controlled backend cadence; route or stop UI requests must never fan out
+into provider calls.
+
+TfNSW publishes a v1 GTFS-Realtime vehicle-position feed for buses, NSW Trains,
+and regional bus services, and a v2 feed for Sydney Trains, Metro, and Inner
+West Light Rail. The local v2 Swagger documents Sydney Trains and Metro and
+supports checking `Last-Modified` with `HEAD` before downloading changed data.
+No vehicle-position responses have been captured yet. The broad bus feed is a
+candidate for replacement-bus locations, but confirm that replacement and PCBC
+trip IDs actually appear and join to the corresponding static feed before
+showing those vehicles. Keep schedule feed IDs and realtime feed namespaces
+separate until verified.
+
 The captured `ReplacementBus` route `7063_9T2` has a Sunday 1 Nov trip with
 calls Leppington Stand A 08:07, Edmondson Park Stand A 08:19, and Glenfield
 Railway Pde 08:36 (plus earlier calls on the loop). TripView's example shows

@@ -21,7 +21,7 @@ class ParkingSyncScheduler {
     private final ParkingBackfillService parkingBackfillService;
     private volatile Instant facilityRefreshDue = Instant.EPOCH;
 
-    @Scheduled(fixedDelay = 2200, timeUnit = TimeUnit.MILLISECONDS)
+    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.MINUTES)
     void syncHistory() {
         Instant now = Instant.now();
         if (!now.isBefore(facilityRefreshDue)) {

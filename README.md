@@ -26,7 +26,7 @@ The domain models are maintained in [`domain/models`](domain/models/README.md), 
 ## Data collection and storage
 
 1. Every six hours, the scheduler refreshes the facility-name lookup from the provider's `/carpark` endpoint and applies configured facility exclusions.
-2. A single scheduled worker makes at most one provider request per slot. It requests `/history?facility=...&eventdate=...` for either today's rotating facility or the newest eligible historical date. Four of every five history slots target today; the fifth targets backfill.
+2. The scheduler runs one global slot every five minutes and makes at most one first-attempt provider request per slot. Four of every five work slots fetch a facility's live record; the fifth requests the newest eligible history date. Catalog refreshes every six hours also consume a slot. The [request budget](domain/models/carpark/implementation-spec.md#4-current-occupancy-and-historical-backfill) documents the daily formula and backlog behavior.
 3. Provider `MessageDate` values are interpreted in `Australia/Sydney`, converted to UTC, and stored as `Instant` values.
 4. MongoDB groups samples by facility and Sydney calendar date. Each `ParkingDay` stores at most one newest sample per ten-minute bucket (up to 150 samples) and its backfill state.
 5. History responses use epoch milliseconds and compact tuples: `[timeMs, occupancyRate, available]`.
@@ -35,7 +35,7 @@ The `parkingDay` collection uses a fresh schema. A unique index covers `(facilit
 
 ### Provider request budget
 
-The worker uses a 2.2-second fixed delay and makes at most one request per slot. A single running instance can make at most about 39,273 calls per day, below the stated Bronze limits of 60,000 per day and 5 per second. Failed history requests are retried in later slots. Facility lookup refreshes also use a worker slot.
+With a five-minute interval, the global schedule has `S = floor(24 × 60 / 5) = 288` slots/day. A six-hour catalog refresh uses `C = ceil(24 / 6) = 4` slots, leaving `W = S - C = 284` work slots. The 4:1 allocation gives about `L = 227` live slots and `H = 57` history slots. During backlog catch-up, the maximum is 288 scheduled first attempts/day. Once caught up, each enabled facility (`N`) creates about one new prior-day history job/day, so expected requests are approximately `C + L + min(H, N)`. With 41 enabled facilities, that is about 272/day. Empty history slots are skipped. These counts exclude retries, which can add upstream calls; they also assume one running service instance. See the [car-park implementation spec](domain/models/carpark/implementation-spec.md) for assumptions and formulas. The account limits previously supplied for this project are 60,000 requests/day and 5 requests/second.
 
 ## REST API
 

@@ -34,6 +34,18 @@ class RealtimeTripUpdate {
   startTime : optional
   scheduleRelationship
 }
+class RealtimeVehiclePosition {
+  providerNamespace
+  providerTripId : optional
+  vehicleId : optional
+  latitude : optional
+  longitude : optional
+  bearing : optional
+  speedMetresPerSecond : optional
+  currentStopSequence : optional
+  currentStatus : optional
+  vehicleTimestamp : optional Instant
+}
 class RealtimeStopUpdate {
   stopSequence : optional
   providerStopId : optional
@@ -52,11 +64,13 @@ class ScheduleJoinResult {
 
 RealtimeOverlaySnapshot o-- "0..*" ServiceAlert
 RealtimeOverlaySnapshot o-- "0..*" RealtimeTripUpdate
+RealtimeOverlaySnapshot o-- "0..*" RealtimeVehiclePosition
 ServiceAlert o-- "1..*" AlertTarget
 RealtimeTripUpdate --> ScheduleJoinResult
 ScheduleJoinResult --> "0..1" ScheduledTrip
 RealtimeTripUpdate o-- "0..*" RealtimeStopUpdate
 RealtimeStopUpdate --> "0..1" ScheduledStopCall
+RealtimeVehiclePosition --> "0..1" ScheduledTrip : namespace-scoped join
 
 note right of ScheduleJoinResult
   Match within the provider namespace. Bus trip updates
@@ -74,5 +88,13 @@ end note
 note left of RealtimeOverlaySnapshot
   Keep this overlay independently refreshed from the static
   schedule. Stale or missing updates never become zero delay.
+  Poll providers on controlled backend schedules; a client
+  request must not trigger an upstream feed call.
+end note
+
+note right of RealtimeVehiclePosition
+  Keep vehicle event timestamp, feed timestamp, and retrieval time.
+  A location may be absent or unmatched; retain it without joining
+  solely on an unscoped trip ID.
 end note
 @enduml

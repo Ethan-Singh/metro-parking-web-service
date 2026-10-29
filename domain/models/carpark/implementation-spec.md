@@ -166,15 +166,43 @@ index. No migration or legacy collection support is required.
   historical work `COMPLETE`. A history request's state describes the
   request work item only; sample placement always follows `MessageDate`.
 - Run all upstream calls through one centrally paced scheduler so catalog,
-  live, and history calls share the same quota budget. Make at most one
-  provider request per scheduler slot. Select the live polling interval and
-  history-to-live slot allocation from the enabled facility count and the
-  provider's published limits; keep those values configurable and document
-  the resulting worst-case daily call count. Do not launch parallel requests
-  that bypass this budget. Each history request consumes one slot.
+  live, and history calls share the same quota budget. The current policy runs
+  one slot every five minutes and makes at most one provider request per slot.
+  `ParkingBackfillService` allocates four of every five work slots to live
+  samples and one to historical backfill. With a successful catalog refresh
+  every six hours consuming one slot, the scheduler has at most 288 slots per
+  day. Let `N` be the number of enabled facilities, `I=5` the slot interval in
+  minutes, `R=6` the catalog refresh interval in hours, and `p=5` the work-slot
+  cycle length (four live slots, one history slot):
+
+  ```text
+  S = floor(24 * 60 / I)                 = 288 total slots/day
+  C = ceil(24 / R)                       = 4 catalog slots/day
+  W = S - C                              = 284 live/history work slots/day
+  L = floor(4 * W / p) or ceil(...)      ~= 227 live slots/day
+  H = W - L                              ~= 57 history slots/day
+  ```
+
+  During a backfill backlog, at most `S` scheduled first-attempt provider
+  requests are made per day. After the backlog is current, each enabled
+  facility still introduces one new prior-day history job per day, so expected
+  first attempts are approximately `C + L + min(H, N)`. For example, with
+  `N=41`, this is about `4 + 227 + 41 = 272` requests/day; if `N >= H` or older
+  work remains, the upper bound is 288. If there are no eligible history jobs,
+  those history slots are skipped, reducing the total. These estimates exclude
+  provider retries: Resilience4j retries can add wire calls within a scheduler
+  slot. Failed calls, catalog retries, and retry attempts must be included in
+  observed quota usage. This policy reduces historical catch-up throughput, so
+  monitor backlog age as well as quota. Do not launch parallel requests that
+  bypass the budget.
 - Load the facility-name lookup from `/carpark`, cache it in memory, apply the
   configured excluded facility IDs, then rotate through the remaining IDs.
-  Catalog refreshes consume a scheduler slot.
+  Catalog refreshes consume a scheduler slot. The five-minute scheduler
+  interval is a global service cadence, not a guarantee that every facility's
+  live sample or every historical date is refreshed every five minutes. With
+  `N` enabled facilities, an evenly distributed live sweep takes about
+  `N * 1440 / L` minutes per facility (about `6.34 * N` minutes when
+  `L=227`), excluding request duration, failures, and retries.
 - `windowDays` is a positive count of inclusive Sydney calendar days. Backfill
   provider history request dates from newest to oldest, while keeping request
   `eventdate` selection separate from the Mongo `sydneyDate` key derived from
