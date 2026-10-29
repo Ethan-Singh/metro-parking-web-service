@@ -18,3 +18,9 @@ history storage, daily metrics, and public read API.
 The provider model and public API model are separate on purpose: provider
 records are mapped into the parking domain before persistence or API response
 mapping. The OpenAPI document is authoritative for the client contract.
+
+Parking badges such as `T`, `M`, and `B` are presentation only; do not maintain
+a facility-to-line association or imply that a line serves every trip. If a
+future Park&Ride view needs station context, relate the car park's TSN to the
+timetable network-stop mapping and derive boardable services from the selected
+timetable snapshot.

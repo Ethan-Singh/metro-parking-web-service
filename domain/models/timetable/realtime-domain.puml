@@ -1,0 +1,78 @@
+@startuml
+title Timetable Realtime and Disruption Domain
+skinparam packageStyle rectangle
+hide methods
+
+class RealtimeOverlaySnapshot {
+  providerGeneratedAt : optional Instant
+  retrievedAt : Instant
+  freshnessState
+}
+class ServiceAlert {
+  providerNamespace
+  alertId
+  header
+  description
+  cause
+  effect
+  activePeriods
+  sourceUpdatedAt : optional Instant
+}
+class AlertTarget {
+  providerNamespace
+  agencyId : optional
+  routeId : optional
+  tripId : optional
+  stopId : optional
+  matchedScheduleRefs
+}
+class RealtimeTripUpdate {
+  providerNamespace
+  providerTripId
+  providerRouteId : optional
+  startDate : optional
+  startTime : optional
+  scheduleRelationship
+}
+class RealtimeStopUpdate {
+  stopSequence : optional
+  providerStopId : optional
+  scheduleRelationship : optional
+  arrivalDelaySeconds : optional
+  departureDelaySeconds : optional
+  predictedArrival : optional Instant
+  predictedDeparture : optional Instant
+  carriageOccupancy : optional
+}
+class ScheduleJoinResult {
+  status : MATCHED | ADDED | CANCELED | UNMATCHED
+  scheduleFeedKey : optional
+  matchedTripRef : optional
+}
+
+RealtimeOverlaySnapshot o-- "0..*" ServiceAlert
+RealtimeOverlaySnapshot o-- "0..*" RealtimeTripUpdate
+ServiceAlert o-- "1..*" AlertTarget
+RealtimeTripUpdate --> ScheduleJoinResult
+ScheduleJoinResult --> "0..1" ScheduledTrip
+RealtimeTripUpdate o-- "0..*" RealtimeStopUpdate
+RealtimeStopUpdate --> "0..1" ScheduledStopCall
+
+note right of ScheduleJoinResult
+  Match within the provider namespace. Bus trip updates
+  use a broader v1 feed than the static ReplacementBus
+  and PCBC schedules; identical ID strings are not proof
+  that two records refer to the same trip.
+end note
+
+note bottom of ServiceAlert
+  Replacement-service relationships are established from
+  validated alert targets/periods or reviewed mappings.
+  Do not infer a train-to-bus replacement from names alone.
+end note
+
+note left of RealtimeOverlaySnapshot
+  Keep this overlay independently refreshed from the static
+  schedule. Stale or missing updates never become zero delay.
+end note
+@enduml

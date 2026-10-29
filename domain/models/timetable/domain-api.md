@@ -22,5 +22,20 @@ limits, stale/unavailable states, and errors. It should retain useful optional
 normalized metadata and provenance so the UI can choose what to display, while
 never exposing raw GTFS tables or provider DTOs as the app contract.
 
+Represent each service method as an independently versioned timetable
+offering in the manifest. Publish its lifecycle, feed revisions, date coverage,
+minimum search facets, and currently supported facets separately, so a provider
+change can affect one offering without implicitly changing the others. The
+minimum facets are listed in [model-spec.md](model-spec.md); supported facets
+may grow when provider feeds and reviewed mappings supply reliable data.
+
+Include optional stop locality data as a typed `LOCALITY` or `SUBURB`, with its
+source/provenance. Do not assume every timetable stop has a suburb: the captured
+GTFS `stop_desc` fields are empty, while the Trip Planner Stop Finder schema
+supports locality/suburb parent locations. The client should display the
+locality only when the published package contains a verified mapping.
+
 Do not settle endpoint paths or response schemas in this note. Those belong in
 the reviewed OpenAPI contract once package and UI requirements are agreed.
+Saved plans, user naming, and locally computed route options belong to the
+client unless account-based synchronization is deliberately added later.

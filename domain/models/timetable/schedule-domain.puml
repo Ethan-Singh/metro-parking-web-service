@@ -1,0 +1,236 @@
+@startuml
+title Timetable Schedule Domain
+skinparam packageStyle rectangle
+hide methods
+
+package "Published schedule data" {
+  class ScheduleSnapshot {
+    snapshotId
+    capturedAt : Instant
+    publishedAt : Instant
+  }
+  class FeedRevision {
+    feedKey
+    providerVersion
+    sourceLastModified : optional Instant
+    checksum
+  }
+  class ClientScheduleManifest {
+    snapshotId
+    availableTravelDates
+    timeZone : Australia/Sydney
+    generatedAt : Instant
+    freshnessState
+  }
+  class ClientSchedulePackage {
+    packageId
+    travelDate : LocalDate
+    includedServiceDates : LocalDate[]
+    feedRevisions
+    checksum
+  }
+  class DatedStopEvent {
+    serviceDate : LocalDate
+    scheduledArrival : Instant
+    scheduledDeparture : Instant
+  }
+  class TimetableOffering {
+    key : TimetableOfferingKey
+    offeringVersion
+    lifecycle : OfferingLifecycle
+    modes : TransitMode[]
+    geographicLabels : optional
+    minimumSearchFacets : SearchFacet[]
+    supportedSearchFacets : SearchFacet[]
+    availableTravelDates
+    availabilityStatus : OfferingAvailability
+  }
+  enum TransitMode {
+    RAIL
+    METRO
+    BUS
+    FERRY
+    LIGHT_RAIL
+    OTHER
+  }
+  enum SearchFacet {
+    STATION
+    WHARF
+    STOP
+    ROUTE
+    LOCALITY
+  }
+  enum OfferingLifecycle {
+    ACTIVE
+    PLANNED
+    DEPRECATED
+  }
+  enum OfferingAvailability {
+    AVAILABLE
+    PARTIALLY_AVAILABLE
+    STALE
+    UNAVAILABLE
+  }
+  enum TimetableOfferingKey {
+    SYDNEY_TRAINS_AND_METRO
+    SYDNEY_REGIONAL_BUSES
+    SYDNEY_FERRIES
+    SYDNEY_AND_NEWCASTLE_LIGHT_RAIL
+    NSW_TRAINLINK_REGIONAL_TRAINS
+    NSW_TRAINLINK_REGIONAL_COACHES
+    SYDNEY_AND_REGIONAL_SCHOOL_BUSES
+  }
+  ScheduleSnapshot o-- "1..*" FeedRevision
+  ScheduleSnapshot --> ClientScheduleManifest : publishes atomically
+  ScheduleSnapshot --> "0..*" ClientSchedulePackage : creates
+  ClientSchedulePackage o-- "0..*" DatedStopEvent
+  ClientScheduleManifest o-- "1..*" TimetableOffering
+  ClientSchedulePackage o-- "1..*" TimetableOffering : supports
+  TimetableOffering --> TimetableOfferingKey
+  TimetableOffering --> OfferingLifecycle
+  TimetableOffering --> OfferingAvailability
+  TimetableOffering --> "0..*" FeedRevision : uses
+}
+
+package "Normalized transit network" {
+  class StopRef {
+    feedKey
+    providerStopId
+  }
+  class NetworkStop {
+    publicStopId
+    tsn : optional
+    displayName
+  }
+  class Stop {
+    providerName
+    disassembledName : optional
+    aliases : optional
+    locationType
+    platformCode : optional
+    latitude : optional
+    longitude : optional
+    wheelchairBoarding
+  }
+  class Locality {
+    name
+    type : LOCALITY | SUBURB
+    providerNamespace
+    providerLocationId : optional
+  }
+  class AgencyRef {
+    feedKey
+    providerAgencyId
+  }
+  class Agency {
+    name
+    timeZone
+  }
+  class TransitLine {
+    displayName
+    mode
+    brandColor : optional
+    textColor : optional
+  }
+  class RouteVariant {
+    providerRouteId
+    providerRouteType
+    mode : TransitMode
+    shortName
+    longName
+    description
+    routeColor : optional
+    textColor : optional
+  }
+  class ServiceCalendar {
+    startDate : LocalDate
+    endDate : LocalDate
+    weekdays
+    exceptionDates
+  }
+  class ScheduledTrip {
+    providerTripId
+    headsign
+    directionId : optional
+    shapeId : optional
+    accessibility
+    servicePurpose
+  }
+  class ScheduledStopCall {
+    sequence
+    arrivalSecondsAfterServiceMidnight
+    departureSecondsAfterServiceMidnight
+    pickupType
+    dropOffType
+    timepoint : optional
+  }
+  class ScheduledOccupancyProfile {
+    occupancyCategory
+    effectiveDates
+  }
+  class StationPathway {
+    pathwayMode
+    bidirectional
+    traversalSeconds : optional
+  }
+  class InterchangeLink {
+    direction
+    minimumTraversalSeconds : optional
+    minimumConnectionSeconds
+    evidence
+  }
+  enum ServicePurpose {
+    REGULAR
+    REPLACEMENT
+    PLANNED_CONTINGENCY
+  }
+
+  NetworkStop -- "1..*" StopRef : identity/group membership
+  Stop --> StopRef
+  AgencyRef --> Agency
+  Stop --> "0..1" Locality : verified metadata
+  Stop "0..*" --> "0..1" Stop : parent station
+  RouteVariant --> "0..1" TransitLine : optional grouping
+  RouteVariant --> AgencyRef
+  ScheduledTrip --> RouteVariant
+  ScheduledTrip --> ServicePurpose
+  ScheduledTrip --> ServiceCalendar
+  ScheduledTrip o-- "2..*" ScheduledStopCall
+  ScheduledStopCall --> Stop
+  ScheduledStopCall --> "0..1" ScheduledOccupancyProfile
+  DatedStopEvent --> ScheduledStopCall : resolves service-day time
+  ClientSchedulePackage --> "0..*" Stop : includes normalized records
+  ClientSchedulePackage --> "0..*" RouteVariant
+  ClientSchedulePackage --> "0..*" ScheduledTrip
+  StationPathway --> "1" Stop : from
+  StationPathway --> "1" Stop : to
+  InterchangeLink --> "1" Stop : from
+  InterchangeLink --> "1" Stop : to
+  InterchangeLink --> "0..1" NetworkStop : identity evidence
+}
+
+note right of Locality
+  Keep locality/suburb separate from provider stop names.
+  The captured GTFS stop_desc fields are empty. TfNSW
+  Stop Finder can provide a parent locality or suburb;
+  retain its source reference and only publish verified matches.
+end note
+
+note right of TimetableOffering
+  Each timetable method is an independently versioned offering.
+  Minimum facets are product requirements; supported facets may
+  add searchable fields when that offering's feeds and mappings
+  provide reliable data. A provider change can deprecate one
+  offering without changing the others.
+end note
+
+note bottom of ScheduledStopCall
+  Preserve service-day seconds, including values after 24:00.
+  Resolve them to dated Sydney instants when publishing a package.
+end note
+
+note bottom of InterchangeLink
+  Shared TSN/network membership does not by itself mean
+  passengers can transfer between member stops.
+end note
+@enduml

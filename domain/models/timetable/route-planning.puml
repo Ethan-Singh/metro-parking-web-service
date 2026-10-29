@@ -1,0 +1,115 @@
+@startuml
+title Timetable Route Planning Domain
+skinparam packageStyle rectangle
+hide methods
+
+package "Client-owned saved intent" {
+  class SavedTimetablePlan {
+    planId
+    displayName
+    originStopId
+    destinationStopId
+    orderedViaStopIds
+    networkScope
+    routePolicy
+    selectedRouteVariants : optional
+    additionalTransferWaitSeconds : optional
+  }
+  class TimetablePreferences {
+    defaultFareProfile
+    defaultTransferWaitSeconds
+  }
+}
+
+package "Local timetable search" {
+  enum RoutePolicy {
+    AUTO
+    FIXED_ROUTE_VARIANTS
+  }
+  class TimetableRouteQuery {
+    travelDate : LocalDate
+    localTime : LocalTime
+    direction : DEPART_AFTER | ARRIVE_BY
+    maxResults
+    fareProfile : optional
+  }
+  enum SearchOutcome {
+    RESULTS
+    INVALID_TIME
+    DATE_UNAVAILABLE
+    NETWORK_UNAVAILABLE
+    SAVED_STOP_UNRESOLVED
+    NO_MATCHING_STOPS
+    NO_ROUTE
+  }
+  class TimetableSearchResult {
+    outcome
+    explanation : optional
+  }
+  class TimetableRouteOption {
+    scheduledDeparture : Instant
+    scheduledArrival : Instant
+    predictedDeparture : optional Instant
+    predictedArrival : optional Instant
+    elapsedSeconds
+    scheduleSnapshotId
+    realtimeRevision : optional
+    transferCount
+    alertExposure
+    rankingReason
+  }
+  abstract class TimetableLeg
+  class TransitLeg {
+    tripRef
+    fromCallIndex
+    toCallIndex
+    scheduledDeparture : Instant
+    scheduledArrival : Instant
+    predictedDeparture : optional Instant
+    predictedArrival : optional Instant
+    realtimeUpdateReceivedAt : optional Instant
+  }
+  class TransferLeg {
+    fromStopId
+    toStopId
+    interchangeRef : optional
+    startAt : Instant
+    endAt : Instant
+    walkingSeconds
+    connectionThresholdSeconds
+    actualWaitingSeconds
+  }
+  SavedTimetablePlan --> RoutePolicy
+  TimetablePreferences --> TimetableRouteQuery : supplies global defaults
+  SavedTimetablePlan --> "0..*" TimetableRouteQuery : reused by date/time searches
+  TimetableRouteQuery --> TimetableSearchResult : computes locally
+  TimetableSearchResult --> SearchOutcome
+  TimetableSearchResult o-- "0..*" TimetableRouteOption : bounded alternatives
+  TimetableRouteOption o-- "1..*" TimetableLeg
+  TimetableRouteOption --> "0..*" ServiceAlert : affected alerts
+  TimetableRouteOption --> "0..1" FareEstimate : optional estimate
+  TimetableLeg <|-- TransitLeg
+  TimetableLeg <|-- TransferLeg
+  TransitLeg --> ScheduledTrip
+  TransitLeg --> "2" ScheduledStopCall : boarding/alighting
+}
+
+note right of SavedTimetablePlan
+  Store plans in browser local storage. Renaming or adding
+  via stops edits the saved intent, not a timetable snapshot.
+  Stop IDs must resolve across compatible package revisions;
+  report an unresolved stop instead of silently substituting it.
+end note
+
+note bottom of TimetableRouteOption
+  Return a bounded, ranked set, not every possible path.
+  Summary cards, detailed stop lists, and timeline views
+  are projections of the same route option data.
+end note
+
+note right of TransitLeg
+  Keep scheduled times distinct from real-time predictions
+  and retain the update's received time. Relative countdowns
+  are calculated by the UI from event instants.
+end note
+@enduml

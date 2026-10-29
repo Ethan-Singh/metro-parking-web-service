@@ -1,0 +1,110 @@
+@startuml
+title Opal Fare Estimate Domain
+skinparam packageStyle rectangle
+hide methods
+
+class OpalFareDataSnapshot {
+  revision
+  effectiveFrom : LocalDate
+  effectiveTo : optional LocalDate
+  sourceChecksum
+  attribution
+}
+class FareDistanceEntry {
+  mode
+  originStopId
+  destinationStopId
+  fareBandKey
+  distanceMetres
+}
+class FareTableEntry {
+  mode
+  fareBandKey
+  category
+  paymentMethod
+  period
+  amountMinorUnits
+}
+class FareRulesRevision {
+  revision
+  effectiveFrom : LocalDate
+  sourceChecksum
+}
+class FareProfile {
+  category
+  paymentMethod
+  default : ADULT_OPAL
+}
+class PricedFareSection {
+  mode
+  period
+  tapOnAt : Instant
+  tapOffAt : Instant
+  baseFareMinorUnits
+  stationAccessFeeMinorUnits
+}
+class FareEstimate {
+  amountMinorUnits
+  baseFareMinorUnits
+  transferDiscountMinorUnits
+  stationAccessFeeMinorUnits
+  fareDataRevision
+  fareRulesRevision
+  limitations
+}
+class OpalTimetableFareCalculator
+class ClientFarePackage {
+  packageId
+  fareDataRevision
+  fareRulesRevision
+  effectiveDates
+  checksum
+}
+
+enum FareCategory {
+  ADULT
+  CHILD_YOUTH
+  SENIOR_PENSIONER
+  CONCESSION
+}
+enum PaymentMethod {
+  OPAL_CARD
+  CONTACTLESS
+  SINGLE_TRIP_TICKET
+}
+enum FarePeriod {
+  PEAK
+  OFF_PEAK
+  STANDARD
+}
+enum FareMode {
+  TRAIN_METRO
+  INTERCITY_TRAIN
+  BUS
+  STOCKTON_FERRY
+  FERRY
+  MANLY_FERRY
+  LIGHT_RAIL
+}
+
+OpalFareDataSnapshot o-- "0..*" FareDistanceEntry
+OpalFareDataSnapshot o-- "0..*" FareTableEntry
+OpalFareDataSnapshot --> FareRulesRevision
+OpalFareDataSnapshot --> ClientFarePackage : publishes
+FareRulesRevision --> ClientFarePackage
+FareTableEntry --> FareMode
+FareDistanceEntry --> FareMode
+PricedFareSection --> FareMode
+FareProfile --> FareCategory
+FareProfile --> PaymentMethod
+OpalTimetableFareCalculator --> FareProfile : applies
+OpalTimetableFareCalculator --> "1..*" PricedFareSection : prices
+OpalTimetableFareCalculator --> FareEstimate : produces
+PricedFareSection --> FarePeriod
+
+note bottom of FareEstimate
+  Estimate uses the selected fare profile and published fare/rule
+  revisions. It cannot know the rider's prior taps, eligibility,
+  transfer history, or accumulated caps/rewards.
+end note
+@enduml

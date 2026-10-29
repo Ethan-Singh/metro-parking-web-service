@@ -1,4 +1,4 @@
-# Timetable route domain model (draft)
+# Timetable domain model (draft)
 
 This is a domain design draft based on the provider captures in
 [`docs/apis/`](../../../docs/apis/) and the official feed specifications in
@@ -6,7 +6,8 @@ This is a domain design draft based on the provider captures in
 concepts, not Mongo collections, GTFS DTOs, or the public API schema. Keep the
 provider boundary separate from the public contract.
 
-See [domain.puml](domain.puml) for the conceptual model.
+See [domain.puml](domain.puml) for the overview and the [timetable README](README.md)
+for the focused schedule, route-planning, realtime, and fare diagrams.
 
 ## Evidence in the current captures
 
@@ -18,7 +19,18 @@ The current captured feeds are enough to start modeling the first two networks:
 | Sydney Metro schedule, captured 26 Oct 2026 | 1 agency, 1 route record (`M1`, route type `401`), 3,117 trips, 93 stops, 9 service-calendar rows, an empty `calendar_dates.txt`, and Metro-specific trip/stop-time fields. |
 | ReplacementBus schedule, captured 28 Oct 2026 | Route `7063_9T2` (`9T2`, “Leppington, then all stations to Glenfield and return”), with Sunday 1 Nov 2026 service calling at Leppington, Edmondson Park, and Glenfield. TripView's 08:06–08:36 example matches the route and arrival; captured static departure is 08:07. |
 | PCBC schedule, captured 28 Oct 2026 | Separate planned-contingency feed; keep its IDs and services isolated from ReplacementBus and the general bus network. |
+| Timetable stop locality fields | All four captured Sydney Trains, Metro, ReplacementBus, and PCBC `stops.txt` files have empty `stop_desc`. Their names may describe a station, platform, road, or bus stand, but do not consistently provide a suburb. The saved Trip Planner response identifies Central as `Central Station, Sydney`, with parent `Sydney` of type `locality`. Its Swagger defines `StopFinderLocation.name`, `disassembledName`, and parent types including `locality` and `suburb`. |
 | Complete GTFS, captured 28 Oct 2026 | 690 agencies, 10,256 route records, 212,230 trips, 171,276 stops, calendar exceptions, and pathways. Observed route types include `2`, `4`, `106`, `204`, `205`, `401`, `700`, `712`, `714`, and `900`; `712` rows are described as school buses. |
+
+The Trip Planner Swagger documents stop modes for train, metro, light rail,
+bus, coach, ferry, and school bus, plus a hierarchical location result with
+`name`, `disassembledName`, `parent`, and locality/suburb types. This confirms
+the provider contract can represent the requested distinctions. The saved
+Trip Planner body is a Central departure-monitor response, not a standalone
+Stop Finder capture; it confirms one Central-to-Sydney locality example only.
+The Complete GTFS capture contains routes for the relevant candidate modes,
+but remains coverage evidence and is not merged into the authoritative
+For-Realtime train/Metro snapshots.
 
 The 28 Oct Complete GTFS capture is the latest full-network snapshot. The older
 26 Oct expanded copy under `provider-docs` has been removed. Its Swagger and
@@ -82,17 +94,29 @@ keeping daily payloads small.
   an optional TfNSW TSN and multiple member StopRefs. A TSN may identify a
   station or broader stop group; membership alone does not mean two stops are
   interchangeable or walk-connected.
-- `Stop` preserves the provider name, location type, parent reference, platform
-  code, optional coordinates, and boarding accessibility. Parent stations are
-  the default search result; platform stops remain available to show the
-  actual boarding point.
+- `Stop` preserves provider long and disassembled names, location type, parent
+  reference, platform code, optional coordinates, and boarding accessibility.
+  Parent stations are the default search result; platform stops remain
+  available to show the actual boarding point. Attach optional typed locality
+  metadata (`LOCALITY` or `SUBURB`) with its provider/source reference when
+  available. The Trip Planner Stop Finder response is one possible enrichment
+  source: its `name` may include the locality, its `disassembledName` omits it,
+  and its parent has an explicit locality/suburb type. Keep these source names
+  and parent labels separately instead of parsing commas in `stop_name`;
+  commas in current feeds mark platform, road, or stand details. The captured
+  schedule `stop_desc` fields are empty, so do not claim locality coverage for
+  all stops. Any Stop Finder enrichment must be cached and refreshed under the
+  provider call budget; it is not a per-keystroke frontend pass-through.
 - `AgencyRef = (feedKey, providerAgencyId)` scopes `agency_id` in the same way.
   The provider names and agency IDs are data, not a closed enum.
 - Keep `TransitMode` and `TransitLine` separate. Normalize known route types
-  for filtering/display while preserving the provider route type. The current
-  captures demonstrate legacy and TfNSW extended values, including Metro
-  `401`, regional rail `106`, regional coach `204`, school bus `712`, and light
-  rail `900`.
+  for filtering/display while preserving the provider route type and mapping
+  provenance. Interpret route types in their feed/agency context: the Complete
+  capture describes `106` as regional trains, `205` as temporary coaches, `700`
+  as buses, `712` as school buses, `714` as temporary buses, and `900` as light
+  rail; `204` is a broader “Regional Trains and Coaches Network” description.
+  Do not infer an exact product mode from that `204` value alone. Metro `401`
+  is also present in the capture.
 - Treat each provider `routes.txt` row as a `RouteVariant`, allowing different
   directions or destinations to appear separately. Do not require canonical
   branded-line grouping for the first release. Preserve provider route ID,
@@ -165,13 +189,33 @@ because their names or coordinates are similar.
 
 ### Timetable route results
 
-The `TimetableRouteQuery` contains opaque origin/destination stop IDs, Sydney
-local date/time, depart-after or arrive-by, allowed modes, and a bounded result
-count. The browser runs it against the cached client schedule package in a Web
-Worker; internal links use feed-scoped StopRefs. A `TimetableRoute` contains ordered
-`TransitLeg` and `TransferLeg` values, overall departure/arrival, elapsed time,
-and the schedule package ID used. Transit legs reference route variant, trip,
-boarding/alighting stop calls, and scheduled times.
+Separate a saved plan from a computed route option. A `SavedTimetablePlan` is
+the rider's reusable intent: display name, origin, destination, ordered via
+stops, mode/network scope, route constraints, and optional transfer-wait
+override. It is client-owned data saved in local storage; it is not a provider
+schedule or a route result. Renaming or extending a plan changes this saved
+input. It does not mutate the provider schedule. Keep global defaults such as
+fare profile and preferred transfer wait in client settings, with an optional
+plan-level override.
+
+Each search creates a `TimetableRouteQuery` from a saved plan plus the selected
+Sydney date/time and depart-after or arrive-by direction. The browser runs it
+against the cached client package in a Web Worker; internal references use
+stable public stop IDs, resolved to feed-scoped StopRefs in the package. The
+query includes a bounded result count and a route policy: `AUTO` permits all
+matching routes; an optional fixed-route policy restricts it to selected
+provider route variants. Do not require a canonical branded line to express a
+route constraint.
+
+Return a bounded, ranked list of `TimetableRouteOption` values, not a promise of
+every possible path. Each option contains ordered `TransitLeg` and
+`TransferLeg` values, departure/arrival, elapsed time, transfer/walking/wait
+breakdowns, fare estimate where available, active alerts, and the exact
+schedule and realtime revisions used. Preserve enough fields for a compact
+summary, a detailed stop list, and a timeline/waterfall view. The UI can group
+options by provider route variants and show approximate journey times; it must
+not label a route group as a guaranteed branded line when the feed does not
+establish that identity.
 
 Transfer-wait adjustment is the only additional routing preference in the
 initial contract. The default uses the minimum feasible connection threshold
@@ -181,10 +225,76 @@ optional `additionalTransferWaitSeconds` is added to that threshold at each
 change; it must not shorten physical traversal time. Keep transfer walking
 time, minimum connection threshold, and actual waiting time distinct; actual
 wait is derived from scheduled arrival/departure instants. Defer
-must-use/prefer/avoid route constraints, custom result ranking, and other
-advanced controls. A query may
-include via-stops; the frontend resolves them against the same optimized
-travel-date package and computes a timetable route through them locally.
+must-use/prefer/avoid route rules, custom weighting, and other
+advanced controls beyond `AUTO` or a fixed route-variant set. Via-stops are an
+ordered list on the saved plan and are resolved against the same optimized
+travel-date package.
+
+### Timetable offerings and search facets
+
+Model each timetable method as its own `TimetableOffering` in the published
+manifest. An offering has an independent lifecycle (`PLANNED`, `ACTIVE`, or
+`DEPRECATED`), version, feed revisions, service-date coverage, minimum search
+facets, and currently supported search facets. This lets one method be
+introduced, suspended, or deprecated as its provider API changes without
+changing other offerings. The user-facing service category is the offering
+identity; “by station”, “by route”, and similar wording describe its minimum
+search facets, not separate offering names.
+
+| Timetable offering | Minimum search facets |
+| --- | --- |
+| Sydney Trains and Metro | Station |
+| Sydney regional buses | Route, locality, stop |
+| Sydney ferries | Wharf |
+| Sydney and Newcastle light rail | Stop |
+| NSW TrainLink regional trains | Station |
+| NSW TrainLink regional coaches | Route, locality, stop |
+| Sydney and regional school buses | Route, locality, stop |
+
+These are minimum product requirements, not a closed list. Each active
+offering may publish additional `supportedSearchFacets` when its current feeds
+and reviewed mappings provide reliable identifiers and search data. The
+client must only expose facets supported by that offering's published
+snapshot. A combined Sydney Trains/Metro card may group two provider feeds
+under one offering. Bus localities are optional metadata: the four currently
+captured dedicated schedule stop files have empty `stop_desc`, so locality
+search requires a verified enrichment such as Stop Finder parent metadata.
+Station, wharf, and generic stop are distinct semantic facets even when they
+resolve to normalized `Stop` records.
+
+The Complete GTFS capture contains candidate route records for regional bus,
+coach, ferry, light rail, regional train, and school-bus types. It proves those
+mode categories occur in that captured dataset, not that each desired
+operator-specific offering has validated current coverage or may be published
+to users. Establish those offerings from their chosen authoritative feeds and
+review their licenses before activating them. School buses therefore remain a
+supported offering in the domain model but not an automatically enabled
+product offering.
+
+The timetable landing-page cards and their icons/layout are presentation, not
+domain data. The manifest provides offering availability, coverage, and
+facets so the app can decide which choices to show or disable.
+
+A compact route card, expandable stop list, timeline/waterfall, date strip, and
+alert banner are alternate views of the same route option and package. The
+model should supply ordered timed events, transfer/walking/wait totals, platform
+details, fare estimate, alert impact, and source freshness once, leaving the UI
+free to choose how much detail to reveal. Relative text such as "in 12 minutes"
+is derived from the event instant and current time, not stored in the timetable.
+
+Date-strip navigation selects another covered travel date and runs a new query
+against that date's package. The saved plan persists across dates and snapshot
+refreshes. Public stop IDs used by saved plans must be stable across compatible
+snapshot versions; if a stop is removed or remapped, report it as unresolved
+and let the user choose a replacement instead of silently routing to another
+stop.
+
+Use explicit search outcomes for invalid local time, unavailable date/network,
+unresolved saved stop, no matching stops, and no route. A no-route result is a
+normal search outcome, not a server error. Route alternatives are capped and
+their ranking/diversity rules are part of the future API contract. “Fewest
+alerts” may be shown as an advisory or sort criterion only when active alerts
+are fresh and their targets resolve to the affected route legs.
 
 Retain stop/trip accessibility values and pathway step-free metadata wherever
 the feeds provide them, so the domain can support this later. Do not expose an
@@ -265,11 +375,12 @@ details.
 ## Realtime overlay
 
 Model alerts and trip updates separately from scheduled values. An alert has a
-provider-scoped ID, header/description, cause/effect, active period(s), retrieval
-time, and one or more affected agency/route/trip/stop references. A trip update
-contains a provider-namespace-scoped trip descriptor (trip/route IDs, optional start date/time,
-and schedule relationship) plus stop updates keyed by stop sequence and/or
-provider stop ID, with optional arrival/departure delay or predicted time.
+provider-scoped ID, header/description, cause/effect, active period(s), and one
+or more affected agency/route/trip/stop references. A trip update contains a
+provider-namespace-scoped trip descriptor (trip/route IDs, optional start
+date/time, and schedule relationship) plus stop updates keyed by stop sequence
+and/or provider stop ID, with optional arrival/departure delay or predicted
+time. The overlay snapshot owns provider-generated and retrieval timestamps.
 `TimetableLeg` keeps scheduled times and realtime values distinct; a missing
 update is not a zero delay. Added or replacement trips may have no static trip
 to join, so preserve the relationship and provider descriptor instead of
@@ -278,6 +389,13 @@ discarding them. The v1 bus trip-update feed is broader than either static
 provider-namespace mapping before joining. Record the match result and preserve
 unmatched updates; identical ID strings from different feeds are not proof of
 identity. Apply the same scoped matching rule to alert targets and stop IDs.
+
+The realtime overlay has its own provider-generated and retrieved timestamps
+and a freshness state. A displayed prediction carries the time it was received.
+Only call a service "last reported on time" when a fresh update supports that
+claim; otherwise show the static scheduled time without implying a live report.
+When a prediction exists, keep it visually and contractually distinct from the
+scheduled departure/arrival.
 
 The captured `ReplacementBus` route `7063_9T2` has a Sunday 1 Nov trip with
 calls Leppington Stand A 08:07, Edmondson Park Stand A 08:19, and Glenfield
@@ -308,22 +426,6 @@ For the first release, relevant route/stop/trip alerts should be attached to
 affected timetable routes with source and freshness. Polling cadence and aggregate
 provider quotas belong to backend operations policy, not this domain model or
 the user request.
-
-## Parking line/badge metadata
-
-The frontend currently associates parking slugs with `T`, `M`, and `B` badges,
-but these are presentation only and can suggest route availability that varies
-by trip. Keep provider-backed `TransitMode` and optional `TransitLine` metadata
-for actual timetable route results. Do not include facility-to-line associations in
-the timetable or parking API contract.
-
-The captured Car Park full-list response contains `tsn`, which the provider
-defines as a network-wide unique stop/group identifier. It does not identify
-served lines. The existing frontend parking badges are aesthetic and can be
-removed; do not persist a facility-to-line catalogue or promise route
-availability from a badge. If a future Park&Ride flow needs station context,
-link facility TSN to the canonical stop mapping. Derive the actual boardable
-route variants from the selected timetable route and active timetable snapshot.
 
 ## Decisions and remaining investigation
 

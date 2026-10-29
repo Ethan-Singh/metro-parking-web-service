@@ -1,361 +1,57 @@
 @startuml
-title TfNSW timetable route model - draft from captured feeds
+title Timetable Domain Overview
+left to right direction
 skinparam packageStyle rectangle
 hide methods
 
-package "Versioned timetable snapshot" {
-  class ScheduleSnapshot {
-    snapshotId
-    capturedAt : Instant
-    publishedAt : Instant
-  }
-  class ClientSchedulePackage {
-    packageId
-    travelDate : LocalDate
-    includedServiceDates : LocalDate[]
-    timeZone : Australia/Sydney
-    checksum
-    feedRevisions
-    freshnessState
-  }
-  class ClientFarePackage {
-    fareRulesRevision
-    fareDataRevision
-    effectiveFrom : LocalDate
-    effectiveTo : optional LocalDate
-    sourceChecksum
-  }
-  class ClientScheduleManifest {
-    snapshotId
-    availableFrom : LocalDate
-    availableThrough : LocalDate
-    timeZone : Australia/Sydney
-    generatedAt : Instant
-  }
-  class DatedStopEvent {
-    serviceDate : LocalDate
-    scheduledArrival : Instant
-    scheduledDeparture : Instant
-  }
-  class FeedRevision {
-    feedKey
-    providerVersion
-    sourceLastModified
-    checksum
-  }
-  class Agency {
-    providerAgencyId
-    name
-    timeZone
-  }
-  ScheduleSnapshot o-- "1..*" FeedRevision
-  FeedRevision o-- "0..*" Agency
-  ScheduleSnapshot --> "0..*" ClientSchedulePackage : materializes
-  ClientSchedulePackage o-- "0..*" DatedStopEvent
-  ScheduleSnapshot --> "1" ClientScheduleManifest : publishes
+package "Static timetable" {
+  class ScheduleSnapshot
+  class ClientScheduleManifest
+  class ClientSchedulePackage
+  class TimetableOffering
+  ScheduleSnapshot --> ClientScheduleManifest : publishes
+  ScheduleSnapshot --> ClientSchedulePackage : materializes by date
+  ClientScheduleManifest o-- TimetableOffering
 }
 
-package "Normalized static schedule" {
-  class StopRef {
-    feedKey
-    providerStopId
-  }
-  class NetworkStop {
-    networkStopId
-    tsn : optional
-    displayName
-  }
-  class Stop {
-    name
-    locationType
-    platformCode
-    latitude : optional
-    longitude : optional
-    wheelchairBoarding
-  }
-  class TransitLine {
-    lineId
-    displayName
-    mode
-    brandColor : optional
-    textColor : optional
-  }
-  class RouteVariant {
-    providerRouteId
-    providerRouteType
-    shortName
-    longName
-    description
-    directionLabel : optional
-  }
-  enum ServicePurpose {
-    REGULAR
-    REPLACEMENT
-    PLANNED_CONTINGENCY
-  }
-  class ScheduledTrip {
-    providerTripId
-    providerServiceId
-    headsign
-    directionId : optional
-    shapeId : optional
-    accessibility
-    servicePurpose
-  }
-  class ServiceCalendar {
-    startDate : LocalDate
-    endDate : LocalDate
-    weekdays
-    exceptionDates
-  }
-  class ScheduledStopCall {
-    sequence
-    arrivalSecondsAfterServiceMidnight
-    departureSecondsAfterServiceMidnight
-    pickupType
-    dropOffType
-    timepoint : optional
-  }
-  class StationPathway {
-    pathwayMode
-    bidirectional
-    traversalSeconds : optional
-  }
-  class InterchangeLink {
-    direction
-    minimumTraversalSeconds : optional
-    minimumConnectionSeconds
-    evidence
-  }
-  class ScheduledOccupancyProfile {
-    occupancyCategory
-    serviceCalendar
-    effectiveDates
-  }
-  ScheduleSnapshot o-- "0..*" Stop
-  Stop --> StopRef
-  NetworkStop -- "1..*" StopRef : identity/group membership
-  Stop "0..*" --> "0..1" Stop : parent station
-  RouteVariant --> "0..1" TransitLine : optionally grouped as
-  RouteVariant --> Agency
-  ScheduledTrip --> RouteVariant
-  ScheduledTrip --> ServiceCalendar
-  ScheduledTrip o-- "2..*" ScheduledStopCall
-  ScheduledStopCall --> Stop
-  ScheduledStopCall --> "0..1" ScheduledOccupancyProfile : expected crowding
-  DatedStopEvent --> ScheduledStopCall : resolved from service-day time
-  StationPathway --> "1" Stop : from
-  StationPathway --> "1" Stop : to
-  InterchangeLink --> "1" Stop : from
-  InterchangeLink --> "1" Stop : to
-  InterchangeLink --> "0..1" NetworkStop : evidence may share group
-}
-
-package "Opal fare domain - independently versioned" {
-  class OpalFareDataSnapshot {
-    revision
-    effectiveFrom : LocalDate
-    effectiveTo : optional LocalDate
-    sourceChecksum
-  }
-  class FareDistanceEntry {
-    mode
-    originStopId
-    destinationStopId
-    fareBandKey
-    distanceMetres
-  }
-  class FareTableEntry {
-    mode
-    fareBandKey
-    category
-    paymentMethod
-    period
-    amountMinorUnits
-  }
-  enum FareCategory {
-    ADULT
-    CHILD_YOUTH
-    SENIOR_PENSIONER
-    CONCESSION
-  }
-  enum PaymentMethod {
-    OPAL_CARD
-    CONTACTLESS
-    SINGLE_TRIP_TICKET
-  }
-  enum FareMode {
-    TRAIN_METRO
-    INTERCITY_TRAIN
-    BUS
-    STOCKTON_FERRY
-    FERRY
-    MANLY_FERRY
-    LIGHT_RAIL
-  }
-  enum FarePeriod {
-    PEAK
-    OFF_PEAK
-    STANDARD
-  }
-  class FareProfile {
-    category : ADULT | CHILD_YOUTH | SENIOR_PENSIONER | CONCESSION
-    paymentMethod : OPAL_CARD | CONTACTLESS | SINGLE_TRIP_TICKET
-    default : ADULT_OPAL
-  }
-  class FareEstimate {
-    amountMinorUnits
-    baseFareMinorUnits
-    transferDiscountMinorUnits
-    stationAccessFeeMinorUnits
-    fareRulesRevision
-    farePackageId
-    limitations
-  }
-  class PricedFareSection {
-    mode
-    period
-    fareProfile
-    tapOnAt : Instant
-    tapOffAt : Instant
-    baseFareMinorUnits
-    stationAccessFeeMinorUnits
-  }
-  class OpalTimetableFareCalculator
-  OpalFareDataSnapshot --> "1" ClientFarePackage : publishes independently
-  OpalFareDataSnapshot o-- "0..*" FareDistanceEntry
-  OpalFareDataSnapshot o-- "0..*" FareTableEntry
-  OpalTimetableFareCalculator --> "1" FareProfile : applies
-  OpalTimetableFareCalculator --> "1..*" PricedFareSection : applies transfer rules
-  OpalTimetableFareCalculator --> "1" FareEstimate : produces
-  FareEstimate --> FareProfile
-}
-
-package "Timetable route search" {
-  class TimetableRouteQuery {
-    origin : StopRef
-    destination : StopRef
-    travelDate : LocalDate
-    localTime : LocalTime
-    direction : DEPART_AFTER | ARRIVE_BY
-    allowedModes
-    additionalTransferWaitSeconds : optional
-    viaStops : optional StopRef[]
-    fareProfile : default Adult Opal
-    maxResults
-  }
-  class TimetableRoute {
-    departure : ZonedDateTime
-    arrival : ZonedDateTime
-    elapsedSeconds
-    snapshotId
-  }
-  abstract class TimetableLeg {
-    departure : ZonedDateTime
-    arrival : ZonedDateTime
-  }
-  class TransitLeg {
-    trip : ScheduledTrip
-    fromCall : ScheduledStopCall
-    toCall : ScheduledStopCall
-    fromCallIndex
-    toCallIndex
-    realtimeState : SCHEDULED | UPDATED
-    scheduledCrowding : optional
-    realtimeCrowding : optional
-  }
-  class TransferLeg {
-    interchange : StationPathway | InterchangeLink
-    walkingSeconds
-    connectionThresholdSeconds
-    actualWaitingSeconds
-  }
-  TimetableRouteQuery --> "1..*" TimetableRoute
-  TimetableRouteQuery --> "0..1" FareProfile
-  TimetableRoute o-- "1..*" TimetableLeg
-  TimetableRoute --> "0..1" FareEstimate
-  TimetableLeg <|-- TransitLeg
-  TimetableLeg <|-- TransferLeg
+package "Client route planning" {
+  class SavedTimetablePlan
+  class TimetableRouteQuery
+  class TimetableRouteOption
+  SavedTimetablePlan --> TimetableRouteQuery
+  TimetableRouteQuery --> TimetableRouteOption : bounded alternatives
 }
 
 package "Realtime overlay" {
-  class ServiceAlert {
-    alertId
-    header
-    description
-    cause
-    effect
-    activePeriods
-    sourceUpdatedAt : optional
-    retrievedAt : Instant
-  }
-  class AlertTarget {
-    providerNamespace
-    agencyId : optional
-    routeId : optional
-    tripId : optional
-    stopId : optional
-    matchedScheduleRefs
-  }
-  class RealtimeTripUpdate {
-    providerNamespace
-    providerTripId
-    providerRouteId : optional
-    startDate : optional
-    startTime : optional
-    scheduleRelationship
-  }
-  class RealtimeStopUpdate {
-    stopSequence : optional
-    providerStopId : optional
-    scheduleRelationship : optional
-    arrivalDelaySeconds : optional
-    departureDelaySeconds : optional
-    predictedArrival : optional
-    predictedDeparture : optional
-    carriageOccupancy : optional
-  }
-  ServiceAlert o-- "1..*" AlertTarget
-  RealtimeTripUpdate --> "0..1" ScheduledTrip : direct schedule match
-  RealtimeTripUpdate o-- "0..*" RealtimeStopUpdate
-  RealtimeStopUpdate --> ScheduledStopCall
-  TimetableRoute --> "0..*" ServiceAlert : relevant alerts
-  class ScheduleJoinResult {
-    status : MATCHED | ADDED | CANCELED | UNMATCHED
-    scheduleFeedKey : optional
-    matchedTripRef : optional
-  }
-  RealtimeTripUpdate --> ScheduleJoinResult
-  ScheduleJoinResult --> "0..1" ScheduledTrip
+  class RealtimeOverlaySnapshot
+  class ServiceAlert
+  class RealtimeTripUpdate
+  RealtimeOverlaySnapshot o-- ServiceAlert
+  RealtimeOverlaySnapshot o-- RealtimeTripUpdate
 }
 
-package "Optional Park&Ride stop context" {
-  class ParkingTransitLink {
-    facilityId
-  }
-  ParkingTransitLink --> NetworkStop
+package "Opal fare estimates" {
+  class OpalFareDataSnapshot
+  class FareRulesRevision
+  class FareProfile
+  class OpalTimetableFareCalculator
+  class FareEstimate
+  OpalFareDataSnapshot --> FareRulesRevision
+  OpalTimetableFareCalculator --> OpalFareDataSnapshot : prices against
+  OpalTimetableFareCalculator --> FareRulesRevision : applies
+  OpalTimetableFareCalculator --> FareProfile : uses
+  OpalTimetableFareCalculator --> FareEstimate : produces
 }
 
-note right of StopRef
-  Provider identifiers are scoped by feed.
-  TfNSW TSN is the canonical cross-feed stop/group
-  key when supplied. It can map to multiple feed
-  StopRefs; unmatched parent/group IDs may need
-  explicit representation.
-end note
+ClientSchedulePackage --> TimetableRouteQuery : searched locally
+RealtimeOverlaySnapshot --> TimetableRouteOption : adds live context
+TimetableRouteOption --> FareEstimate : optional estimate
 
-note bottom of ScheduledStopCall
-  Preserve GTFS service-day seconds, not LocalTime:
-  values may exceed 24:00. Resolve to Sydney local
-  date/time only when evaluating a service date.
-end note
+note bottom
+  Detailed models: schedule-domain.puml, route-planning.puml,
+  realtime-domain.puml, and opal-fare-domain.puml.
 
-note bottom of TransitLine
-  A customer-facing line grouping is optional.
-  Preserve each GTFS route as a RouteVariant,
-  including directional variants. Parking badges
-  are dropped; do not imply route availability from
-  an aesthetic facility-to-line association.
+  The backend ingests, normalizes, and publishes snapshots/overlays.
+  The frontend searches locally and stores saved plans in local storage.
 end note
-
 @enduml
