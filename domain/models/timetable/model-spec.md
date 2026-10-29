@@ -192,11 +192,27 @@ because their names or coordinates are similar.
 Separate a saved plan from a computed route option. A `SavedTimetablePlan` is
 the rider's reusable intent: display name, origin, destination, ordered via
 stops, mode/network scope, route constraints, and optional transfer-wait
-override. It is client-owned data saved in local storage; it is not a provider
-schedule or a route result. Renaming or extending a plan changes this saved
-input. It does not mutate the provider schedule. Keep global defaults such as
+override. It is client-owned query input, not a provider schedule or a computed
+route result. Keep a versioned collection capped at 20 plans. Store the
+collection in versioned `localStorage`. It normally requires no
+permission prompt, persists across browser sessions on the same browser
+profile, and is not attached automatically to HTTP requests. Browsers or users
+can still block or clear it, and it does not sync across devices; handle storage
+unavailability gracefully. Saved plans are readable and editable by same-origin
+JavaScript, so do not store secrets or sensitive data and prevent script
+injection through normal application security controls. Validate the collection
+when loading and handle unknown schema versions gracefully. Renaming or
+extending a plan changes only this saved input. Keep global defaults such as
 fare profile and preferred transfer wait in client settings, with an optional
 plan-level override.
+
+A cookie was considered for the small collection. `Secure` and
+`SameSite=Strict` control transport and cross-site sending, but do not prevent
+same-origin JavaScript from reading a script-accessible cookie; making it
+`HttpOnly` would prevent the UI from managing it. Matching cookies also travel
+with HTTP requests. Prefer `localStorage` for these client-only presets because
+it avoids that automatic request transmission; this is a data-minimization
+choice, not protection from same-origin script injection.
 
 Each search creates a `TimetableRouteQuery` from a saved plan plus the selected
 Sydney date/time and depart-after or arrive-by direction. The browser runs it
@@ -508,8 +524,10 @@ the user request.
   packages exceed the target.
 - Keep realtime alerts/trip updates as a separate, independently refreshed
   overlay with its own retrieved-at timestamp. Do not bake short-lived realtime
-  values into the static schedule snapshot. Saved trips/preferences belong in
-  browser local storage; cookies should remain small.
+  values into the static schedule snapshot. Saved trips are capped at 20 and
+  contain only query inputs in a versioned `localStorage` collection. No
+  permission prompt is normally needed. Handle blocked/cleared storage; do not
+  store secrets or sensitive data there.
 - Make the frontend the single production timetable-route search implementation if it
   owns routing from the package. Avoid maintaining a second backend route
   solver with subtly different transfer and DST behavior; the backend can

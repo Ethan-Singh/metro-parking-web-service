@@ -4,6 +4,10 @@ skinparam packageStyle rectangle
 hide methods
 
 package "Client-owned saved intent" {
+  class SavedTimetablePlanCollection {
+    schemaVersion
+    plans : max 20
+  }
   class SavedTimetablePlan {
     planId
     displayName
@@ -15,6 +19,7 @@ package "Client-owned saved intent" {
     selectedRouteVariants : optional
     additionalTransferWaitSeconds : optional
   }
+  SavedTimetablePlanCollection o-- "0..20" SavedTimetablePlan
   class TimetablePreferences {
     defaultFareProfile
     defaultTransferWaitSeconds
@@ -95,10 +100,13 @@ package "Local timetable search" {
 }
 
 note right of SavedTimetablePlan
-  Store plans in browser local storage. Renaming or adding
-  via stops edits the saved intent, not a timetable snapshot.
-  Stop IDs must resolve across compatible package revisions;
-  report an unresolved stop instead of silently substituting it.
+  A plan stores query inputs only, not a computed journey or schedule data.
+  Keep at most 20 plans in a versioned localStorage collection. No special
+  browser permission prompt is normally required. Handle unavailable storage
+  gracefully and treat the data as editable/removable convenience data, not a
+  security boundary. It is not sent automatically with HTTP requests.
+  Stop IDs must resolve across compatible package revisions; report an
+  unresolved stop instead of silently substituting it.
 end note
 
 note bottom of TimetableRouteOption

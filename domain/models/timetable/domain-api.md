@@ -29,6 +29,16 @@ change can affect one offering without implicitly changing the others. The
 minimum facets are listed in [model-spec.md](model-spec.md); supported facets
 may grow when provider feeds and reviewed mappings supply reliable data.
 
+Saved plans are client-owned query presets, capped at 20; they are not part of
+the timetable API payload. Store the versioned collection in browser
+`localStorage`: it normally requires no permission prompt and is not sent with
+HTTP requests automatically. Handle storage being blocked or cleared. Plans
+are readable by same-origin JavaScript, so keep them free of secrets and
+sensitive data. A cookie would not improve that protection if the UI must read
+it; `SameSite=Strict` does not block same-origin script access, and matching
+cookies are sent with requests. `localStorage` is preferred here to avoid
+attaching these presets to HTTP requests, not as an XSS defense.
+
 Include optional stop locality data as a typed `LOCALITY` or `SUBURB`, with its
 source/provenance. Do not assume every timetable stop has a suburb: the captured
 GTFS `stop_desc` fields are empty, while the Trip Planner Stop Finder schema

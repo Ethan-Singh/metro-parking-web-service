@@ -52,6 +52,7 @@ note bottom
   realtime-domain.puml, and opal-fare-domain.puml.
 
   The backend ingests, normalizes, and publishes snapshots/overlays.
-  The frontend searches locally and stores saved plans in local storage.
+  The frontend searches locally and stores up to 20 small saved query plans
+  in versioned localStorage; this data stays client-side unless app code sends it.
 end note
 @enduml
