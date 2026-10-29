@@ -1,0 +1,91 @@
+@startuml
+title Car Park Domain API - Public Read Contract
+skinparam packageStyle rectangle
+
+package "Car park domain API (/api/v1/parking)" {
+  class LiveCarPark {
+    slug
+    facilityName
+    spots
+    occupancy
+    available
+    occupancyRate
+    availability
+    timeMs : epoch milliseconds
+    ariaLabel
+  }
+  class ParkingHistory {
+    from / to : Sydney dates
+    resolution : actual resolution
+    points : HistoryPointTuple[]
+  }
+  enum RequestedHistoryResolution {
+    AUTO
+    TEN_MINUTE
+    ONE_HOUR
+    SIX_HOUR
+    TWELVE_HOUR
+    TWENTY_FOUR_HOUR
+  }
+  class HistoryQuery {
+    from : Sydney date
+    to : Sydney date
+    resolution : optional RequestedHistoryResolution
+  }
+  class HistoryPointTuple <<JSON tuple>> {
+    timeMs : epoch milliseconds
+    occupancyRate
+    available
+  }
+  class DailyParkingMetrics {
+    from / to : Sydney dates
+    timeZone
+    days : DailyMetrics[]
+  }
+  class DailyMetrics {
+    date
+    expectedFreeAt7am : optional int
+    expectedFreeAt8am : optional int
+    crossed50AtMs : optional epoch ms
+    crossed90AtMs : optional epoch ms
+    fullAtMs : optional epoch ms
+  }
+  class ParkingController
+  class ParkingQueryService
+  ParkingController --> ParkingQueryService : delegates reads
+  ParkingController --> HistoryQuery : validates request
+  ParkingQueryService --> LiveCarPark : maps
+  ParkingQueryService --> ParkingHistory : maps
+  ParkingQueryService --> DailyParkingMetrics : calculates/maps
+  ParkingHistory o-- "0..*" HistoryPointTuple
+  HistoryQuery --> RequestedHistoryResolution
+  DailyParkingMetrics o-- "0..*" DailyMetrics
+}
+
+note right of ParkingHistory
+  GET /api/v1/parking/{slug}/history
+  Each point is [timeMs, occupancyRate, available].
+  AUTO picks a range-appropriate resolution; the response
+  reports the actual resolution. Ranges including today
+  use Cache-Control: no-store.
+end note
+
+note right of DailyParkingMetrics
+  GET /api/v1/parking/{slug}/metrics/daily
+  Dates are inclusive Sydney dates, bounded to the recent
+  three-day window. Missing observations remain null.
+end note
+
+note right of LiveCarPark
+  GET /api/v1/parking and GET /api/v1/parking/{slug}/live
+  Serve the latest sample already stored by scheduled ingestion.
+  API reads do not call TfNSW.
+end note
+
+note bottom
+  This diagram summarizes the service-owned contract only.
+  Exact paths, schemas, errors, examples, and limits are
+  authoritative in docs/apis/metro-parking-api-v1.yaml.
+  Provider payloads and provider IDs are not returned as-is.
+end note
+@enduml

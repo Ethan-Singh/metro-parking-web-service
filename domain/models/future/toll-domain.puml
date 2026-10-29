@@ -33,6 +33,6 @@ package "Toll capability - separate from timetable routing" {
 
 note bottom
   Toll Calculator remains a road-route integration. It does not provide the
-  timetable route model in timetable-domain.puml.
+  timetable route model in ../timetable/domain.puml.
 end note
 @enduml

@@ -1,12 +1,12 @@
 # Timetable route domain model (draft)
 
 This is a domain design draft based on the provider captures in
-[`docs/apis/`](../../docs/apis/) and the official feed specifications in
-[`docs/provider-docs/`](../../docs/provider-docs/). It describes normalized
+[`docs/apis/`](../../../docs/apis/) and the official feed specifications in
+[`docs/provider-docs/`](../../../docs/provider-docs/). It describes normalized
 concepts, not Mongo collections, GTFS DTOs, or the public API schema. Keep the
 provider boundary separate from the public contract.
 
-See [timetable-domain.puml](timetable-domain.puml) for the conceptual model.
+See [domain.puml](domain.puml) for the conceptual model.
 
 ## Evidence in the current captures
 
@@ -200,8 +200,8 @@ values take effect 29 June 2026; the companion rules document is v1.7. Normalize
 the workbook into a separate, cacheable `OpalFareDataSnapshot` containing
 stop-pair/distance-to-fare-band mappings and fare values. Keep rules revision
 separate so a workbook refresh does not require a timetable snapshot refresh.
-The captured files are the [fare workbook](../../docs/provider-docs/Opal%20Fares/open-data-opal-distance-tables-2026-06.xlsx)
-and [v1.7 business rules](../../docs/provider-docs/Opal%20Fares/opal-fares-business-rules-and-information-v1.7.pdf).
+The captured files are the [fare workbook](../../../docs/provider-docs/Opal%20Fares/open-data-opal-distance-tables-2026-06.xlsx)
+and [v1.7 business rules](../../../docs/provider-docs/Opal%20Fares/opal-fares-business-rules-and-information-v1.7.pdf).
 The Data Hub lists the dataset under Creative Commons Attribution; retain TfNSW
 attribution and the source revision when republishing normalized fare data.
 
@@ -290,7 +290,7 @@ can be an intermediate call, so routing must evaluate every eligible pair of
 stop calls, not only the first and last stops.
 
 The JSON sample at
-[`gtfsr-alerts_20261028211837.json`](../../docs/apis/v2-gtfs/alerts-all/gtfsr-alerts_20261028211837.json)
+[`gtfsr-alerts_20261028211837.json`](../../../docs/apis/v2-gtfs/alerts-all/gtfsr-alerts_20261028211837.json)
 confirms the GTFS-RT envelope and alert fields: feed timestamp and
 `FULL_DATASET`; entity IDs; optional active-period start/end epoch seconds;
 informed agency/route/trip/stop/direction references; cause/effect; URL; and
@@ -357,7 +357,7 @@ route variants from the selected timetable route and active timetable snapshot.
   with an omitted bound extending infinitely. No more alert capture is needed
   now; validate target matching and boundary rules in fixtures.
 - Captured trip updates are in
-  [`docs/apis/v2-gtfs/realtime/`](../../docs/apis/v2-gtfs/realtime/). Exact
+  [`docs/apis/v2-gtfs/realtime/`](../../../docs/apis/v2-gtfs/realtime/). Exact
   schedule comparison matched all 31 Metro trip descriptors, route IDs, and
   stop IDs. Sydney Trains matched 519/521 trip IDs and all 521 route IDs and
   3,333 stop updates. The two trip-ID exceptions are an explicit `CANCELED`
@@ -430,7 +430,7 @@ Replacement Bus schedule and bus trip-update endpoints as available at the
 time checked;
 availability does not prove the response contains trips for a particular
 date. The 28 Oct 2026 `ReplacementBus` and `PCBC` schedule ZIPs are now
-captured under [`docs/apis/v1-gtfs/schedules/buses/`](../../docs/apis/v1-gtfs/schedules/buses/).
+captured under [`docs/apis/v1-gtfs/schedules/buses/`](../../../docs/apis/v1-gtfs/schedules/buses/).
 Capture one v1 `/gtfs/realtime/buses` response to resolve the 08:06 versus
 08:07 TripView/static departure and validate trip/stop update joins. The
 official [EMS-80106 alert](https://transportnsw.info/alerts/details/ems-80106)
@@ -452,7 +452,7 @@ Central Platform 19 trips at 23:24:30 and 23:54:30 that reach Ashfield at
 GTFS route short name on the matching entries is `T3`. The 28 Oct Swagger
 fetch returned the same bundle filename and `Last-Modified` as the earlier
 capture (27 Oct 14:01:22 UTC), so the snapshot did not change. The saved
-[departure-monitor response](../../docs/apis/v1-tp/response.json) independently
+[departure-monitor response](../../../docs/apis/v1-tp/response.json) independently
 labels the 23:24 departure T3 and includes `RealtimeTripId` matching the GTFS
 trip ID. The GTFS time is 23:24:30 and the API reports 23:24, consistent with
 minute-level display rounding. That response covers only through 23:40, so it

@@ -2,15 +2,6 @@
 title Parking Domain, Live Samples, and Historical Coverage
 skinparam packageStyle rectangle
 
-enum HistoryResolution {
-  AUTO
-  TEN_MINUTE
-  ONE_HOUR
-  SIX_HOUR
-  TWELVE_HOUR
-  TWENTY_FOUR_HOUR
-}
-
 enum BackfillState {
   PROCESSING
   RETRY_WAIT
@@ -53,28 +44,10 @@ class ParkingFacilityCatalog {
   + refresh() : CatalogSnapshot
 }
 
-class UpstreamTimeMapper {
-  - fromSydneyMessageDate(messageDate : LocalDateTime) : Instant
-}
-
-class CurrentCarParkFeed {
-  GET /carpark?facility={id}
-  returns latest record
-}
-
-class HistoricalCarParkFeed {
-  GET /carpark/history?facility={id}&eventdate={date}
-  returns history records
-}
-
 ParkingDay "1" *-- "0..150" Sample
 ParkingDay ..> ParkingDayKey : unique index
 Sample ..> SydneyDayClock : bucket index is 10 min
 ParkingSlugService ..> ParkingFacilityCatalog : resolve current slug snapshot
-ParkingFacilityCatalog ..> CurrentCarParkFeed : refresh names and IDs
-CurrentCarParkFeed ..> UpstreamTimeMapper : MessageDate
-HistoricalCarParkFeed ..> UpstreamTimeMapper : MessageDate; eventdate is only a fetch key
-UpstreamTimeMapper ..> Sample : Sydney local -> UTC Instant
 
 note right of ParkingDay
   One document per (facilityId, Sydney calendar date).
@@ -111,7 +84,7 @@ end note
 
 note right of ParkingSlugService
   Resolve slugs from the immutable facility-catalog snapshot. A successful
-  provider catalog refresh rebuilds and atomically publishes both ID/name and
-  slug/ID maps. Do not query Mongo history on a slug miss.
+  catalog refresh rebuilds and atomically publishes both ID/name and slug/ID
+  maps. Do not query Mongo history on a slug miss.
 end note
 @enduml

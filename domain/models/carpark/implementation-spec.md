@@ -230,7 +230,7 @@ include facility, clamped dates, and actual resolution.
 
 Daily commuter summaries are served separately from chart history so they do
 not depend on the selected chart resolution. The contract is defined in
-[`domain/contracts/daily-parking-metrics-v1.md`](../contracts/daily-parking-metrics-v1.md).
+[daily-metrics-contract.md](daily-metrics-contract.md).
 It returns expected-free estimates near 7am/8am and per-day occupancy milestones
 for up to three inclusive Sydney dates. The query uses the existing
 `(facilityId, sydneyDate)` index and reads at most three daily documents.

@@ -14,18 +14,14 @@ A Spring Boot service that collects, stores, and serves current and historical p
 
 ## Architecture models
 
-The PlantUML sources are maintained in [`domain/models`](domain/models/README.md). Use the model index for rendering instructions and model scope.
+The domain models are maintained in [`domain/models`](domain/models/README.md), organized by car park and timetable domains.
 
 | Model | Description |
 | --- | --- |
+| [Car park domain](domain/models/carpark/README.md) | Normalized model, provider API, public API, persistence, and backfill |
+| [Timetable domain](domain/models/timetable/README.md) | Normalized model, provider feeds, and planned service API |
 | [System context](domain/models/system-context.puml) | Service boundaries and external systems |
-| [Parking domain](domain/models/parking-domain.puml) | Parking data, storage structure, and API concepts |
-| [Backfill flow](domain/models/backfill-flow.puml) | Scheduled history retrieval and backfill lifecycle |
-| [Car Park API](domain/models/carpark-api.puml) | Upstream provider integration |
-| [Timetable routing domain](domain/models/timetable-domain.puml) | Draft normalized schedule and journey model from captured TfNSW feeds |
-| [Timetable model spec](domain/models/timetable-model-spec.md) | Captured feed observations, proposed concepts, and open modeling questions |
-| [Toll domain](domain/models/toll-domain.puml) | Separate road toll calculation model |
-| [Implementation spec](domain/models/implementation-spec.md) | Current implementation decisions |
+| [Future toll domain](domain/models/future/toll-domain.puml) | Deferred road toll calculation capability |
 
 ## Data collection and storage
 
@@ -69,7 +65,7 @@ Example response:
 }
 ```
 
-The full contract is available as [OpenAPI YAML](docs/apis/metro-parking-api-v1.yaml). Daily metric calculations are specified in [daily-parking-metrics-v1.md](domain/contracts/daily-parking-metrics-v1.md). Swagger UI and the generated JSON endpoint are described below.
+The full contract is available as [OpenAPI YAML](docs/apis/metro-parking-api-v1.yaml). Daily metric calculations are specified in [daily-metrics-contract.md](domain/models/carpark/daily-metrics-contract.md). Swagger UI and the generated JSON endpoint are described below.
 
 ## Configuration
 

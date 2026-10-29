@@ -1,0 +1,44 @@
+@startuml
+title Car Park Provider API - TfNSW Upstream Contract
+skinparam packageStyle rectangle
+
+package "Upstream Car Park API" {
+  interface CarParkApi
+  class FacilityCatalog <<provider payload>> {
+    facility IDs
+    facility names
+  }
+  class CarParkApiRecord <<provider payload>> {
+    facilityId : provider identifier
+    facilityName
+    spots
+    occupancy
+    messageDate : Sydney local wall time (no offset)
+  }
+  class HistoryQuery {
+    facility
+    eventdate : YYYY-MM-DD
+  }
+  CarParkApi --> FacilityCatalog : GET /carpark without facility
+  CarParkApi --> CarParkApiRecord : GET /carpark?facility={id}
+  CarParkApi --> HistoryQuery : accepts eventdate/facility
+  CarParkApi --> "0..*" CarParkApiRecord : GET /carpark/history
+}
+
+note left of CarParkApiRecord
+  The service's provider adapter interprets MessageDate as
+  Australia/Sydney local time, then converts it to an Instant.
+  Do not parse it as UTC: the value has no offset. The normalized
+  domain stores the resulting instant in UTC. An offset-free Sydney
+  wall time can be ambiguous during clock changes; apply the documented
+  overlap policy at the provider boundary.
+end note
+
+note right of CarParkApi
+  carparkswagger_prod_2.yaml documents /carpark,
+  /carpark?facility=..., and /carpark/history. Its success
+  schemas are opaque `file` types, so the Java provider DTO
+  and observed payloads currently supply field-level details.
+end note
+
+@enduml

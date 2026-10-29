@@ -25,10 +25,10 @@ design system.
 | Source | Use |
 | --- | --- |
 | `docs/apis/metro-parking-api-v1.yaml` | Public endpoint paths, request/response schemas, and examples |
-| `domain/models/` | PlantUML context, domain, provider, and backfill-flow models |
-| `domain/models/implementation-spec.md` | Current architectural decisions and implementation plan |
-| `domain/models/timetable-model-spec.md` | Draft normalized timetable and routing model based on captured provider feeds |
-| `domain/contracts/` | Focused behavior contracts, especially `daily-parking-metrics-v1.md` |
+| `domain/models/` | Domain-indexed models, provider boundaries, API contracts, and flows |
+| `domain/models/carpark/implementation-spec.md` | Current car park architectural decisions and implementation plan |
+| `domain/models/timetable/model-spec.md` | Draft normalized timetable and routing model based on captured provider feeds |
+| `domain/models/carpark/daily-metrics-contract.md` | Focused behavior contract for daily parking metrics |
 | `docs/apis/v1-carpark/` | Saved examples of the upstream catalog, live, and history payloads |
 | `docs/apis/v1-gtfs/`, `docs/apis/v1-publictransport/`, `docs/apis/v2-gtfs/` | Captured TfNSW schedule and realtime feed responses; retain feed provenance and IDs |
 | `docs/provider-docs/` | Provider Swagger and official field semantics, including the Car Park API v2.3 PDF |
