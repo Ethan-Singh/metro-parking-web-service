@@ -16,6 +16,8 @@ The current captured feeds are enough to start modeling the first two networks:
 | --- | --- |
 | Sydney Trains schedule, captured 27 Oct 2026 | 2 agencies (`Sydney Trains`, `NSW Trains`), 137 route records, 84,770 trips, 1,214 stops, 142 service-calendar rows, and route type `2`. It has TfNSW extension tables for occupancies and vehicle composition. |
 | Sydney Metro schedule, captured 26 Oct 2026 | 1 agency, 1 route record (`M1`, route type `401`), 3,117 trips, 93 stops, 9 service-calendar rows, an empty `calendar_dates.txt`, and Metro-specific trip/stop-time fields. |
+| ReplacementBus schedule, captured 28 Oct 2026 | Route `7063_9T2` (`9T2`, “Leppington, then all stations to Glenfield and return”), with Sunday 1 Nov 2026 service calling at Leppington, Edmondson Park, and Glenfield. TripView's 08:06–08:36 example matches the route and arrival; captured static departure is 08:07. |
+| PCBC schedule, captured 28 Oct 2026 | Separate planned-contingency feed; keep its IDs and services isolated from ReplacementBus and the general bus network. |
 | Complete GTFS, captured 28 Oct 2026 | 690 agencies, 10,256 route records, 212,230 trips, 171,276 stops, calendar exceptions, and pathways. Observed route types include `2`, `4`, `106`, `204`, `205`, `401`, `700`, `712`, `714`, and `900`; `712` rows are described as school buses. |
 
 The 28 Oct Complete GTFS capture is the latest full-network snapshot. The older
@@ -49,10 +51,16 @@ provided), and checksum with each `FeedRevision`. Validate required tables and
 cross-references before the active-snapshot pointer changes. A failed or partial
 refresh leaves the previous active snapshot in service.
 
-The initial required set is the Sydney Trains and Sydney Metro schedule feeds.
-Do not make every mode feed mandatory to publish later expansions; use an
-explicit manifest for the feed set required by each release. Retain the full
-active backend snapshot and last-known-good snapshot. Publish a separate
+The release manifest identifies Sydney Trains, Sydney Metro, `ReplacementBus`,
+and `PCBC` as separate source feeds. Keep each as its own `FeedRevision` and
+include its date-valid services in the same client package. An empty but
+successfully fetched feed is a valid revision with zero services; a failed or
+invalid feed retains its last-known-good revision. Publish a new combined
+snapshot only when the release manifest is satisfied. Do not broaden this to
+the general bus network or merge these namespaces with Complete GTFS. Do not
+make later mode feeds mandatory; use an explicit manifest for the feed set
+required by each release. Retain the full active
+backend snapshot and last-known-good snapshot. Publish a separate
 compact, versioned client package with its timezone, available travel-date
 range, included modes, source revisions, and checksum. The browser can cache
 that package in IndexedDB and compare its version/checksum before downloading a
@@ -70,6 +78,10 @@ keeping daily payloads small.
 
 - `StopRef = (feedKey, providerStopId)` is the internal stop identity. GTFS
   `stop_id` alone is not a cross-feed key.
+- Represent cross-feed identity separately as a `NetworkStop` that can have
+  an optional TfNSW TSN and multiple member StopRefs. A TSN may identify a
+  station or broader stop group; membership alone does not mean two stops are
+  interchangeable or walk-connected.
 - `Stop` preserves the provider name, location type, parent reference, platform
   code, optional coordinates, and boarding accessibility. Parent stations are
   the default search result; platform stops remain available to show the
@@ -87,6 +99,18 @@ keeping daily payloads small.
   short/long name, description, mode, and colors; a later display grouping can
   be derived only where feed evidence supports it. A route variant does not
   promise that every stop on the route is served by every trip.
+- Derive a compact `ServicePurpose` (`REGULAR`, `REPLACEMENT`,
+  `PLANNED_CONTINGENCY`) per trip from the feed namespace and carry it into
+  the client package. Treat these feeds as bus transit services. This lets the
+  app style and label replacement legs without inferring purpose from route
+  names or promising a branded line. Keep the complete ordered call sequence
+  and optional provider fields once in the normalized package so expanded legs
+  can show every served stop; route legs reference boarding/alighting call
+  indexes instead of duplicating full call objects. Do not discard fields that could
+  improve user clarity: normalize recognized semantics and preserve useful
+  source metadata/provenance as optional fields. Do not infer which train leg a
+  bus replaces from names alone; preserve that relationship only when an alert,
+  trip update, or reviewed mapping establishes it.
 - TfNSW's separate [Transport Routes API](https://opendata.transport.nsw.gov.au/data/dataset/transport-routes)
   is described as a master route/service-by-operator reference list and
   includes colors and icons. Evaluate it as supplemental presentation and
@@ -118,22 +142,26 @@ keeping daily payloads small.
 
 ### Station pathways and interchanges
 
-The Complete GTFS capture contains `pathways.txt` and `levels.txt`; the two
-dedicated first-release feeds do not contain a `transfers.txt` file. Model
+The Complete GTFS capture contains `pathways.txt` and `levels.txt`; the
+dedicated rail/Metro first-release feeds do not contain a `transfers.txt`
+file. Model
 provider pathways as directed or bidirectional station connections with mode,
 traversal time, and accessibility attributes when available. A missing pathway
 is not proof that two nearby or similarly named stops are walk-connected.
 
-Cross-feed transfers should use TSN mappings when present, plus reviewed
-interchange mappings for feed stops without TSN data. The captured Car Park
+Cross-feed stop grouping should use TSN mappings when present, plus reviewed
+interchange mappings for feed stops without TSN data. Model actual transfer
+eligibility separately as an explicit `InterchangeLink`, with direction,
+minimum traversal/connection time, and provenance. A shared TSN alone must not
+create a route edge. The captured Car Park
 response has 34 distinct TSNs: 22 match Sydney Trains `stop_id`/`stop_code`
 values, and five match Metro `stop_id` values (Metro `stop_code` is blank for
 those stops). The provider spec also documents manually created parent TSN
 `2093117` for the Manly Vale bus stops because it is absent from GTFS. This
 shows that TSN can represent a group or provider-defined parent that is not a
 literal GTFS stop row. Validate parent/platform and transfer semantics before
-using a shared TSN to connect stops for transfers; never merge stops merely because their
-names or coordinates are similar.
+adding an interchange link; never merge stops or create route edges merely
+because their names or coordinates are similar.
 
 ### Timetable route results
 
@@ -146,13 +174,15 @@ and the schedule package ID used. Transit legs reference route variant, trip,
 boarding/alighting stop calls, and scheduled times.
 
 Transfer-wait adjustment is the only additional routing preference in the
-initial contract. The default uses the minimum feasible time supported by
-known station/platform pathways and reviewed interchange data, with a
-documented safety minimum where physical traversal data is absent. An optional
-`minimumTransferWaitSeconds` adds user-requested waiting time at each change;
-it must not shorten a known physical traversal time. Keep walking time and
-connection wait distinct in timetable route results. Defer must-use/prefer/avoid route
-constraints, custom result ranking, and other advanced controls. A query may
+initial contract. The default uses the minimum feasible connection threshold
+supported by known station/platform pathways and reviewed interchange data,
+with a documented safety minimum where physical traversal data is absent. An
+optional `additionalTransferWaitSeconds` is added to that threshold at each
+change; it must not shorten physical traversal time. Keep transfer walking
+time, minimum connection threshold, and actual waiting time distinct; actual
+wait is derived from scheduled arrival/departure instants. Defer
+must-use/prefer/avoid route constraints, custom result ranking, and other
+advanced controls. A query may
 include via-stops; the frontend resolves them against the same optimized
 travel-date package and computes a timetable route through them locally.
 
@@ -217,24 +247,47 @@ the realtime overlay with their retrieval time. These are qualitative crowding
 signals, not passenger counts or guaranteed future loads. Do not infer Metro
 occupancy coverage from the Sydney Trains extension.
 
-The client package is the public data DTO; keep it separate from provider DTOs
-and internal persistence. Expose stable public stop IDs and normalized service
-details, not GTFS row keys as permanent contracts. Include snapshot version,
-capture/freshness metadata, and covered travel dates so clients know which
-schedule produced local results and when a date is unavailable.
+The client package is a rich, versioned public data product, not a thin route
+result. Keep it separate from provider DTOs and internal persistence. Include
+the normalized stop hierarchy and aliases, route/agency metadata, every
+date-valid trip and ordered stop call, platform/boarding details, service
+purpose, shapes or shape references where useful, transfer links with their
+evidence, and supported accessibility/crowding fields. Preserve useful
+provider descriptions and optional fields in normalized form so the UI can
+choose what to show. Keep provider IDs and provenance in the package where
+needed to resolve realtime data, but do not make raw GTFS tables or provider
+DTOs the app contract. Include snapshot version, feed revisions, capture and
+freshness metadata, coverage, and explicit unavailable/stale states. Measure
+payload size and worker performance; optimize representation only after
+preserving the information required for clear results and expandable trip
+details.
 
 ## Realtime overlay
 
 Model alerts and trip updates separately from scheduled values. An alert has a
 provider-scoped ID, header/description, cause/effect, active period(s), retrieval
 time, and one or more affected agency/route/trip/stop references. A trip update
-contains a feed-scoped trip descriptor (trip/route IDs, optional start date/time,
+contains a provider-namespace-scoped trip descriptor (trip/route IDs, optional start date/time,
 and schedule relationship) plus stop updates keyed by stop sequence and/or
 provider stop ID, with optional arrival/departure delay or predicted time.
 `TimetableLeg` keeps scheduled times and realtime values distinct; a missing
 update is not a zero delay. Added or replacement trips may have no static trip
 to join, so preserve the relationship and provider descriptor instead of
-discarding them.
+discarding them. The v1 bus trip-update feed is broader than either static
+`ReplacementBus` or `PCBC` feed, so resolve its IDs through an explicit
+provider-namespace mapping before joining. Record the match result and preserve
+unmatched updates; identical ID strings from different feeds are not proof of
+identity. Apply the same scoped matching rule to alert targets and stop IDs.
+
+The captured `ReplacementBus` route `7063_9T2` has a Sunday 1 Nov trip with
+calls Leppington Stand A 08:07, Edmondson Park Stand A 08:19, and Glenfield
+Railway Pde 08:36 (plus earlier calls on the loop). TripView's example shows
+08:06 to 08:36, labeled `9T2`; preserve the static 08:07 schedule and keep any
+realtime/predicted departure distinct. The one-minute difference remains
+unresolved until a matching v1 bus trip update is captured. This example
+confirms that a replacement route can be a loop and its named boarding stop
+can be an intermediate call, so routing must evaluate every eligible pair of
+stop calls, not only the first and last stops.
 
 The JSON sample at
 [`gtfsr-alerts_20261028211837.json`](../../docs/apis/v2-gtfs/alerts-all/gtfsr-alerts_20261028211837.json)
@@ -276,6 +329,11 @@ route variants from the selected timetable route and active timetable snapshot.
 
 - Use the captured production Sydney Trains and Metro **For Realtime** feeds
   for initial routing. Do not merge Complete GTFS records into these datasets.
+- Include the dedicated `ReplacementBus` and `PCBC` schedules in the first
+  release when their current date-valid services are validated. The captured
+  reference table maps these feed keys to v1 bus trip updates and v2 bus
+  alerts. Keep all source namespaces distinct; do not classify every bus
+  operator in Complete GTFS as a replacement service.
 - Route variants may remain directional; canonical branded-line grouping is
   optional. Preserve provider route names and colors without promising a line
   identity the feed does not establish.
@@ -364,6 +422,27 @@ No additional TSN mapping file is needed from the user: the provider
 documentation defines TSN as the stable network stop/group number, and the
 captured feeds can be matched using TSN-like `stop_id`/`stop_code` values. I
 will continue the feed-to-TSN reconciliation from the local captures.
+
+The local reference-table capture was updated on 14 September 2026 to include
+Planned Contingency Busing and identifies the dedicated schedule, trip-update,
+vehicle-position, and alert endpoints. The API status page lists the
+Replacement Bus schedule and bus trip-update endpoints as available at the
+time checked;
+availability does not prove the response contains trips for a particular
+date. The 28 Oct 2026 `ReplacementBus` and `PCBC` schedule ZIPs are now
+captured under [`docs/apis/v1-gtfs/schedules/buses/`](../../docs/apis/v1-gtfs/schedules/buses/).
+Capture one v1 `/gtfs/realtime/buses` response to resolve the 08:06 versus
+08:07 TripView/static departure and validate trip/stop update joins. The
+official [EMS-80106 alert](https://transportnsw.info/alerts/details/ems-80106)
+confirms buses replace trains between Leppington and Glenfield Sunday 1 Nov,
+08:00 to 14:00. The bus can be offered as a replacement-purpose transit leg
+in that service window. Keep alert impact and any explicit substitution
+relationship in the realtime/disruption overlay rather than mutating the static
+trip. Associate the bus service with the disrupted rail segment only when
+alert targets/time ranges or a reviewed mapping establish that relationship.
+When displaying the route, keep scheduled and realtime times distinct and
+expose ordered stop calls on expansion. Vehicle positions can wait until map
+work.
 
 The first proposed hand-check was invalid: I selected a trip whose service
 calendar was Saturday-only (14 Nov), despite the calendar row's date range.

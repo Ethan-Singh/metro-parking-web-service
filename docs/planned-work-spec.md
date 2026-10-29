@@ -33,7 +33,15 @@ routing engine.
 
 The requested network coverage is:
 
-- **First milestone:** Sydney Trains and Sydney Metro routes between stations.
+- **First milestone:** Sydney Trains and Sydney Metro routes between stations,
+  plus date-valid rail/light-rail replacement and planned contingency bus
+  services from TfNSW's dedicated feeds. This does not include the general bus
+  network. Replacement buses are ordinary bus legs in the normalized schedule
+  with an explicit replacement purpose; the client can style them distinctly
+  and expand the same trip's ordered stop calls. For a confirmed disruption,
+  suppress/mark the affected rail segment according to the alert's target and
+  active period, and offer the bus service as its replacement. Do not infer a
+  rail-to-bus association from matching stop names alone.
 - **Planned expansion:** Sydney and regional buses; Sydney Ferries; Sydney and
   Newcastle light rail; NSW TrainLink regional trains and coaches; other
   timetable services in the TfNSW feed.
@@ -53,9 +61,11 @@ The requested network coverage is:
 - Fetch feeds on a controlled server schedule based on provider update
   cadence. Validate each full candidate snapshot before atomically publishing
   it. A failed or partial refresh keeps the last known good snapshot.
-- Start with production Sydney Trains and Sydney Metro feeds. Prove stop search
-  and route output using representative fixtures and hand-checked examples
-  before broadening modes. Respect each feed's license and attribution terms.
+- Start with production Sydney Trains and Sydney Metro feeds, then include the
+  dedicated replacement/contingency bus feeds after validating their captures
+  and identifiers. Prove stop search and route output using representative
+  fixtures and hand-checked examples before broadening to general bus routes.
+  Respect each feed's license and attribution terms.
 - Define the versioned API data contract in OpenAPI before frontend
   integration. The backend publishes a compact normalized snapshot package
   with named stop IDs, service/route variants, explicit transfer links,
@@ -101,8 +111,11 @@ The plan limits and feed cadence can change, so recheck them before rollout.
 
 #### Timetable sources and coverage to establish
 
-The initial routing source is the production **Public Transport - Timetables -
-For Realtime** schedule feeds: Sydney Trains and Metro v2. [Timetables Complete
+The core rail/Metro routing sources are the production **Public Transport -
+Timetables - For Realtime** schedule feeds: Sydney Trains and Metro v2. The
+first release also includes dedicated ReplacementBus and PCBC schedule feeds
+for date-valid replacement/contingency services, after their IDs and service
+coverage are validated. [Timetables Complete
 GTFS](https://opendata.transport.nsw.gov.au/data/dataset/timetables-complete-gtfs)
 provides static stops, routes, calendars, stop times, and shapes across
 operators, including routes not in real-time feeds. The separate [Timetables
@@ -126,9 +139,11 @@ specification documents regional rail and coach route types; verify where both
 appear in current complete and realtime feeds.
 
 GTFS-RT alerts are in scope as a distinct overlay; the captured JSON already
-has route-ID examples matching the initial schedules. Trip updates and vehicle
-positions are later additions, after their identifiers are reconciled with
-the matching static feed. Both use GTFS-Realtime Protocol Buffers.
+has route-ID examples matching the initial schedules. Replacement and
+contingency buses use the broader v1 bus trip-update feed, whose IDs must be
+validated against each corresponding static feed. Vehicle positions remain a
+later map feature. The relevant realtime feeds use GTFS-Realtime Protocol
+Buffers.
 
 | Dataset | Role | Initial decision |
 | --- | --- | --- |
@@ -136,10 +151,12 @@ the matching static feed. Both use GTFS-Realtime Protocol Buffers.
 | [Timetables Complete TransXChange](https://opendata.transport.nsw.gov.au/dataset/timetables-complete-transxchange) | Static XML timetable source for all operators, including routes not available in realtime; documented school-bus coverage. | Inspect to determine whether needed regional or school services are absent from GTFS. Prefer avoiding a second parser unless required; do not treat school routes as generally boardable without confirming policy. |
 | [Public Transport - Timetables - For Realtime](https://opendata.transport.nsw.gov.au/dataset/public-transport-timetables-realtime) | Realtime-compatible mode/operator schedules, including Sydney Trains. | Authoritative for the initial Sydney Trains route graph and its realtime joins. |
 | [Public Transport - Timetables - For Realtime v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime-v2) | Newer schedule feed family; Metro v2 is captured. | Authoritative for initial Metro schedule and realtime joins. Use the corresponding mode schedule for later realtime-covered modes. |
+| [Replacement Bus GTFS schedule](https://opendataforum.transport.nsw.gov.au/t/new-endpoint-for-replacement-bus-gtfs-schedules/2441) | Dedicated `/v1/gtfs/schedule/buses/ReplacementBus` GTFS bundle; TfNSW says it is a subset of `/buses` and includes replacement routes when operators provide them. | Include date-valid replacement services as a separate feed namespace. Reconcile the static trips with bus trip updates and relevant alerts before treating them as a replacement for a rail leg. |
+| [Planned Contingency Bus GTFS schedule (PCBC)](https://opendataforum.transport.nsw.gov.au/t/new-schedule-endpoint-for-planned-contingency-bus-services/10471) | Dedicated `/v1/gtfs/schedule/buses/PCBC` static schedule feed for planned contingency services, including non-Opal services. | Evaluate alongside ReplacementBus for planned rail replacement coverage. Pair with `/v1/gtfs/realtime/buses`; preserve its own feed namespace and only publish routes for valid service dates. |
 | [Transport Routes](https://opendata.transport.nsw.gov.au/data/dataset/transport-routes) | TfNSW describes this API as a master route/service-by-operator reference list, with operator details, colors, and icons. | New candidate for route/line display and badge metadata, especially contracted buses. Capture its API response and documentation; verify route/operator coverage and whether IDs map to GTFS before using it in the domain. |
 | [Historical GTFS and GTFS Realtime](https://opendata.transport.nsw.gov.au/dataset/historical-gtfs-and-gtfs-realtime) | Historical GTFS-Realtime data; current documentation describes Metro and Ferry coverage. | Optional source for replay fixtures and observed-service validation, not a live timetable or runtime dependency. Check current data availability and retention before relying on it. |
 | [Public Transport - Realtime Trip Update](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update) | Broader v1 updates for buses, ferries, light rail, NSW Trains, Metro, and regional bus services. | Candidate for later-mode delay predictions. The provider says v2 supersedes v1 for Sydney Trains, Metro, and Inner West Light Rail; confirm mode-specific endpoint and IDs before use. |
-| [Public Transport - Realtime Vehicle Positions](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-vehicle-positions) | Broader v1 vehicle positions for buses, ferries, light rail, NSW Trains, Metro, and regional bus services. | Optional later live map/vehicle context. Do not add to first milestone; use v2 for the modes it supersedes and verify schedule joins first. |
+| [Public Transport - Realtime Vehicle Positions](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-vehicle-positions) | Broader v1 vehicle positions for buses, ferries, light rail, NSW Trains, Metro, and regional bus services. | Optional later live map/vehicle context. Replacement-bus schedule validation does not require vehicle positions; add them with a map feature and verify schedule joins first. |
 | [Public Transport - Realtime Trip Update v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update-v2) | Delay and stop-time updates for Metro, Sydney Trains, and Inner West Light Rail. | Later prediction layer after static routing; confirm operator coverage and identifier joins before release. |
 | [Public Transport - Realtime Vehicle Positions v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-vehicle-positions-v2) | Vehicle positions for Sydney Trains, Metro, and Inner West Light Rail. | Optional later map/context layer; verify schedule joins and quota before adding. |
 | [Public Transport - Realtime Alerts v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-alerts-v2) | Stop, trip, and route-level service alerts across bus, train, ferry, light rail, Metro, and coaches. | Include relevant alerts with route results where joins validate; preserve freshness and provenance. |
@@ -339,11 +356,14 @@ polling loop yet.
 | --- | --- | --- |
 | Sydney Trains static schedule | [Timetables - For Realtime](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime); [schedule Swagger UI](https://opendata.transport.nsw.gov.au/dataset/public-transport-timetables-realtime/resource/9b3bfa13-0053-4008-8575-e30151f05d54/view/2c71bc94-97cd-457c-ba6e-4e5758bc0ecd) | `GET https://api.transport.nsw.gov.au/v1/gtfs/schedule/sydneytrains` |
 | Sydney Metro static schedule | [Timetables - For Realtime v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-timetables-realtime-v2); saved Swagger [`getschedule-v2_1.0.json`](provider-docs/public-transport/timetables/realtime-v2/getschedule-v2_1.0.json) | `GET https://api.transport.nsw.gov.au/v2/gtfs/schedule/metro` |
+| Replacement bus static schedule | [TfNSW Replacement Bus endpoint notice](https://opendataforum.transport.nsw.gov.au/t/new-endpoint-for-replacement-bus-gtfs-schedules/2441) | `GET https://api.transport.nsw.gov.au/v1/gtfs/schedule/buses/ReplacementBus` |
+| Planned contingency bus static schedule | [TfNSW PCBC endpoint notice](https://opendataforum.transport.nsw.gov.au/t/new-schedule-endpoint-for-planned-contingency-bus-services/10471) | `GET https://api.transport.nsw.gov.au/v1/gtfs/schedule/buses/PCBC` |
 | All-operator static comparison feed | [Timetables Complete GTFS](https://opendata.transport.nsw.gov.au/data/dataset/timetables-complete-gtfs); saved Swagger [`prod_fixed_gtfs_2.0.json`](provider-docs/public-transport/timetables/complete-gtfs/prod_fixed_gtfs_2.0.json) | `GET https://api.transport.nsw.gov.au/v1/publictransport/timetables/complete/gtfs` |
 | Agency and identifier reconciliation | [Reference Tables for TfNSW GTFS feeds](https://opendata.transport.nsw.gov.au/dataset/reference-tables-tfnsw-gtfs-feeds) | Download the latest overlapping-agency and train-run-number CSVs. |
 | Route/line reference metadata | [Transport Routes](https://opendata.transport.nsw.gov.au/data/dataset/transport-routes) | Capture the API response and schema/docs; compare operator, route number, variant, mode, colors/icons, and IDs with the matching GTFS `agency.txt` and `routes.txt`. |
 | Sydney Trains and Metro service alerts | [Realtime Alerts v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-alerts-v2); saved Swagger [`v2-gtfs-alerts-swaggerprod_1.yaml`](provider-docs/public-transport/realtime/alerts-v2/v2-gtfs-alerts-swaggerprod_1.yaml) | `GET https://api.transport.nsw.gov.au/v2/gtfs/alerts/all?format=json` once for a readable sample; mode-specific routes are also available. |
 | Sydney Trains and Metro live trip updates | [Realtime Trip Update v2](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update-v2); saved Swagger [`getrealtime_v2_03.yml`](provider-docs/public-transport/realtime/trip-updates-v2/getrealtime_v2_03.yml) | `GET https://api.transport.nsw.gov.au/v2/gtfs/realtime/sydneytrains` and `/metro`. This is a useful second pass for delays after static schedules and alerts. |
+| Replacement/contingency bus trip updates | [Realtime Trip Update v1](https://opendata.transport.nsw.gov.au/data/dataset/public-transport-realtime-trip-update) | `GET https://api.transport.nsw.gov.au/v1/gtfs/realtime/buses`; capture one response and compare trip, route, and stop IDs with the ReplacementBus/PCBC static feeds. |
 
 For each ZIP schedule response, preserve the request URL, status, response
 headers (`Content-Type`, `Content-Length`, `Last-Modified` if present), download
@@ -353,6 +373,13 @@ representative rows from `agency.txt`, `stops.txt`, `routes.txt`, `trips.txt`,
 `pathways.txt`, or other extension tables present. Include rows for one
 hand-checked train route and one Metro route; keep IDs intact so we can
 reason about feed namespaces. Do not paste the API token.
+
+For each replacement/contingency bus schedule, also capture the current
+response even if it contains no active routes, its service-date coverage, and
+the ZIP table list. Keep the `ReplacementBus` and `PCBC` IDs in separate feed
+namespaces. A representative live bus trip update and a TripView example from
+an active rail-replacement period will establish how these bus trips correspond
+to affected rail services; do not infer that relationship from route names.
 
 Realtime alert and trip-update responses are GTFS-Realtime Protocol Buffer
 messages. The alert sample at

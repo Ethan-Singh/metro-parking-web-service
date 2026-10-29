@@ -15,6 +15,8 @@ package "Versioned timetable snapshot" {
     includedServiceDates : LocalDate[]
     timeZone : Australia/Sydney
     checksum
+    feedRevisions
+    freshnessState
   }
   class ClientFarePackage {
     fareRulesRevision
@@ -58,9 +60,10 @@ package "Normalized static schedule" {
     feedKey
     providerStopId
   }
-  class TfnswStopNumber {
-    tsn
-    representsStopOrGroup
+  class NetworkStop {
+    networkStopId
+    tsn : optional
+    displayName
   }
   class Stop {
     name
@@ -85,6 +88,11 @@ package "Normalized static schedule" {
     description
     directionLabel : optional
   }
+  enum ServicePurpose {
+    REGULAR
+    REPLACEMENT
+    PLANNED_CONTINGENCY
+  }
   class ScheduledTrip {
     providerTripId
     providerServiceId
@@ -92,6 +100,7 @@ package "Normalized static schedule" {
     directionId : optional
     shapeId : optional
     accessibility
+    servicePurpose
   }
   class ServiceCalendar {
     startDate : LocalDate
@@ -112,6 +121,12 @@ package "Normalized static schedule" {
     bidirectional
     traversalSeconds : optional
   }
+  class InterchangeLink {
+    direction
+    minimumTraversalSeconds : optional
+    minimumConnectionSeconds
+    evidence
+  }
   class ScheduledOccupancyProfile {
     occupancyCategory
     serviceCalendar
@@ -119,7 +134,7 @@ package "Normalized static schedule" {
   }
   ScheduleSnapshot o-- "0..*" Stop
   Stop --> StopRef
-  TfnswStopNumber -- "0..*" StopRef : mapped feed stops
+  NetworkStop -- "1..*" StopRef : identity/group membership
   Stop "0..*" --> "0..1" Stop : parent station
   RouteVariant --> "0..1" TransitLine : optionally grouped as
   RouteVariant --> Agency
@@ -131,6 +146,9 @@ package "Normalized static schedule" {
   DatedStopEvent --> ScheduledStopCall : resolved from service-day time
   StationPathway --> "1" Stop : from
   StationPathway --> "1" Stop : to
+  InterchangeLink --> "1" Stop : from
+  InterchangeLink --> "1" Stop : to
+  InterchangeLink --> "0..1" NetworkStop : evidence may share group
 }
 
 package "Opal fare domain - independently versioned" {
@@ -221,7 +239,7 @@ package "Timetable route search" {
     localTime : LocalTime
     direction : DEPART_AFTER | ARRIVE_BY
     allowedModes
-    minimumTransferWaitSeconds : optional
+    additionalTransferWaitSeconds : optional
     viaStops : optional StopRef[]
     fareProfile : default Adult Opal
     maxResults
@@ -240,15 +258,17 @@ package "Timetable route search" {
     trip : ScheduledTrip
     fromCall : ScheduledStopCall
     toCall : ScheduledStopCall
+    fromCallIndex
+    toCallIndex
     realtimeState : SCHEDULED | UPDATED
     scheduledCrowding : optional
     realtimeCrowding : optional
   }
   class TransferLeg {
-    pathway : StationPathway
+    interchange : StationPathway | InterchangeLink
     walkingSeconds
-    connectionBufferSeconds
-    transferSeconds
+    connectionThresholdSeconds
+    actualWaitingSeconds
   }
   TimetableRouteQuery --> "1..*" TimetableRoute
   TimetableRouteQuery --> "0..1" FareProfile
@@ -270,13 +290,15 @@ package "Realtime overlay" {
     retrievedAt : Instant
   }
   class AlertTarget {
-    feedKey
+    providerNamespace
     agencyId : optional
     routeId : optional
     tripId : optional
     stopId : optional
+    matchedScheduleRefs
   }
   class RealtimeTripUpdate {
+    providerNamespace
     providerTripId
     providerRouteId : optional
     startDate : optional
@@ -298,14 +320,20 @@ package "Realtime overlay" {
   RealtimeTripUpdate o-- "0..*" RealtimeStopUpdate
   RealtimeStopUpdate --> ScheduledStopCall
   TimetableRoute --> "0..*" ServiceAlert : relevant alerts
+  class ScheduleJoinResult {
+    status : MATCHED | ADDED | CANCELED | UNMATCHED
+    scheduleFeedKey : optional
+    matchedTripRef : optional
+  }
+  RealtimeTripUpdate --> ScheduleJoinResult
+  ScheduleJoinResult --> "0..1" ScheduledTrip
 }
 
 package "Optional Park&Ride stop context" {
   class ParkingTransitLink {
     facilityId
-    tsn
   }
-  ParkingTransitLink --> TfnswStopNumber
+  ParkingTransitLink --> NetworkStop
 }
 
 note right of StopRef
