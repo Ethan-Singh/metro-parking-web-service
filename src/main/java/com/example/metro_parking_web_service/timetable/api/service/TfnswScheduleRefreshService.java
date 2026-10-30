@@ -2,7 +2,6 @@
 package com.example.metro_parking_web_service.timetable.api.service;
 
 import com.example.metro_parking_web_service.provider.tfnsw.config.TfnswConnectionProperties;
-import com.example.metro_parking_web_service.timetable.api.config.TimetableProviderProperties;
 import com.example.metro_parking_web_service.timetable.api.document.TimetableFeedStateDocument;
 import com.example.metro_parking_web_service.timetable.api.repository.TimetableFeedStateRepository;
 import java.nio.file.Files;
@@ -26,7 +25,6 @@ public class TfnswScheduleRefreshService {
     private static final String TRAINS = "sydneytrains";
     private static final String METRO = "metro";
 
-    private final TimetableProviderProperties properties;
     private final TfnswConnectionProperties connectionProperties;
     private final TfnswScheduleFeedClient feedClient;
     private final TimetableFeedStateRepository feedStateRepository;
@@ -48,9 +46,24 @@ public class TfnswScheduleRefreshService {
                     feedStateRepository.findById(TRAINS).orElse(null);
             TimetableFeedStateDocument previousMetro =
                     feedStateRepository.findById(METRO).orElse(null);
-            if (unchanged(previousTrains, trainsLastModified)
-                    && unchanged(previousMetro, metroLastModified)) {
-                log.debug("event=timetable_refresh_skipped reason=feeds_unchanged");
+            boolean trainsUnchanged = unchanged(previousTrains, trainsLastModified);
+            boolean metroUnchanged = unchanged(previousMetro, metroLastModified);
+            log.info(
+                    "event=timetable_feed_check feed={} status={} providerLastModified={}",
+                    TRAINS,
+                    trainsUnchanged ? "current" : "changed",
+                    printableRevision(trainsLastModified));
+            log.info(
+                    "event=timetable_feed_check feed={} status={} providerLastModified={}",
+                    METRO,
+                    metroUnchanged ? "current" : "changed",
+                    printableRevision(metroLastModified));
+            if (trainsUnchanged && metroUnchanged) {
+                log.info(
+                        "event=timetable_provider_refresh_skipped reason=feeds_current"
+                                + " trainsLastModified={} metroLastModified={}",
+                        printableRevision(trainsLastModified),
+                        printableRevision(metroLastModified));
                 return;
             }
 
@@ -70,9 +83,11 @@ public class TfnswScheduleRefreshService {
                 saveState(METRO, metroLastModified, metroBytes);
                 log.info(
                         "event=timetable_provider_refresh_complete trainsRevision={}"
-                                + " metroRevision={}",
+                                + " metroRevision={} trainsStatus={} metroStatus={}",
                         trainsRevision,
-                        metroRevision);
+                        metroRevision,
+                        trainsUnchanged ? "current" : "updated",
+                        metroUnchanged ? "current" : "updated");
             } finally {
                 Files.deleteIfExists(trainsTemp);
                 Files.deleteIfExists(metroTemp);
@@ -110,6 +125,10 @@ public class TfnswScheduleRefreshService {
 
     private String revision(String lastModified, byte[] bytes) {
         return lastModified == null || lastModified.isBlank() ? sha256(bytes) : lastModified;
+    }
+
+    private String printableRevision(String lastModified) {
+        return lastModified == null || lastModified.isBlank() ? "unavailable" : lastModified;
     }
 
     private void saveState(String key, String lastModified, byte[] content) {

@@ -22,7 +22,10 @@ public class RestClientConfig {
         String api = parkingProperties.api();
         String url = (baseUrl == null ? "" : baseUrl) + (api == null ? "" : api);
 
-        log.info("parkingRestClient.url={}", url);
+        log.info(
+                "event=parking_provider_client_configured baseUri={} authenticationConfigured={}",
+                url,
+                tfnswProperties.apikey() != null && !tfnswProperties.apikey().isBlank());
 
         RestClient.Builder builder = RestClient.builder();
         if (!url.isBlank()) {
