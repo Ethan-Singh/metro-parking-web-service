@@ -69,17 +69,25 @@ The full contract is available as [OpenAPI YAML](docs/apis/metro-parking-api-v1.
 
 ## Configuration
 
-Set `MONGODB_URI`, `PARKING_BASE_URL`, `PARKING_API`, and `PARKING_APIKEY`. `ALLOWED_ORIGINS` controls browser CORS. Policy defaults are in [`application.yaml`](src/main/resources/application.yaml):
+Set `MONGODB_URI`, `TFNSW_BASE_URL`, `TFNSW_APIKEY`, `PARKING_API`, `TIMETABLE_SYDNEY_TRAINS_API`, and `TIMETABLE_METRO_API`. Set `TFNSW_APIKEY` to the full `apikey <token>` Authorization header value. `ALLOWED_ORIGINS` controls browser CORS. Provider endpoints and parking policy defaults are in [`application.yaml`](src/main/resources/application.yaml):
 
 ```yaml
-external-server:
-  parking:
-    policy:
-      disabled-facilities: [1, 2, 3, 4, 5]
-      backfill-window: 31 # inclusive Sydney calendar dates
+providers:
+  tfnsw:
+    base-url: https://api.transport.nsw.gov.au
+    apikey: apikey <token>
+    parking:
+      api: <parking endpoint path>
+      policy:
+        disabled-facilities: [1, 2, 3, 4, 5]
+        backfill-window: 31 # inclusive Sydney calendar dates
+    timetable:
+      api:
+        sydney-trains: <Sydney Trains schedule path>
+        metro: <Metro schedule path>
 ```
 
-The per-IP token bucket is configured under `external-server.parking.security.rate-limit`. The scheduler is suppressed in the `test` profile.
+The provider base URL and Authorization header are shared under `providers.tfnsw`; each domain owns its API path and settings below that provider. The per-IP token bucket is configured under `providers.tfnsw.parking.security.rate-limit`. Timetable refresh is enabled by default and can be disabled locally with `TIMETABLE_PROVIDER_ENABLED=false`; its refresh interval is configurable with `TIMETABLE_REFRESH_INTERVAL`. The scheduler is suppressed in the `test` profile.
 
 ## Run locally
 

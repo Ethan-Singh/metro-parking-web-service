@@ -47,3 +47,4 @@ docker-compose.yaml
 # Local database dumps and Lighthouse output are generated artifacts.
 /docs/dumps/
 /docs/lighthouse/
+/docs/anytrip/
