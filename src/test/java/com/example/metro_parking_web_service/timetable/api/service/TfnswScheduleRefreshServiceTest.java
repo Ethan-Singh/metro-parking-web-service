@@ -34,7 +34,15 @@ class TfnswScheduleRefreshServiceTest {
 
         verify(feedClient, never()).head(anyString());
         verify(snapshotBuildService, never())
-                .buildAndPublish(any(), anyString(), any(), anyString());
+                .buildAndPublish(
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString());
     }
 
     @Test
@@ -46,7 +54,15 @@ class TfnswScheduleRefreshServiceTest {
         service.refreshIfChanged();
 
         verify(snapshotBuildService, never())
-                .buildAndPublish(any(), anyString(), any(), anyString());
+                .buildAndPublish(
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString());
         verify(feedStateRepository, never()).save(any());
     }
 
@@ -57,6 +73,10 @@ class TfnswScheduleRefreshServiceTest {
                 .thenReturn(new TfnswScheduleFeedClient.FeedHead("train-revision"));
         when(feedClient.head("metro"))
                 .thenReturn(new TfnswScheduleFeedClient.FeedHead("metro-revision"));
+        when(feedClient.head("replacementbus"))
+                .thenReturn(new TfnswScheduleFeedClient.FeedHead("replacementbus-revision"));
+        when(feedClient.head("pcbc"))
+                .thenReturn(new TfnswScheduleFeedClient.FeedHead("pcbc-revision"));
         when(feedStateRepository.findById(anyString())).thenReturn(Optional.empty());
         when(feedClient.download(anyString())).thenReturn(ZIP_BYTES);
 
@@ -67,8 +87,12 @@ class TfnswScheduleRefreshServiceTest {
                         any(),
                         org.mockito.ArgumentMatchers.eq("train-revision"),
                         any(),
-                        org.mockito.ArgumentMatchers.eq("metro-revision"));
-        verify(feedStateRepository, org.mockito.Mockito.times(2)).save(any());
+                        org.mockito.ArgumentMatchers.eq("metro-revision"),
+                        any(),
+                        org.mockito.ArgumentMatchers.eq("replacementbus-revision"),
+                        any(),
+                        org.mockito.ArgumentMatchers.eq("pcbc-revision"));
+        verify(feedStateRepository, org.mockito.Mockito.times(4)).save(any());
     }
 
     @Test
@@ -76,18 +100,35 @@ class TfnswScheduleRefreshServiceTest {
         TfnswScheduleRefreshService service = service("apikey token");
         var trains = state("sydneytrains", "same-revision");
         var metro = state("metro", "same-revision");
+        var replacementBus = state("replacementbus", "same-revision");
+        var pcbc = state("pcbc", "same-revision");
         when(feedClient.head("sydneytrains"))
                 .thenReturn(new TfnswScheduleFeedClient.FeedHead("same-revision"));
         when(feedClient.head("metro"))
                 .thenReturn(new TfnswScheduleFeedClient.FeedHead("same-revision"));
+        when(feedClient.head("replacementbus"))
+                .thenReturn(new TfnswScheduleFeedClient.FeedHead("same-revision"));
+        when(feedClient.head("pcbc"))
+                .thenReturn(new TfnswScheduleFeedClient.FeedHead("same-revision"));
         when(feedStateRepository.findById("sydneytrains")).thenReturn(Optional.of(trains));
         when(feedStateRepository.findById("metro")).thenReturn(Optional.of(metro));
+        when(feedStateRepository.findById("replacementbus"))
+                .thenReturn(Optional.of(replacementBus));
+        when(feedStateRepository.findById("pcbc")).thenReturn(Optional.of(pcbc));
 
         service.refreshIfChanged();
 
         verify(feedClient, never()).download(anyString());
         verify(snapshotBuildService, never())
-                .buildAndPublish(any(), anyString(), any(), anyString());
+                .buildAndPublish(
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString(),
+                        any(),
+                        anyString());
     }
 
     private TfnswScheduleRefreshService service(String apiKey) {

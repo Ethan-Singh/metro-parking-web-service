@@ -29,6 +29,8 @@ providers:
       api:
         sydney-trains: /v1/gtfs/schedule/sydneytrains
         metro: /v2/gtfs/schedule/metro
+        replacement-bus: /v1/gtfs/schedule/buses/ReplacementBus
+        pcbc: /v1/gtfs/schedule/buses/PCBC
       enabled: false
       refresh-interval: PT6H
     realtime:

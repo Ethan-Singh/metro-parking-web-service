@@ -13,14 +13,17 @@ normalized domain concepts, not protobuf messages or GTFS tables.
 
 The manifest and date-package read endpoints are implemented. Captured-feed
 bootstrap is opt-in with `--timetable.snapshot.bootstrap-enabled=true`; it
-reads the configured production Sydney Trains and Metro ZIPs in
+reads the configured production Sydney Trains, Metro, ReplacementBus, and PCBC ZIPs in
 `application.yaml`, builds yesterday through today+6, and writes versioned gzip
 packages to the timetable Mongo collections. It validates every package's
 compressed-size target before publishing the active manifest. ReplacementBus
-and PCBC are not loaded into user-facing packages until a replacement
-relationship can be established. Each refresh currently materializes eight
+and PCBC are loaded only as supporting sources inside the Sydney Trains
+package. The reviewed `9T2` Leppington–Glenfield replacement and `11T2`
+Olympic Park–Ashfield contingency routes carry service purpose/context and
+explicit stop interchanges; neither is a standalone offering. Each refresh currently materializes eight
 dates and three stored representations per date (`ALL`, `SYDNEY_TRAINS`, and
-`SYDNEY_METRO`). The public `ALL` package combines only the two active feeds.
+`SYDNEY_METRO`). The public `ALL` package combines the two offerings and the
+reviewed supporting legs inside Sydney Trains.
 The current builder advertises the rolling eight-date window even when an
 individual feed produces no trips for a date; intersecting each offering's
 coverage with actual service validity remains an implementation follow-up.
@@ -28,14 +31,16 @@ coverage with actual service validity remains an implementation follow-up.
 The real provider refresh path uses the TfNSW Sydney Trains v1
 `/v1/gtfs/schedule/sydneytrains` and Metro v2 `/v2/gtfs/schedule/metro`
 endpoints. It checks `Last-Modified` with `HEAD` every six hours and downloads
-both feeds only on first load or when either revision changes. Set
+all four feeds only on first load or when any revision changes. Set
 `TFNSW_APIKEY` to the complete provider Authorization header value (for
 example, `apikey <token>`) and `TIMETABLE_PROVIDER_ENABLED=true` to enable it.
 The credential remains server-side. Downloaded source ZIPs are temporary build
 inputs; only validated compressed client packages and small feed revision
 state are kept. Refresh errors leave the active manifest and packages
 unchanged. Current published package fields are `stops`, `routes`, `trips`,
-`calls`, `interchanges`, `sources`, and offering status metadata. Public stop,
+`calls`, `interchanges`, `sources`, and offering status metadata. Supporting
+trips carry `servicePurpose` and `serviceContext`; their IDs retain their own
+feed namespace. Public stop,
 route, and trip IDs are namespaced with the source feed key; static call times
 are RFC 3339 instants with `Australia/Sydney` retained for display.
 
@@ -80,9 +85,10 @@ the package and realtime overlay; there is no duplicate backend journey solver.
 
 - Each timetable offering reports its own state, supported facets, and covered
   Sydney dates. The only initial user-facing offerings are Sydney Trains and
-  Sydney Metro. ReplacementBus and PCBC are supporting schedule feeds: include
-  their trips in the affected train/Metro package when a replacement
-  relationship is established. They are not standalone offerings. Retain
+  Sydney Metro. ReplacementBus and PCBC are supporting schedule feeds. The
+  reviewed `9T2` and `11T2` routes are included inside the Sydney Trains
+  package with purpose, affected segment, service window, and stop-link
+  provenance. They are not standalone offerings. Retain
   their feed keys and provenance internally and in source metadata.
 - Advertise yesterday through today plus six days, inclusive, intersected with
   actual service validity. A date package includes earlier service-date trips
@@ -96,11 +102,10 @@ the package and realtime overlay; there is no duplicate backend journey solver.
   be cached by revision and revalidated through the date alias; manifest and
   realtime data should be revalidated frequently. Exact `max-age` values are
   operational configuration, not domain semantics.
-- Target no more than 2 MB per compressed date package. The initial published
-  `ALL` packages contain Sydney Trains and Metro only; captured production
-  builds for 29 Oct through 5 Nov 2026 ranged from about 0.12 MB to 1.11 MB
-  gzip, within the target. ReplacementBus and PCBC are not currently merged.
-  Re-measure after adding feeds or changing the package shape.
+- Target no more than 2 MB per compressed date package. Initial captured
+  production builds for 29 Oct through 5 Nov 2026 ranged from about 0.12 MB to
+  1.11 MB gzip before the supporting schedules were included. Re-measure the
+  updated package against the target after building the supporting feeds.
 - Store versioned, precompressed client package documents in the timetable's
   own MongoDB collection, separate from parking collections. Write immutable
   packages for a candidate snapshot first, validate them, then publish the

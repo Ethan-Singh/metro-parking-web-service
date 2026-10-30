@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,10 +13,15 @@ import static org.mockito.Mockito.when;
 import com.example.metro_parking_web_service.timetable.api.config.TimetableSnapshotProperties;
 import com.example.metro_parking_web_service.timetable.api.document.TimetablePackageDocument;
 import com.example.metro_parking_web_service.timetable.api.service.TimetableSnapshotPublisher.SnapshotCandidate;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.StreamSupport;
+import java.util.zip.GZIPInputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +46,12 @@ class TimetableSnapshotBuildServiceTest {
                         packageBuilder,
                         publisher,
                         new TimetableSnapshotProperties(
-                                false, Path.of("trains.zip"), Path.of("metro.zip"), 2_097_152));
+                                false,
+                                Path.of("trains.zip"),
+                                Path.of("metro.zip"),
+                                Path.of("replacementbus.zip"),
+                                Path.of("pcbc.zip"),
+                                2_097_152));
     }
 
     @Test
@@ -85,7 +96,12 @@ class TimetableSnapshotBuildServiceTest {
                         packageBuilder,
                         publisher,
                         new TimetableSnapshotProperties(
-                                false, Path.of("trains.zip"), Path.of("metro.zip"), 1));
+                                false,
+                                Path.of("trains.zip"),
+                                Path.of("metro.zip"),
+                                Path.of("replacementbus.zip"),
+                                Path.of("pcbc.zip"),
+                                1));
         when(packageBuilder.build(any(), anyString(), anyString(), any(), anyString()))
                 .thenReturn(packageBody("SYDNEY_TRAINS", LocalDate.now(), false));
 
@@ -101,6 +117,100 @@ class TimetableSnapshotBuildServiceTest {
         verify(publisher, org.mockito.Mockito.never()).publish(any());
     }
 
+    @Test
+    void publishesReplacementBusAndPcbcAsSupportingTripsInTrainPackageOnly() throws Exception {
+        GtfsDatePackageBuilder realBuilder = org.mockito.Mockito.spy(new GtfsDatePackageBuilder());
+        doAnswer(
+                        invocation ->
+                                packageBody(
+                                        invocation.getArgument(2),
+                                        invocation.getArgument(3),
+                                        invocation.getArgument(2).equals("SYDNEY_METRO")))
+                .when(realBuilder)
+                .build(any(), anyString(), anyString(), any(), anyString());
+        buildService =
+                new TimetableSnapshotBuildService(
+                        realBuilder,
+                        publisher,
+                        new TimetableSnapshotProperties(
+                                false,
+                                Path.of("trains.zip"),
+                                Path.of("metro.zip"),
+                                Path.of("replacementbus.zip"),
+                                Path.of("pcbc.zip"),
+                                2_097_152));
+
+        buildService.buildAndPublishForDate(
+                Path.of("trains.zip"),
+                "train-r1",
+                Path.of("metro.zip"),
+                "metro-r1",
+                Path.of(
+                        "docs/apis/v1-gtfs/schedules/buses/replacementbus/"
+                                + "ReplacementBus_GTFS_PROD_20261028091300.zip"),
+                "replacement-r1",
+                Path.of("docs/apis/v1-gtfs/schedules/buses/pcbc/PCBC_GTFS_PROD_20261028085700.zip"),
+                "pcbc-r1",
+                LocalDate.of(2026, 10, 26));
+
+        ArgumentCaptor<SnapshotCandidate> candidateCaptor =
+                ArgumentCaptor.forClass(SnapshotCandidate.class);
+        verify(publisher).publish(candidateCaptor.capture());
+        SnapshotCandidate candidate = candidateCaptor.getValue();
+        assertThat(candidate.manifest().path("offerings").findValuesAsText("key"))
+                .containsExactly("SYDNEY_TRAINS", "SYDNEY_METRO")
+                .doesNotContain("REPLACEMENT_BUS", "PCBC");
+        assertThat(
+                        candidate
+                                .manifest()
+                                .path("offerings")
+                                .get(0)
+                                .path("sources")
+                                .findValuesAsText("feedKey"))
+                .contains("replacementbus", "pcbc");
+
+        TimetablePackageDocument trainPackage =
+                candidate.packages().stream()
+                        .filter(
+                                document ->
+                                        document.getOffering().equals("SYDNEY_TRAINS")
+                                                && document.getTravelDate()
+                                                        .equals(LocalDate.of(2026, 11, 1)))
+                        .findFirst()
+                        .orElseThrow();
+        var body =
+                MAPPER.readTree(
+                        new GZIPInputStream(new ByteArrayInputStream(trainPackage.getPayload())));
+        assertThat(body.withArray("offerings").toString())
+                .doesNotContain("REPLACEMENT_BUS", "PCBC");
+        assertThat(items(body.path("trips")))
+                .anySatisfy(
+                        trip -> {
+                            assertThat(trip.path("id").asText())
+                                    .isEqualTo("replacementbus:2757475:2026-11-01");
+                            assertThat(trip.path("servicePurpose").asText())
+                                    .isEqualTo("REPLACEMENT");
+                        })
+                .anySatisfy(
+                        trip ->
+                                assertThat(trip.path("servicePurpose").asText())
+                                        .isEqualTo("PLANNED_CONTINGENCY"));
+        assertThat(items(body.path("routes")))
+                .anySatisfy(route -> assertThat(route.path("shortName").asText()).isEqualTo("9T2"))
+                .anySatisfy(
+                        route -> assertThat(route.path("shortName").asText()).isEqualTo("11T2"));
+        assertThat(body.withArray("sources").findValuesAsText("feedKey"))
+                .contains("replacementbus", "pcbc");
+        assertThat(items(body.path("interchanges")))
+                .anySatisfy(
+                        interchange -> {
+                            assertThat(interchange.path("fromStopId").asText())
+                                    .isEqualTo("replacementbus:217938");
+                            assertThat(interchange.path("toStopId").asText())
+                                    .isEqualTo("sydneytrains:217933");
+                        });
+    }
+
     private ObjectNode packageBody(String offering, LocalDate date, boolean metro) {
         ObjectNode body = MAPPER.createObjectNode();
         body.put("travelDate", date.toString());
@@ -108,6 +218,12 @@ class TimetableSnapshotBuildServiceTest {
         body.putArray("offeringStatuses").add(MAPPER.createObjectNode().put("key", offering));
         body.putArray("sources").add(MAPPER.createObjectNode().put("feedKey", offering));
         body.putArray("stops").add(MAPPER.createObjectNode().put("id", offering + "-stop"));
+        if (offering.equals("SYDNEY_TRAINS")) {
+            for (String id : List.of("217933", "216710", "217426", "212710", "213110")) {
+                body.withArray("stops")
+                        .add(MAPPER.createObjectNode().put("id", "sydneytrains:" + id));
+            }
+        }
         body.putArray("routes").add(MAPPER.createObjectNode().put("id", offering + "-route"));
         body.putArray("calls").add(MAPPER.createObjectNode().put("sequence", 1));
         body.putArray("trips")
@@ -117,5 +233,9 @@ class TimetableSnapshotBuildServiceTest {
                                 .put("stopCallStart", metro ? 0 : 0)
                                 .put("stopCallCount", 1));
         return body;
+    }
+
+    private List<JsonNode> items(JsonNode array) {
+        return StreamSupport.stream(array.spliterator(), false).toList();
     }
 }

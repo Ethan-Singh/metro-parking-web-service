@@ -9,4 +9,6 @@ public record TimetableSnapshotProperties(
         boolean bootstrapEnabled,
         Path sydneyTrainsZip,
         Path metroZip,
+        Path replacementBusZip,
+        Path pcbcZip,
         int maximumCompressedPackageBytes) {}

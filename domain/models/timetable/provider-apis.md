@@ -22,6 +22,31 @@ provenance through normalization.
 The legacy Complete GTFS capture is for coverage research only. It must not be
 merged into the Realtime-compatible Sydney Trains or Metro schedules.
 
+## Supporting schedule use in Sydney Trains packages
+
+The snapshot builder fetches the dedicated ReplacementBus and PCBC endpoints
+as supporting source feeds. They do not create manifest offerings. Only these
+reviewed routes are admitted to the Sydney Trains package:
+
+| Supporting feed route | Purpose / reviewed segment | Window (Sydney time) | Reviewed stop links |
+| --- | --- | --- | --- |
+| ReplacementBus `7063_9T2` (`9T2`) | `REPLACEMENT`, Leppington–Glenfield | 08:00–14:00 | Leppington, Edmondson Park, Glenfield bus stops to Sydney Trains station IDs |
+| PCBC `700015_11T2` (`11T2`) | `PLANNED_CONTINGENCY`, Olympic Park–Ashfield | 02:00–10:00 | Olympic Park, Flemington, Homebush, Strathfield, Burwood, Croydon, Ashfield bus stops to Sydney Trains station IDs |
+
+The builder limits each supporting source to these route IDs and retains only
+trips with a call in the corresponding reviewed window. Routes, trips, and
+stops retain their source feed namespace. Each trip includes `servicePurpose`
+and `serviceContext`, which identifies the affected rail segment, station
+endpoints, evidence URL, and window. Reviewed stop mappings are emitted as
+interchange links with provenance. Neither source appears as a standalone
+user-facing offering, and no general bus schedule is inferred from these
+feeds.
+
+The captured ReplacementBus schedule confirms the 1 Nov 2026 `9T2` run from
+Leppington Station Stand A at 08:07 to Glenfield Station Railway Pde at 08:36,
+via Edmondson Park. This is schedule evidence; an alert's active-period
+association remains a separate realtime concern.
+
 ## Search behavior evidence and limits
 
 The Trip Planner Swagger defines `stop_finder` with `type_sf=any` for general

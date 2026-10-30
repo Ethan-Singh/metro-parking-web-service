@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -46,6 +47,39 @@ public class GtfsDatePackageBuilder {
             LocalDate travelDate,
             String providerRevision)
             throws IOException {
+        return buildInternal(
+                zipPath,
+                feedKey,
+                offering,
+                travelDate,
+                providerRevision,
+                BuildOptions.primary(offering));
+    }
+
+    public ObjectNode buildSupporting(
+            Path zipPath,
+            String offering,
+            LocalDate travelDate,
+            String providerRevision,
+            SupportingSchedulePolicy.Route policy)
+            throws IOException {
+        return buildInternal(
+                zipPath,
+                policy.feedKey(),
+                offering,
+                travelDate,
+                providerRevision,
+                BuildOptions.supporting(policy));
+    }
+
+    private ObjectNode buildInternal(
+            Path zipPath,
+            String feedKey,
+            String offering,
+            LocalDate travelDate,
+            String providerRevision,
+            BuildOptions options)
+            throws IOException {
         try (ZipFile zip = new ZipFile(zipPath.toFile(), StandardCharsets.UTF_8)) {
             Map<String, Map<String, String>> stops = index(readTable(zip, "stops.txt"), "stop_id");
             Map<String, Map<String, String>> routes =
@@ -56,13 +90,18 @@ public class GtfsDatePackageBuilder {
             Map<String, Map<LocalDate, String>> exceptions = readExceptions(zip);
 
             Set<String> allowedRoutes = new HashSet<>();
-            routes.forEach(
-                    (id, route) -> {
-                        String agency = route.getOrDefault("agency_id", "");
-                        if (offering.equals("SYDNEY_METRO") || agency.equals("SydneyTrains")) {
-                            allowedRoutes.add(id);
-                        }
-                    });
+            if (options.supportingRoute() != null) {
+                String routeId = options.supportingRoute().providerRouteId();
+                if (routes.containsKey(routeId)) allowedRoutes.add(routeId);
+            } else {
+                routes.forEach(
+                        (id, route) -> {
+                            String agency = route.getOrDefault("agency_id", "");
+                            if (offering.equals("SYDNEY_METRO") || agency.equals("SydneyTrains")) {
+                                allowedRoutes.add(id);
+                            }
+                        });
+            }
             trips.entrySet()
                     .removeIf(entry -> !allowedRoutes.contains(entry.getValue().get("route_id")));
 
@@ -76,6 +115,16 @@ public class GtfsDatePackageBuilder {
                     });
 
             Set<String> selectedTripInstances = findTripsCallingOnDate(zip, tripDays, travelDate);
+            if (options.supportingRoute() != null) {
+                selectedTripInstances =
+                        retainTripsWithinWindow(
+                                zip,
+                                selectedTripInstances,
+                                tripDays,
+                                travelDate,
+                                options.supportingRoute().activeFrom(),
+                                options.supportingRoute().activeUntil());
+            }
             Map<String, List<CallRow>> callsByInstance =
                     collectTripCalls(zip, selectedTripInstances, tripDays);
             return serializePackage(
@@ -86,8 +135,57 @@ public class GtfsDatePackageBuilder {
                     routes,
                     trips,
                     callsByInstance,
-                    providerRevision);
+                    providerRevision,
+                    options);
         }
+    }
+
+    private Set<String> retainTripsWithinWindow(
+            ZipFile zip,
+            Set<String> selected,
+            Map<String, List<LocalDate>> tripDays,
+            LocalDate travelDate,
+            LocalTime activeFrom,
+            LocalTime activeUntil)
+            throws IOException {
+        Set<String> retained = new HashSet<>();
+        LocalDateTime windowStart = travelDate.atTime(activeFrom);
+        LocalDateTime windowEnd = travelDate.atTime(activeUntil);
+        forEachRow(
+                zip,
+                "stop_times.txt",
+                row -> {
+                    List<LocalDate> serviceDates = tripDays.get(row.get("trip_id"));
+                    if (serviceDates == null) return;
+                    for (LocalDate serviceDate : serviceDates) {
+                        String key = instanceKey(row.get("trip_id"), serviceDate);
+                        if (!selected.contains(key)) continue;
+                        if (fallsWithin(
+                                        row.get("arrival_time"),
+                                        serviceDate,
+                                        windowStart,
+                                        windowEnd)
+                                || fallsWithin(
+                                        row.get("departure_time"),
+                                        serviceDate,
+                                        windowStart,
+                                        windowEnd)) {
+                            retained.add(key);
+                            break;
+                        }
+                    }
+                });
+        return retained;
+    }
+
+    private boolean fallsWithin(
+            String gtfsTime,
+            LocalDate serviceDate,
+            LocalDateTime windowStart,
+            LocalDateTime windowEnd) {
+        if (gtfsTime == null || gtfsTime.isBlank()) return false;
+        LocalDateTime event = serviceDate.atStartOfDay().plusSeconds(seconds(gtfsTime));
+        return !event.isBefore(windowStart) && event.isBefore(windowEnd);
     }
 
     private Set<String> findTripsCallingOnDate(
@@ -146,7 +244,8 @@ public class GtfsDatePackageBuilder {
             Map<String, Map<String, String>> routes,
             Map<String, Map<String, String>> trips,
             Map<String, List<CallRow>> callsByInstance,
-            String providerRevision) {
+            String providerRevision,
+            BuildOptions options) {
         ObjectNode body = objectMapper.createObjectNode();
         body.put("schemaVersion", "1");
         body.put("travelDate", travelDate.toString());
@@ -166,7 +265,7 @@ public class GtfsDatePackageBuilder {
         ArrayNode sources = body.putArray("sources");
         ObjectNode source = sources.addObject();
         source.put("feedKey", feedKey);
-        source.put("role", "PRIMARY");
+        source.put("role", options.sourceRole());
         source.put("associatedOffering", offering);
         source.put("status", "CURRENT");
         source.put("providerRevision", providerRevision);
@@ -191,6 +290,11 @@ public class GtfsDatePackageBuilder {
             tripOut.put("serviceDate", keyParts[1]);
             tripOut.put("headsign", trip.getOrDefault("trip_headsign", ""));
             tripOut.put("directionId", trip.getOrDefault("direction_id", ""));
+            tripOut.put("servicePurpose", options.servicePurpose());
+            if (options.supportingRoute() != null) {
+                tripOut.set(
+                        "serviceContext", serviceContext(options.supportingRoute(), travelDate));
+            }
 
             List<CallRow> calls = entry.getValue();
             tripOut.put("stopCallStart", callsOut.size());
@@ -234,8 +338,8 @@ public class GtfsDatePackageBuilder {
             output.put("shortName", route.getOrDefault("route_short_name", ""));
             output.put("name", route.getOrDefault("route_long_name", ""));
             output.put("description", route.getOrDefault("route_desc", ""));
-            output.put("mode", offering.equals("SYDNEY_METRO") ? "METRO" : "RAIL");
-            output.put("servicePurpose", "REGULAR");
+            output.put("mode", options.mode());
+            output.put("servicePurpose", options.servicePurpose());
             putIfNotBlank(output, "color", route.get("route_color"));
             putIfNotBlank(output, "textColor", route.get("route_text_color"));
         }
@@ -255,7 +359,11 @@ public class GtfsDatePackageBuilder {
             ObjectNode output = stopsOut.addObject();
             output.put("id", feedKey + ":" + providerId);
             output.put("name", stop.getOrDefault("stop_name", ""));
-            output.put("kind", "1".equals(locationType) ? "STATION" : "PLATFORM");
+            output.put(
+                    "kind",
+                    options.mode().equals("BUS")
+                            ? "BUS_STOP"
+                            : "1".equals(locationType) ? "STATION" : "PLATFORM");
             output.put("feedKey", feedKey);
             output.put("providerId", providerId);
             putIfNotBlank(
@@ -275,9 +383,62 @@ public class GtfsDatePackageBuilder {
             }
         }
         body.putArray("interchanges");
+        if (options.supportingRoute() != null) {
+            ArrayNode interchanges = body.withArray("interchanges");
+            for (SupportingSchedulePolicy.StopMapping mapping :
+                    options.supportingRoute().stopMappings()) {
+                interchanges
+                        .addObject()
+                        .put("fromStopId", feedKey + ":" + mapping.supportingProviderStopId())
+                        .put("toStopId", "sydneytrains:" + mapping.railProviderStopId())
+                        .put("minimumTransferSeconds", 0)
+                        .put("bidirectional", true)
+                        .put("provenance", options.supportingRoute().evidenceReference());
+            }
+        }
         body.put("generatedAt", java.time.Instant.now().toString());
         body.put("packageVersion", "candidate");
         return body;
+    }
+
+    private ObjectNode serviceContext(SupportingSchedulePolicy.Route policy, LocalDate travelDate) {
+        ObjectNode context = objectMapper.createObjectNode();
+        context.put("affectedOffering", "SYDNEY_TRAINS");
+        context.put("affectedFeedKey", "sydneytrains");
+        context.put("affectedSegment", policy.affectedSegment());
+        context.put("fromStopId", "sydneytrains:" + policy.affectedFromProviderStopId());
+        context.put("toStopId", "sydneytrains:" + policy.affectedToProviderStopId());
+        context.put("evidenceReference", policy.evidenceReference());
+        context.put(
+                "activeFrom",
+                travelDate
+                        .atTime(policy.activeFrom())
+                        .atZone(SYDNEY)
+                        .toOffsetDateTime()
+                        .toString());
+        context.put(
+                "activeUntil",
+                travelDate
+                        .atTime(policy.activeUntil())
+                        .atZone(SYDNEY)
+                        .toOffsetDateTime()
+                        .toString());
+        return context;
+    }
+
+    private record BuildOptions(
+            String mode,
+            String servicePurpose,
+            String sourceRole,
+            SupportingSchedulePolicy.Route supportingRoute) {
+        private static BuildOptions primary(String offering) {
+            return new BuildOptions(
+                    offering.equals("SYDNEY_METRO") ? "METRO" : "RAIL", "REGULAR", "PRIMARY", null);
+        }
+
+        private static BuildOptions supporting(SupportingSchedulePolicy.Route policy) {
+            return new BuildOptions("BUS", policy.servicePurpose(), "SUPPORTING", policy);
+        }
     }
 
     private Map<String, List<LocalDate>> activeDays(

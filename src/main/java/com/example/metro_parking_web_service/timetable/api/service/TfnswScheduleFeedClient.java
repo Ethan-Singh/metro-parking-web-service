@@ -73,6 +73,8 @@ public class TfnswScheduleFeedClient {
                 switch (feedKey) {
                     case "sydneytrains" -> properties.api().sydneyTrains();
                     case "metro" -> properties.api().metro();
+                    case "replacementbus" -> properties.api().replacementBus();
+                    case "pcbc" -> properties.api().pcbc();
                     default -> null;
                 };
         if (path == null) throw new IllegalArgumentException("Unsupported TfNSW schedule feed");

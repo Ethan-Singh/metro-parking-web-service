@@ -24,6 +24,8 @@ public class TfnswScheduleRefreshService {
 
     private static final String TRAINS = "sydneytrains";
     private static final String METRO = "metro";
+    private static final String REPLACEMENT_BUS = "replacementbus";
+    private static final String PCBC = "pcbc";
 
     private final TfnswConnectionProperties connectionProperties;
     private final TfnswScheduleFeedClient feedClient;
@@ -42,55 +44,83 @@ public class TfnswScheduleRefreshService {
         try {
             String trainsLastModified = feedClient.head(TRAINS).lastModified();
             String metroLastModified = feedClient.head(METRO).lastModified();
-            TimetableFeedStateDocument previousTrains =
-                    feedStateRepository.findById(TRAINS).orElse(null);
-            TimetableFeedStateDocument previousMetro =
-                    feedStateRepository.findById(METRO).orElse(null);
+            String replacementBusLastModified = feedClient.head(REPLACEMENT_BUS).lastModified();
+            String pcbcLastModified = feedClient.head(PCBC).lastModified();
+            TimetableFeedStateDocument previousTrains = state(TRAINS);
+            TimetableFeedStateDocument previousMetro = state(METRO);
+            TimetableFeedStateDocument previousReplacementBus = state(REPLACEMENT_BUS);
+            TimetableFeedStateDocument previousPcbc = state(PCBC);
             boolean trainsUnchanged = unchanged(previousTrains, trainsLastModified);
             boolean metroUnchanged = unchanged(previousMetro, metroLastModified);
-            log.info(
-                    "event=timetable_feed_check feed={} status={} providerLastModified={}",
-                    TRAINS,
-                    trainsUnchanged ? "current" : "changed",
-                    printableRevision(trainsLastModified));
-            log.info(
-                    "event=timetable_feed_check feed={} status={} providerLastModified={}",
-                    METRO,
-                    metroUnchanged ? "current" : "changed",
-                    printableRevision(metroLastModified));
-            if (trainsUnchanged && metroUnchanged) {
+            boolean replacementBusUnchanged =
+                    unchanged(previousReplacementBus, replacementBusLastModified);
+            boolean pcbcUnchanged = unchanged(previousPcbc, pcbcLastModified);
+            logFeedStatus(TRAINS, trainsUnchanged, trainsLastModified);
+            logFeedStatus(METRO, metroUnchanged, metroLastModified);
+            logFeedStatus(REPLACEMENT_BUS, replacementBusUnchanged, replacementBusLastModified);
+            logFeedStatus(PCBC, pcbcUnchanged, pcbcLastModified);
+            if (trainsUnchanged && metroUnchanged && replacementBusUnchanged && pcbcUnchanged) {
                 log.info(
                         "event=timetable_provider_refresh_skipped reason=feeds_current"
-                                + " trainsLastModified={} metroLastModified={}",
+                                + " trainsLastModified={} metroLastModified={}"
+                                + " replacementBusLastModified={} pcbcLastModified={}",
                         printableRevision(trainsLastModified),
-                        printableRevision(metroLastModified));
+                        printableRevision(metroLastModified),
+                        printableRevision(replacementBusLastModified),
+                        printableRevision(pcbcLastModified));
                 return;
             }
 
             Path trainsTemp = Files.createTempFile("timetable-sydneytrains-", ".zip");
             Path metroTemp = Files.createTempFile("timetable-metro-", ".zip");
+            Path replacementBusTemp = Files.createTempFile("timetable-replacementbus-", ".zip");
+            Path pcbcTemp = Files.createTempFile("timetable-pcbc-", ".zip");
             try {
                 byte[] trainsBytes = feedClient.download(TRAINS);
                 byte[] metroBytes = feedClient.download(METRO);
+                byte[] replacementBusBytes = feedClient.download(REPLACEMENT_BUS);
+                byte[] pcbcBytes = feedClient.download(PCBC);
                 Files.write(trainsTemp, trainsBytes);
                 Files.write(metroTemp, metroBytes);
+                Files.write(replacementBusTemp, replacementBusBytes);
+                Files.write(pcbcTemp, pcbcBytes);
                 String trainsRevision = revision(trainsLastModified, trainsBytes);
                 String metroRevision = revision(metroLastModified, metroBytes);
+                String replacementBusRevision =
+                        revision(replacementBusLastModified, replacementBusBytes);
+                String pcbcRevision = revision(pcbcLastModified, pcbcBytes);
 
                 snapshotBuildService.buildAndPublish(
-                        trainsTemp, trainsRevision, metroTemp, metroRevision);
+                        trainsTemp,
+                        trainsRevision,
+                        metroTemp,
+                        metroRevision,
+                        replacementBusTemp,
+                        replacementBusRevision,
+                        pcbcTemp,
+                        pcbcRevision);
                 saveState(TRAINS, trainsLastModified, trainsBytes);
                 saveState(METRO, metroLastModified, metroBytes);
+                saveState(REPLACEMENT_BUS, replacementBusLastModified, replacementBusBytes);
+                saveState(PCBC, pcbcLastModified, pcbcBytes);
                 log.info(
                         "event=timetable_provider_refresh_complete trainsRevision={}"
-                                + " metroRevision={} trainsStatus={} metroStatus={}",
+                                + " metroRevision={} replacementBusRevision={} pcbcRevision={}"
+                                + " trainsStatus={} metroStatus={} replacementBusStatus={}"
+                                + " pcbcStatus={}",
                         trainsRevision,
                         metroRevision,
+                        replacementBusRevision,
+                        pcbcRevision,
                         trainsUnchanged ? "current" : "updated",
-                        metroUnchanged ? "current" : "updated");
+                        metroUnchanged ? "current" : "updated",
+                        replacementBusUnchanged ? "current" : "updated",
+                        pcbcUnchanged ? "current" : "updated");
             } finally {
                 Files.deleteIfExists(trainsTemp);
                 Files.deleteIfExists(metroTemp);
+                Files.deleteIfExists(replacementBusTemp);
+                Files.deleteIfExists(pcbcTemp);
             }
         } catch (RestClientResponseException exception) {
             log.error(
@@ -105,6 +135,18 @@ public class TfnswScheduleRefreshService {
                             + " failureType={}",
                     exception.getClass().getSimpleName());
         }
+    }
+
+    private TimetableFeedStateDocument state(String feedKey) {
+        return feedStateRepository.findById(feedKey).orElse(null);
+    }
+
+    private void logFeedStatus(String feedKey, boolean unchanged, String lastModified) {
+        log.info(
+                "event=timetable_feed_check feed={} status={} providerLastModified={}",
+                feedKey,
+                unchanged ? "current" : "changed",
+                printableRevision(lastModified));
     }
 
     private String describeStatus(int status) {

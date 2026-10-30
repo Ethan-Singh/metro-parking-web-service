@@ -158,6 +158,7 @@ package "Normalized transit network" {
     shapeId : optional
     accessibility
     servicePurpose
+    serviceContext : optional reviewed disruption relation
   }
   class ScheduledStopCall {
     sequence

@@ -61,6 +61,8 @@ providers:
       api:
         sydney-trains: "${TIMETABLE_SYDNEY_TRAINS_API:}"
         metro: "${TIMETABLE_METRO_API:}"
+        replacement-bus: "${TIMETABLE_REPLACEMENT_BUS_API:/v1/gtfs/schedule/buses/ReplacementBus}"
+        pcbc: "${TIMETABLE_PCBC_API:/v1/gtfs/schedule/buses/PCBC}"
       enabled: "${TIMETABLE_PROVIDER_ENABLED:true}"
       refresh-interval: "${TIMETABLE_REFRESH_INTERVAL:PT6H}"
     realtime:
@@ -78,6 +80,8 @@ timetable:
     bootstrap-enabled: false
     sydney-trains-zip: docs/apis/v1-gtfs/schedules/sydneytrains/sydneytrains_GTFS_PROD_20261027140100.zip
     metro-zip: docs/apis/v2-gtfs/schedules/metro/metro_GTFS_PROD_20261026124700.zip
+    replacement-bus-zip: docs/apis/v1-gtfs/schedules/buses/replacementbus/ReplacementBus_GTFS_PROD_20261028091300.zip
+    pcbc-zip: docs/apis/v1-gtfs/schedules/buses/pcbc/PCBC_GTFS_PROD_20261028085700.zip
     maximum-compressed-package-bytes: 2097152
 resilience4j:
   circuitbreaker:

@@ -66,15 +66,23 @@ refresh leaves the previous active snapshot in service.
 The initial public offerings are Sydney Trains and Sydney Metro. The release
 manifest also identifies `ReplacementBus` and `PCBC` as separate supporting
 source feeds, each with its own `FeedRevision`; they are not standalone
-offerings. Include their service trips in the affected rail/Metro offering
-only when a replacement relationship is established. Preserve their feed key
-on every included route/trip so schedule and realtime joins remain scoped. An
-empty but successfully fetched feed is a valid revision with zero services; a
-failed or invalid feed retains its last-known-good revision. Publish a new
-combined snapshot only when the required source revisions validate. Do not
-broaden this to the general bus network or merge these namespaces with Complete
-GTFS. Do not make later mode feeds mandatory; use an explicit manifest for the
-feed set required by each release. Retain the full active
+offerings. The current reviewed integration includes ReplacementBus route
+`7063_9T2` as `REPLACEMENT` on the Leppington–Glenfield segment from 08:00 to
+14:00 Sydney time, and PCBC route `700015_11T2` as `PLANNED_CONTINGENCY` on
+the Olympic Park–Ashfield segment from 02:00 to 10:00. Both remain inside the
+Sydney Trains offering and carry feed-scoped route/trip/stop IDs plus a
+`serviceContext` with the reviewed segment, affected rail stops, evidence URL,
+and window. Reviewed bus-stop to rail-station links are emitted as explicit
+interchanges with provenance; names alone never create a link. The
+Leppington–Glenfield mapping is validated against the captured production
+ReplacementBus ZIP and the 1 Nov 2026 example. Keep the PCBC schedule
+supporting-only as well. An empty but successfully fetched feed is a valid
+revision with zero services; a failed or invalid feed retains its
+last-known-good revision. Publish a new combined snapshot only when the
+required source revisions validate. Do not broaden this to the general bus
+network or merge these namespaces with Complete GTFS. Do not make later mode
+feeds mandatory; use an explicit manifest for the feed set required by each
+release. Retain the full active
 backend snapshot and last-known-good snapshot. Publish a separate
 compact, versioned client package with its timezone, available travel-date
 range, included modes, source revisions, and checksum. The browser can cache
@@ -198,7 +206,13 @@ deferred until source coverage and semantics are validated.
   permanent public identifier.
 - `ScheduledTrip` references a feed-scoped trip, route variant, service, and
   optional shape. Preserve headsign, direction, accessibility, and supported
-  feed extensions without requiring every operator to provide them.
+  feed extensions without requiring every operator to provide them. Trips
+  carry `servicePurpose` (`REGULAR`, `REPLACEMENT`, or
+  `PLANNED_CONTINGENCY`); supporting trips also carry a reviewed
+  `serviceContext`. That context identifies the affected offering/feed and
+  segment, rail endpoint stop IDs, evidence reference, and Sydney-local
+  effective window. It is static schedule context and does not claim a live
+  disruption is active.
 - `ScheduledStopCall` is keyed by trip and stop sequence. Keep arrival and
   departure as seconds after the GTFS service-day midnight, not Java
   `LocalTime`: GTFS permits values beyond `24:00:00`. Keep pickup/drop-off,
@@ -515,9 +529,10 @@ the user request.
 - Use the captured production Sydney Trains and Metro **For Realtime** feeds
   for initial routing. Do not merge Complete GTFS records into these datasets.
 - Include `ReplacementBus` and `PCBC` as supporting schedule feeds in the first
-  release when their current date-valid services are validated. Their trips
-  appear within Sydney Trains or Metro only when a replacement relationship is
-  established; they are never independently offered as regional bus routes.
+  release. The reviewed `9T2` and `11T2` service relationships are normalised
+  inside the Sydney Trains package; neither is independently offered as a
+  regional bus route. Preserve source namespaces and reviewed stop-link
+  provenance.
   The captured reference table maps these feed keys to v1 bus trip updates and
   v2 bus alerts. Keep all source namespaces distinct; do not classify every
   bus operator in Complete GTFS as a replacement service.
@@ -583,11 +598,11 @@ the user request.
   require an explicit offset for the repeated fall-back time.
 - For the 1 GB droplet, do not store one Mongo document per stop-time row: the
   captured production schedules contain about 1.65 million stop-time rows
-  across Sydney Trains, Metro, ReplacementBus, and PCBC. The initial published
-  package contains only Sydney Trains and Metro; measured `ALL` packages for
-  29 Oct through 5 Nov 2026 ranged from about 0.12 MB to 1.11 MB gzip. The
-  target is at most 2 MB compressed per date package. Re-measure when adding
-  feeds or changing the package shape. Store each immutable
+  across Sydney Trains, Metro, ReplacementBus, and PCBC. Published offerings
+  remain Sydney Trains and Metro; their initial measured `ALL` packages for
+  29 Oct through 5 Nov 2026 ranged from about 0.12 MB to 1.11 MB gzip before
+  the reviewed supporting legs were added. The target is at most 2 MB
+  compressed per date package. Re-measure the updated packages. Store each immutable
   compressed package as one document in a timetable-specific Mongo collection;
   publish the new manifest pointer only after the full candidate set validates.
   Keep the previous snapshot and bound retention to fit the roughly 300 MB

@@ -27,7 +27,9 @@ class TfnswScheduleFeedClientTest {
                 new TfnswScheduleFeedClient(
                         builder.build(),
                         new TimetableProviderProperties(
-                                new TimetableProviderProperties.Api("/trains", "/metro"), true),
+                                new TimetableProviderProperties.Api(
+                                        "/trains", "/metro", "/replacementbus", "/pcbc"),
+                                true),
                         new TfnswConnectionProperties("https://provider.test", ""));
 
         server.expect(requestTo("https://provider.test/trains"))
@@ -61,6 +63,33 @@ class TfnswScheduleFeedClientTest {
     }
 
     @Test
+    void routesSupportingFeedKeysToTheirConfiguredProviderPaths() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://provider.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TfnswScheduleFeedClient client =
+                new TfnswScheduleFeedClient(
+                        builder.build(),
+                        new TimetableProviderProperties(
+                                new TimetableProviderProperties.Api(
+                                        "/trains", "/metro", "/replacementbus", "/pcbc"),
+                                true),
+                        new TfnswConnectionProperties("https://provider.test", ""));
+
+        server.expect(requestTo("https://provider.test/replacementbus"))
+                .andExpect(method(HttpMethod.HEAD))
+                .andRespond(withSuccess().header(HttpHeaders.LAST_MODIFIED, "replacement-r1"));
+        server.expect(requestTo("https://provider.test/pcbc"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(
+                        withSuccess(
+                                new byte[] {'P', 'K', 3, 4}, MediaType.APPLICATION_OCTET_STREAM));
+
+        assertThat(client.head("replacementbus").lastModified()).isEqualTo("replacement-r1");
+        assertThat(client.download("pcbc")).containsExactly(new byte[] {'P', 'K', 3, 4});
+        server.verify();
+    }
+
+    @Test
     void rejectsNonZipProviderResponse() {
         RestClient.Builder builder = RestClient.builder().baseUrl("https://provider.test");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -87,7 +116,9 @@ class TfnswScheduleFeedClientTest {
         return new TfnswScheduleFeedClient(
                 restClient,
                 new TimetableProviderProperties(
-                        new TimetableProviderProperties.Api("/trains", "/metro"), true),
+                        new TimetableProviderProperties.Api(
+                                "/trains", "/metro", "/replacementbus", "/pcbc"),
+                        true),
                 new TfnswConnectionProperties("https://provider.test", ""));
     }
 }

@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.zip.GZIPOutputStream;
 import lombok.RequiredArgsConstructor;
@@ -44,13 +45,52 @@ public class TimetableSnapshotBuildService {
                 properties.sydneyTrainsZip(),
                 properties.sydneyTrainsZip().getFileName().toString(),
                 properties.metroZip(),
-                properties.metroZip().getFileName().toString());
+                properties.metroZip().getFileName().toString(),
+                properties.replacementBusZip(),
+                properties.replacementBusZip().getFileName().toString(),
+                properties.pcbcZip(),
+                properties.pcbcZip().getFileName().toString());
     }
 
     public void buildAndPublish(
             Path trainsZip, String trainsRevision, Path metroZip, String metroRevision)
             throws IOException {
-        LocalDate today = LocalDate.now(SYDNEY);
+        buildAndPublish(trainsZip, trainsRevision, metroZip, metroRevision, null, null, null, null);
+    }
+
+    public void buildAndPublish(
+            Path trainsZip,
+            String trainsRevision,
+            Path metroZip,
+            String metroRevision,
+            Path replacementBusZip,
+            String replacementBusRevision,
+            Path pcbcZip,
+            String pcbcRevision)
+            throws IOException {
+        buildAndPublishForDate(
+                trainsZip,
+                trainsRevision,
+                metroZip,
+                metroRevision,
+                replacementBusZip,
+                replacementBusRevision,
+                pcbcZip,
+                pcbcRevision,
+                LocalDate.now(SYDNEY));
+    }
+
+    void buildAndPublishForDate(
+            Path trainsZip,
+            String trainsRevision,
+            Path metroZip,
+            String metroRevision,
+            Path replacementBusZip,
+            String replacementBusRevision,
+            Path pcbcZip,
+            String pcbcRevision,
+            LocalDate today)
+            throws IOException {
         LocalDate from = today.minusDays(1);
         LocalDate through = today.plusDays(6);
         String snapshotVersion =
@@ -64,6 +104,27 @@ public class TimetableSnapshotBuildService {
             ObjectNode trains =
                     packageBuilder.build(trainsZip, "sydneytrains", TRAINS, date, trainsRevision);
             ObjectNode metro = packageBuilder.build(metroZip, "metro", METRO, date, metroRevision);
+            int primaryTrainTripCount = trains.withArray("trips").size();
+            if (replacementBusZip != null) {
+                appendSupportingSchedules(
+                        trains,
+                        replacementBusZip,
+                        replacementBusRevision,
+                        date,
+                        SupportingSchedulePolicy.routes().stream()
+                                .filter(route -> route.feedKey().equals("replacementbus"))
+                                .toList());
+            }
+            if (pcbcZip != null) {
+                appendSupportingSchedules(
+                        trains,
+                        pcbcZip,
+                        pcbcRevision,
+                        date,
+                        SupportingSchedulePolicy.routes().stream()
+                                .filter(route -> route.feedKey().equals("pcbc"))
+                                .toList());
+            }
             ObjectNode all = combine(date, snapshotVersion, trains, metro);
             trains.put("packageVersion", snapshotVersion);
             metro.put("packageVersion", snapshotVersion);
@@ -78,10 +139,11 @@ public class TimetableSnapshotBuildService {
             manifestEntries.add(new PackageEntry(date));
             log.info(
                     "event=timetable_package_built date={} trainsTrips={} metroTrips={}"
-                            + " combinedGzipBytes={}",
+                            + " supportingTrips={} combinedGzipBytes={}",
                     date,
                     trains.withArray("trips").size(),
                     metro.withArray("trips").size(),
+                    trains.withArray("trips").size() - primaryTrainTripCount,
                     packageDocuments.get(packageDocuments.size() - 1).getPayload().length);
         }
 
@@ -92,7 +154,9 @@ public class TimetableSnapshotBuildService {
                         through,
                         manifestEntries,
                         trainsRevision,
-                        metroRevision);
+                        metroRevision,
+                        replacementBusRevision,
+                        pcbcRevision);
         String manifestEtag = '"' + sha256(serialize(manifest)) + '"';
         publisher.publish(
                 new SnapshotCandidate(snapshotVersion, manifestEtag, manifest, packageDocuments));
@@ -137,8 +201,55 @@ public class TimetableSnapshotBuildService {
             combinedTrips.add(shiftedTrip);
         }
         addAll(combined.putArray("calls"), trains.withArray("calls"), metro.withArray("calls"));
-        combined.putArray("interchanges");
+        addAll(
+                combined.putArray("interchanges"),
+                trains.withArray("interchanges"),
+                metro.withArray("interchanges"));
         return combined;
+    }
+
+    private void appendSupportingSchedules(
+            ObjectNode target,
+            Path zipPath,
+            String providerRevision,
+            LocalDate date,
+            List<SupportingSchedulePolicy.Route> policies)
+            throws IOException {
+        for (SupportingSchedulePolicy.Route policy : policies) {
+            ObjectNode supporting =
+                    packageBuilder.buildSupporting(zipPath, TRAINS, date, providerRevision, policy);
+            int callOffset = target.withArray("calls").size();
+            ArrayNode supportingTrips = supporting.withArray("trips");
+            for (var item : supportingTrips) {
+                ObjectNode shiftedTrip = ((ObjectNode) item).deepCopy();
+                shiftedTrip.put(
+                        "stopCallStart", shiftedTrip.path("stopCallStart").asInt() + callOffset);
+                target.withArray("trips").add(shiftedTrip);
+            }
+            target.withArray("calls").addAll(supporting.withArray("calls"));
+            appendUniqueById(target.withArray("routes"), supporting.withArray("routes"));
+            appendUniqueById(target.withArray("stops"), supporting.withArray("stops"));
+            target.withArray("sources").addAll(supporting.withArray("sources"));
+            Set<String> stopIds = new java.util.HashSet<>();
+            for (var stop : target.withArray("stops")) {
+                stopIds.add(stop.path("id").asText());
+            }
+            for (var interchange : supporting.withArray("interchanges")) {
+                if (stopIds.contains(interchange.path("fromStopId").asText())
+                        && stopIds.contains(interchange.path("toStopId").asText())) {
+                    target.withArray("interchanges").add(interchange.deepCopy());
+                }
+            }
+        }
+    }
+
+    private void appendUniqueById(ArrayNode target, ArrayNode additions) {
+        java.util.Set<String> existing = new java.util.HashSet<>();
+        for (var item : target) existing.add(item.path("id").asText());
+        for (var item : additions) {
+            String id = item.path("id").asText();
+            if (existing.add(id)) target.add(item.deepCopy());
+        }
     }
 
     private void addAll(ArrayNode target, ArrayNode... sources) {
@@ -176,7 +287,9 @@ public class TimetableSnapshotBuildService {
             LocalDate through,
             List<PackageEntry> packages,
             String trainsRevision,
-            String metroRevision) {
+            String metroRevision,
+            String replacementBusRevision,
+            String pcbcRevision) {
         ObjectNode body = objectMapper.createObjectNode();
         body.put("schemaVersion", "1");
         body.put("snapshotVersion", version);
@@ -186,8 +299,19 @@ public class TimetableSnapshotBuildService {
                 .put("from", from.toString())
                 .put("through", through.toString());
         ArrayNode offerings = body.putArray("offerings");
-        offerings.add(manifestOffering(TRAINS, "STATION", packages, true, version, trainsRevision));
-        offerings.add(manifestOffering(METRO, "STATION", packages, false, version, metroRevision));
+        offerings.add(
+                manifestOffering(
+                        TRAINS,
+                        "STATION",
+                        packages,
+                        true,
+                        version,
+                        trainsRevision,
+                        replacementBusRevision,
+                        pcbcRevision));
+        offerings.add(
+                manifestOffering(
+                        METRO, "STATION", packages, false, version, metroRevision, null, null));
         return body;
     }
 
@@ -197,7 +321,9 @@ public class TimetableSnapshotBuildService {
             List<PackageEntry> packages,
             boolean trains,
             String version,
-            String providerRevision) {
+            String providerRevision,
+            String replacementBusRevision,
+            String pcbcRevision) {
         ObjectNode item = objectMapper.createObjectNode();
         item.put("key", key);
         item.put("state", "AVAILABLE");
@@ -210,13 +336,30 @@ public class TimetableSnapshotBuildService {
         }
         item.putArray("minimumFacets").add(facet);
         item.putArray("supportedFacets").add(facet);
+        addManifestSource(
+                sources, key, trains ? "sydneytrains" : "metro", "PRIMARY", providerRevision);
+        if (trains && replacementBusRevision != null) {
+            addManifestSource(sources, key, "replacementbus", "SUPPORTING", replacementBusRevision);
+        }
+        if (trains && pcbcRevision != null) {
+            addManifestSource(sources, key, "pcbc", "SUPPORTING", pcbcRevision);
+        }
+        return item;
+    }
+
+    private void addManifestSource(
+            ArrayNode sources,
+            String offering,
+            String feedKey,
+            String role,
+            String providerRevision) {
         ObjectNode source = sources.addObject();
-        source.put("feedKey", trains ? "sydneytrains" : "metro");
-        source.put("role", "PRIMARY");
+        source.put("feedKey", feedKey);
+        source.put("role", role);
         source.put("status", "CURRENT");
+        source.put("associatedOffering", offering);
         source.put("providerRevision", providerRevision);
         source.put("lastSuccessfulAt", Instant.now().toString());
-        return item;
     }
 
     private byte[] serialize(ObjectNode body) throws JsonProcessingException {

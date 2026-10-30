@@ -69,6 +69,54 @@ class GtfsDatePackageBuilderTest {
                 .hasMessageContaining("stops.txt");
     }
 
+    @Test
+    void normalisesReviewedReplacementBusTripFromCapturedProductionFeed() throws Exception {
+        var body =
+                builder.buildSupporting(
+                        java.nio.file.Path.of(
+                                "docs/apis/v1-gtfs/schedules/buses/replacementbus/"
+                                        + "ReplacementBus_GTFS_PROD_20261028091300.zip"),
+                        "SYDNEY_TRAINS",
+                        LocalDate.of(2026, 11, 1),
+                        "captured-revision",
+                        SupportingSchedulePolicy.routes().getFirst());
+
+        assertThat(body.withArray("offerings").size()).isEqualTo(1);
+        assertThat(body.withArray("trips"))
+                .anySatisfy(
+                        trip -> {
+                            assertThat(trip.path("providerId").asText()).isEqualTo("2757475");
+                            assertThat(trip.path("serviceDate").asText()).isEqualTo("2026-11-01");
+                            assertThat(trip.path("servicePurpose").asText())
+                                    .isEqualTo("REPLACEMENT");
+                            assertThat(trip.path("serviceContext").path("affectedSegment").asText())
+                                    .isEqualTo("Leppington to Glenfield");
+                        });
+        assertThat(body.withArray("routes"))
+                .anySatisfy(
+                        route -> {
+                            assertThat(route.path("providerId").asText()).isEqualTo("7063_9T2");
+                            assertThat(route.path("shortName").asText()).isEqualTo("9T2");
+                            assertThat(route.path("mode").asText()).isEqualTo("BUS");
+                        });
+        assertThat(body.withArray("calls"))
+                .anySatisfy(
+                        call -> {
+                            assertThat(call.path("stopId").asText())
+                                    .isEqualTo("replacementbus:217938");
+                            assertThat(call.path("departure").asText())
+                                    .isEqualTo("2026-11-01T08:07+11:00");
+                        })
+                .anySatisfy(
+                        call -> {
+                            assertThat(call.path("stopId").asText())
+                                    .isEqualTo("replacementbus:216711");
+                            assertThat(call.path("arrival").asText())
+                                    .isEqualTo("2026-11-01T08:36+11:00");
+                        });
+        assertThat(body.withArray("sources").get(0).path("role").asText()).isEqualTo("SUPPORTING");
+    }
+
     private java.nio.file.Path createFeed() throws Exception {
         java.nio.file.Path feed = temporaryDirectory.resolve("sample-gtfs.zip");
         Map<String, String> files =

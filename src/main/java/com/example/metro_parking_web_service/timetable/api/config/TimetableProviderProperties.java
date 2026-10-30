@@ -6,5 +6,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("providers.tfnsw.timetable")
 public record TimetableProviderProperties(Api api, boolean enabled) {
 
-    public record Api(String sydneyTrains, String metro) {}
+    public record Api(String sydneyTrains, String metro, String replacementBus, String pcbc) {}
 }

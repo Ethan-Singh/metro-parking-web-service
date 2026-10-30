@@ -25,10 +25,10 @@ paths:
       description: >-
         Each offering reports its own state and coverage. One feed failure does
         not make unrelated offerings unavailable. The initial release includes
-        Sydney Trains and Sydney Metro only. ReplacementBus and PCBC are
-        supporting feeds whose replacement services are integrated into the
-        affected rail offering when their relationship is established; they
-        are not standalone user-facing offerings. The advertised window is
+        Sydney Trains and Sydney Metro only. ReplacementBus route 7063_9T2 and
+        PCBC route 700015_11T2 are supporting services embedded in the Sydney
+        Trains package for reviewed service windows; neither is a standalone
+        user-facing offering. The advertised window is
         Sydney yesterday through today plus six days, intersected with actual
         feed validity.
       responses:
@@ -59,8 +59,10 @@ paths:
         against this package. The target is at most 2 MB per compressed date
         package. The uncompressed JSON can be larger and is served with its
         negotiated Content-Encoding. The initial published package includes
-        Sydney Trains and Metro only; measured ALL packages for 29 Oct through
-        5 Nov 2026 ranged from about 0.12 MB to 1.11 MB gzip.
+        Sydney Trains and Metro offerings. The Sydney Trains offering may also
+        contain explicitly reviewed ReplacementBus/PCBC support trips, their
+        provenance, and interchanges. Measured packages before adding these
+        support trips ranged from about 0.12 MB to 1.11 MB gzip.
       parameters:
         - name: travelDate
           in: path
@@ -361,7 +363,7 @@ components:
         agencyName: { type: string }
     ScheduledTrip:
       type: object
-      required: [id, routeId, serviceDate, headsign]
+      required: [id, routeId, serviceDate, headsign, servicePurpose]
       properties:
         id: { type: string }
         routeId: { type: string }
@@ -369,8 +371,33 @@ components:
         serviceDate: { type: string, format: date }
         headsign: { type: string }
         directionId: { type: string }
+        servicePurpose:
+          type: string
+          enum: [REGULAR, REPLACEMENT, PLANNED_CONTINGENCY]
+          description: >-
+            Supporting bus trips appear in the affected rail offering only for
+            reviewed routes and service windows. Their route and trip IDs retain
+            the supporting feed namespace.
+        serviceContext:
+          $ref: '#/components/schemas/SupportingServiceContext'
         stopCallStart: { type: integer, minimum: 0 }
         stopCallCount: { type: integer, minimum: 0 }
+    SupportingServiceContext:
+      type: object
+      required: [affectedOffering, affectedFeedKey, affectedSegment, fromStopId, toStopId, evidenceReference, activeFrom, activeUntil]
+      description: >-
+        Present for a supporting replacement or planned-contingency trip. The
+        timestamps describe the reviewed disruption window in Sydney time;
+        they do not assert realtime activation.
+      properties:
+        affectedOffering: { $ref: '#/components/schemas/OfferingKey' }
+        affectedFeedKey: { type: string }
+        affectedSegment: { type: string }
+        fromStopId: { type: string }
+        toStopId: { type: string }
+        evidenceReference: { type: string, format: uri }
+        activeFrom: { type: string, format: date-time }
+        activeUntil: { type: string, format: date-time }
     ScheduledCall:
       type: object
       required: [tripId, sequence, stopId, arrival, departure, timezone]
