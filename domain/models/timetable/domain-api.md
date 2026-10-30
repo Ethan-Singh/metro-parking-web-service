@@ -138,9 +138,12 @@ two JSON alert feeds and four binary trip-update/vehicle-position feeds. That
 is 8,640 provider requests per day before retries. Binary feeds are decoded
 with the pinned endpoint schema variants; the normalizer accepts only
 `FULL_DATASET`, applies full-feed entity replacement, and retains provider
-feed keys. Schedule matching currently reports realtime entities as
-`UNMATCHED` until a validated namespaced matcher is implemented. The
-endpoint-specific schemas and extensions are described in
+feed keys. A conservative schedule matcher uses the active published snapshot
+and an explicit realtime-to-schedule feed mapping. It marks only unique
+trip-ID matches as `MATCHED`, checks supplied route and service-date values,
+and retains ambiguous or unmatched entities with their status. Stop updates
+join only through exact provider stop ID and sequence within a matched trip.
+The endpoint-specific schemas and extensions are described in
 [`realtime-domain.puml`](realtime-domain.puml) and
 [`docs/provider-docs/proto/README.md`](../../../docs/provider-docs/proto/README.md).
 

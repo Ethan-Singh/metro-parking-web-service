@@ -26,6 +26,7 @@ public class TfnswRealtimeRefreshService {
     private final TfnswRealtimeProtobufClient protobufClient;
     private final GtfsRealtimeAlertNormalizer alertNormalizer;
     private final GtfsRealtimeBinaryNormalizer binaryNormalizer;
+    private final RealtimeScheduleMatcher scheduleMatcher;
     private final RealtimeOverlayPublisher publisher;
 
     @Scheduled(
@@ -100,7 +101,8 @@ public class TfnswRealtimeRefreshService {
         String schemaKey = schemaKey(feedKey);
         try {
             byte[] bytes = protobufClient.fetch(feedKey, path);
-            var normalized = binaryNormalizer.normalize(feedKey, bytes, Instant.now());
+            var normalized =
+                    scheduleMatcher.join(binaryNormalizer.normalize(feedKey, bytes, Instant.now()));
             publisher.publishProtobuf(normalized);
             log.info(
                     "event=timetable_realtime_refresh_complete feed={} status=CURRENT"

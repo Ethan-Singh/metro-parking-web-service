@@ -67,4 +67,15 @@ per configured round (one minute by default): two alert operations with
 This is 8,640 provider GETs per day before retries. Alerts use the documented
 GTFS-Realtime JSON mapping and are decoded with Jackson. Binary feeds are
 decoded with the endpoint-pinned schemas. Their records preserve feed keys and
-remain `UNMATCHED` until a reviewed namespaced schedule join is available.
+are joined conservatively to the active published snapshot. Only a unique
+feed-scoped trip ID with agreeing supplied route and service date is marked
+`MATCHED`; ambiguous and unmatched entities remain visible. Stop calls join
+only by exact provider stop ID and sequence within a matched trip.
+
+The Complete GTFS capture dated 30 Oct 2026 remains a comparison fixture, not
+an input to these namespaces. It contains a Metro realtime trip ID such as
+`0275-001-117-012:1000`, but names its route `3-M1-sj2-1`; the realtime record
+names that route `SMNW_M1`. The captured Sydney Trains realtime ID
+`9--J.1324.166.64.B.8.92001629` is not present in that Complete GTFS capture.
+These observations reinforce the feed-scoped join rule: do not bridge the
+route mismatch or merge Complete GTFS records into the For-Realtime snapshots.

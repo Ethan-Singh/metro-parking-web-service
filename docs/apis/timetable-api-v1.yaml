@@ -103,8 +103,12 @@ paths:
         endpoint-pinned schemas. Static scheduled times remain in the date
         package and must remain usable when realtime data is missing. A failed
         source retains its last known good data and reports its latest attempt
-        and last successful retrieval separately. Realtime references remain
-        UNMATCHED until validated against a namespaced timetable identity.
+        and last successful retrieval separately. Trip and vehicle references
+        are joined only to a unique trip in the active timetable snapshot,
+        using an explicit realtime-to-schedule feed mapping and provider trip
+        id. Supplied route and service date must agree. Ambiguous and unmatched
+        records stay visible with their match status; stop calls join only by
+        exact provider stop id and sequence within a uniquely matched trip.
       parameters:
         - name: offering
           in: query
@@ -479,6 +483,13 @@ components:
         providerTimestamp: { type: string, format: date-time }
         delaySeconds: { type: integer }
         matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+        scheduleTripId: { type: string, description: Unique trip id from the active timetable package; present only when matchStatus is MATCHED. }
+        scheduleRouteId: { type: string, description: Namespaced route id from the matched timetable trip. }
+        scheduleSnapshotVersion: { type: string, description: Snapshot version used to resolve the schedule reference. }
+        scheduleTripCandidates:
+          type: array
+          description: Namespaced candidate trip ids when the provider reference is ambiguous.
+          items: { type: string }
         vehicle:
           type: object
           properties:
@@ -491,6 +502,8 @@ components:
             properties:
               stopId: { type: string }
               stopSequence: { type: integer }
+              matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+              scheduleStopId: { type: string, description: Namespaced stop id only when the stop call joins uniquely. }
               arrivalPrediction: { type: string, format: date-time }
               departurePrediction: { type: string, format: date-time }
               arrivalDelaySeconds: { type: integer }
@@ -519,6 +532,15 @@ components:
         timestamp: { type: string, format: date-time }
         retrievedAt: { type: string, format: date-time }
         matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+        scheduleTripId: { type: string, description: Unique trip id from the active timetable package; present only when matchStatus is MATCHED. }
+        scheduleRouteId: { type: string, description: Namespaced route id from the matched timetable trip. }
+        scheduleSnapshotVersion: { type: string, description: Snapshot version used to resolve the schedule reference. }
+        scheduleTripCandidates:
+          type: array
+          description: Namespaced candidate trip ids when the provider reference is ambiguous.
+          items: { type: string }
+        stopMatchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+        scheduleStopId: { type: string, description: Namespaced current stop id when it joins uniquely to the matched trip call. }
         latitude: { type: number, minimum: -90, maximum: 90 }
         longitude: { type: number, minimum: -180, maximum: 180 }
         bearing: { type: number, minimum: 0, maximum: 360 }

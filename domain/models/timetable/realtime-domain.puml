@@ -52,9 +52,18 @@ class RealtimeTripUpdate {
   providerTimestamp : optional Instant
   delaySeconds : optional
   matchStatus : MATCHED | UNMATCHED | AMBIGUOUS
+  scheduleTripId : optional namespaced static trip id
+  scheduleRouteId : optional namespaced static route id
+  scheduleSnapshotVersion : optional
+  scheduleTripCandidates : optional namespaced candidates
 }
 class RealtimeVehiclePosition {
   providerNamespace
+  matchStatus : MATCHED | UNMATCHED | AMBIGUOUS
+  scheduleTripId : optional namespaced static trip id
+  scheduleRouteId : optional namespaced static route id
+  scheduleSnapshotVersion : optional
+  scheduleTripCandidates : optional namespaced candidates
   providerTripId : optional
   vehicleId : optional
   latitude : optional
@@ -79,6 +88,8 @@ class RealtimeStopUpdate {
   predictedDeparture : optional Instant
   departureOccupancy : optional OccupancyStatus
   scheduleRelationship : optional
+  matchStatus : MATCHED | UNMATCHED | AMBIGUOUS
+  scheduleStopId : optional namespaced stop id
 }
 class TfnswVehicleAttributes {
   airConditioned : optional boolean
@@ -127,10 +138,13 @@ RealtimeVehiclePosition --> OccupancyStatus
 CarriagePosition --> OccupancyStatus
 
 note right of ScheduleJoinResult
-  Match within the provider namespace. Bus trip updates
-  use a broader v1 feed than the static ReplacementBus
-  and PCBC schedules; identical ID strings are not proof
-  that two records refer to the same trip.
+  Match only against the active published timetable snapshot
+  and the explicit realtime-to-schedule feed mapping. Require
+  provider trip ID, optional route ID agreement, and start date
+  when supplied. Without a date, match only if exactly one
+  scheduled instance remains in the snapshot. Preserve ambiguous
+  candidate ids; never pick one arbitrarily. Stop calls require
+  an exact provider stop id and sequence within the matched trip.
 end note
 
 note bottom of ServiceAlert

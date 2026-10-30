@@ -74,6 +74,8 @@ class TimetableMongoIntegrationTest {
         assertThat(active.getSnapshotVersion()).isEqualTo("snapshot-1");
         assertThat(active.getEtag()).isEqualTo("\"manifest-v1\"");
         assertThat(packageRepository.findById("snapshot-1#2026-10-30#ALL")).isPresent();
+        assertThat(packageRepository.findAllBySnapshotVersionAndOffering("snapshot-1", "ALL"))
+                .hasSize(1);
 
         mockMvc.perform(get("/api/v1/timetable/manifest"))
                 .andExpect(status().isOk())

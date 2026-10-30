@@ -29,6 +29,7 @@ class TfnswRealtimeRefreshServiceTest {
     @Mock private TfnswRealtimeProtobufClient protobufClient;
     @Mock private GtfsRealtimeAlertNormalizer alertNormalizer;
     @Mock private GtfsRealtimeBinaryNormalizer binaryNormalizer;
+    @Mock private RealtimeScheduleMatcher scheduleMatcher;
     @Mock private RealtimeOverlayPublisher publisher;
 
     @Test
@@ -171,6 +172,9 @@ class TfnswRealtimeRefreshServiceTest {
             String tripUpdatesMetro,
             String vehiclePositionsSydneyTrains,
             String vehiclePositionsMetro) {
+        org.mockito.Mockito.lenient()
+                .when(scheduleMatcher.join(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         return new TfnswRealtimeRefreshService(
                 new TfnswRealtimeProperties(
                         new TfnswRealtimeProperties.Api(
@@ -187,6 +191,7 @@ class TfnswRealtimeRefreshServiceTest {
                 protobufClient,
                 alertNormalizer,
                 binaryNormalizer,
+                scheduleMatcher,
                 publisher);
     }
 

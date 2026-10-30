@@ -7,5 +7,8 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface TimetablePackageRepository
         extends MongoRepository<TimetablePackageDocument, String> {
+    java.util.List<TimetablePackageDocument> findAllBySnapshotVersionAndOffering(
+            String snapshotVersion, String offering);
+
     long deleteBySnapshotVersionNotIn(Collection<String> retainedVersions);
 }
