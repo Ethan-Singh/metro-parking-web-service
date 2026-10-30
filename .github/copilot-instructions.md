@@ -31,7 +31,7 @@ design system.
 | `domain/models/carpark/daily-metrics-contract.md` | Focused behavior contract for daily parking metrics |
 | `docs/apis/v1-carpark/` | Saved examples of the upstream catalog, live, and history payloads |
 | `docs/apis/v1-gtfs/`, `docs/apis/v1-publictransport/`, `docs/apis/v2-gtfs/` | Captured TfNSW schedule and realtime feed responses; retain feed provenance and IDs |
-| `docs/provider-docs/` | Provider Swagger and official field semantics, including the Car Park API v2.3 PDF |
+| `docs/provider-docs/` | Provider Swagger and official field semantics, including the Car Park API v2.3 PDF and GTFS-Realtime protobuf schemas in `docs/provider-docs/proto/` |
 | `README.md`, `DEPLOYMENT.md` | Developer setup and deployed configuration |
 
 When code and docs disagree, verify the current implementation and public
@@ -44,10 +44,10 @@ implementation spec, or current API contract.
 
 | Package | Responsibility |
 | --- | --- |
-| `parking.server` | Upstream `RestClient`, provider DTOs/mapping, resilience configuration |
-| `parking.client` | Facility catalog, scheduled live/history sync, Mongo documents/repositories, backfill and retention |
-| `parking.analytics` | Versioned controllers, query services, response DTOs/mappers, validation, API caching and rate limiting |
-| `parking.domain` | Small domain-level value/normalization helpers shared across features |
+| `parking.provider` | Upstream `RestClient`, provider DTOs/mapping, resilience configuration |
+| `parking.ingestion` | Facility catalog, scheduled live/history sync, Mongo documents/repositories, backfill and retention |
+| `parking.api` | Versioned controllers, query services, response DTOs/mappers, validation, API caching and rate limiting |
+| `parking.domain` | Normalized parking values, facility slug rules, and Sydney time helpers shared across provider, ingestion, and API layers |
 | `timetable.opal.domain` | Opal fare profiles, versioned fare rules, normalized fare-table types, and timetable fare-estimate rules |
 
 Keep upstream DTOs, Mongo documents, and public response DTOs separate. Do not
