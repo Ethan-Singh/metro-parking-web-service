@@ -2,50 +2,100 @@
 
 ## Status
 
-There is no established timetable OpenAPI contract yet. The model in
-[domain.puml](domain.puml) describes normalized domain data; it is not a
-provider schema or a finalized HTTP contract. Define and review the versioned
-OpenAPI document before integrating a feed-backed frontend.
+The proposed v1 OpenAPI draft is
+[`docs/apis/timetable-api-v1.yaml`](../../../docs/apis/timetable-api-v1.yaml).
+It is a reviewable proposal, not an implemented or frozen contract. The model
+in [`domain.puml`](domain.puml) describes normalized domain data; it is not a
+provider schema.
 
 ## Service boundary
 
 The backend owns provider credentials, controlled feed refresh, validation,
 normalization, and atomic publication of a last-known-good snapshot. The client
-downloads the optimized date-specific package and performs stop/time/mode
-search locally. Realtime alerts and trip updates are a separately refreshed
-overlay; fare data and rules have their own revision lifecycle.
+downloads an optimized date-specific package and performs stop lookup and
+route calculation locally. Realtime alerts, trip updates, and vehicle positions
+are a separately versioned overlay; fare data and rules have their own revision
+lifecycle. Provider polling is backend-controlled and never triggered by a
+client request.
 
-The API contract should define the package manifest and date coverage, stable
-client stop identifiers, normalized routes/trips/stop calls, realtime overlay,
-fare package, cache/version behavior, Sydney timezone and DST policy, payload
-limits, stale/unavailable states, and errors. It should retain useful optional
-normalized metadata and provenance so the UI can choose what to display, while
-never exposing raw GTFS tables or provider DTOs as the app contract.
+The draft defines a manifest, date package, realtime overlay, and normalized
+Opal fare package. It retains useful optional metadata and provenance without
+exposing raw GTFS tables or provider DTOs as the application contract. The
+date package contains the searchable stops, so there is no per-keystroke
+stop-search endpoint. Route alternatives are calculated by the client against
+the package and realtime overlay; there is no duplicate backend journey solver.
 
-Represent each service method as an independently versioned timetable
-offering in the manifest. Publish its lifecycle, feed revisions, date coverage,
-minimum search facets, and currently supported facets separately, so a provider
-change can affect one offering without implicitly changing the others. The
-minimum facets are listed in [model-spec.md](model-spec.md); supported facets
-may grow when provider feeds and reviewed mappings supply reliable data.
+## Draft contract decisions
 
-Saved plans are client-owned query presets, capped at 20; they are not part of
-the timetable API payload. Store the versioned collection in browser
-`localStorage`: it normally requires no permission prompt and is not sent with
-HTTP requests automatically. Handle storage being blocked or cleared. Plans
-are readable by same-origin JavaScript, so keep them free of secrets and
-sensitive data. A cookie would not improve that protection if the UI must read
-it; `SameSite=Strict` does not block same-origin script access, and matching
-cookies are sent with requests. `localStorage` is preferred here to avoid
-attaching these presets to HTTP requests, not as an XSS defense.
+- Each timetable offering reports its own state, supported facets, and covered
+  Sydney dates. The only initial user-facing offerings are Sydney Trains and
+  Sydney Metro. ReplacementBus and PCBC are supporting schedule feeds: include
+  their trips in the affected train/Metro package when a replacement
+  relationship is established. They are not standalone offerings. Retain
+  their feed keys and provenance internally and in source metadata.
+- Advertise yesterday through today plus six days, inclusive, intersected with
+  actual service validity. A date package includes earlier service-date trips
+  whose resolved calls fall on its travel date.
+- A valid but unavailable date/offering returns an empty normalized package
+  with explicit availability metadata, so it is distinguishable from an
+  available day with no matching route. Malformed dates and offering values
+  return a problem response.
+- Use ETags and conditional requests. Allow HTTP compression. Keep ordinary
+  HTTP cache policies appropriate to each representation: date packages can
+  be cached by revision and revalidated through the date alias; manifest and
+  realtime data should be revalidated frequently. Exact `max-age` values are
+  operational configuration, not domain semantics.
+- Target no more than 2 MB per compressed date package. A compact estimate for
+  29 Oct 2026, including full trip call sequences from the captured Sydney
+  Trains, Metro, ReplacementBus, and PCBC feeds, is about 16.4 MB JSON / 1.26 MB
+  gzip. This is a measurement estimate, not the final normalized serializer;
+  verify actual generated bytes before treating the target as met.
+- Store versioned, precompressed client package documents in the timetable's
+  own MongoDB collection, separate from parking collections. Write immutable
+  packages for a candidate snapshot first, validate them, then publish the
+  manifest/active-snapshot pointer last. Retain the previous known-good
+  snapshot for rollback. At the measured size, a date package fits comfortably
+  within MongoDB's 16 MiB document limit when stored as compressed binary; do
+  not store one document per stop-time row. Keep retention bounded and measure
+  total use against the roughly 300 MB available to this service.
+- Timetable dates and user-selected times are Sydney local. Scheduled events
+  are absolute instants serialized with their RFC 3339 UTC offset, and carry
+  the `Australia/Sydney` IANA timezone indicator and service-date provenance
+  for local display. Route search is local; the API does not accept a client
+  query time. Do not interpret timetable values in the device timezone or add
+  other-city timezone behavior to this Sydney domain. The frontend may detect
+  and explain when a selected Sydney local time falls in a DST gap or repeated
+  hour; this does not change the stored event instants.
+- Realtime has an independent version and per-source retrieval, attempt, and
+  last-success timestamps. The contract does not impose a freshness threshold.
+  Missing or stale live data must not hide scheduled times. Failed refreshes
+  retain the last known good source data and report its state.
+- Stop, route, trip, and alert identifiers retain feed provenance. Unmatched
+  and ambiguous realtime references remain representable; do not join by a
+  coincidental provider ID string or fabricate corrections to bad source data.
+- The Opal fare endpoint serves normalized, versioned reference data with
+  effective dates, limitations, and attribution. The client selects a fare
+  profile (adult by default) and estimates from the returned rules. The
+  maintained Opal XLSX is the fare source of truth; update the normalized
+  package when a new workbook is published. The exact fare-rule schema still
+  needs review against the fare domain model.
 
-Include optional stop locality data as a typed `LOCALITY` or `SUBURB`, with its
-source/provenance. Do not assume every timetable stop has a suburb: the captured
-GTFS `stop_desc` fields are empty, while the Trip Planner Stop Finder schema
-supports locality/suburb parent locations. The client should display the
-locality only when the published package contains a verified mapping.
+The OpenAPI draft should be reviewed for exact public stop identifiers,
+normalized fare-rule shapes, package-size measurements, cache durations, and
+whether realtime should be requested for all configured feeds or a selected
+offering. Update this note and the OpenAPI document together as those choices
+are settled.
 
-Do not settle endpoint paths or response schemas in this note. Those belong in
-the reviewed OpenAPI contract once package and UI requirements are agreed.
-Saved plans, user naming, and locally computed route options belong to the
-client unless account-based synchronization is deliberately added later.
+## Offering facets
+
+Represent each service method as an independently versioned offering. The
+minimum facets are listed in [`model-spec.md`](model-spec.md); supported facets
+may grow when provider feeds and reviewed mappings supply reliable data. Bus
+offerings may expose route, locality/suburb, and stop facets. Train offerings
+use stations (with platforms available for boarding detail), ferries use
+wharves, and light rail uses stops.
+
+Saved plans, user naming, route constraints, and local route options belong to
+the client. Store up to 20 saved query presets in versioned browser
+`localStorage`; they are not part of the timetable API payload. Handle storage
+being blocked or cleared. Keep secrets and sensitive data out of saved plans.

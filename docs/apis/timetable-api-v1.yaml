@@ -1,0 +1,508 @@
+openapi: 3.1.0
+info:
+  title: Metro Parking Web Service Timetable API
+  version: 1.0.0-draft
+  description: >-
+    Proposed client data API for normalized timetable packages, realtime
+    overlays, and Opal fare data. Clients calculate route options locally;
+    provider feeds and raw GTFS records are not exposed.
+servers:
+  - url: http://localhost:8080
+    description: Local Spring Boot service
+tags:
+  - name: Timetable packages
+    description: Availability manifest and date-partitioned schedule data
+  - name: Realtime
+    description: Independently versioned live service information
+  - name: Fares
+    description: Normalized Opal fare reference data
+paths:
+  /api/v1/timetable/manifest:
+    get:
+      tags: [Timetable packages]
+      operationId: getTimetableManifest
+      summary: Get timetable offering status and covered travel dates
+      description: >-
+        Each offering reports its own state and coverage. One feed failure does
+        not make unrelated offerings unavailable. The initial release includes
+        Sydney Trains and Sydney Metro only. ReplacementBus and PCBC are
+        supporting feeds whose replacement services are integrated into the
+        affected rail offering when their relationship is established; they
+        are not standalone user-facing offerings. The advertised window is
+        Sydney yesterday through today plus six days, intersected with actual
+        feed validity.
+      responses:
+        '200':
+          description: Current published manifest
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag'
+            Cache-Control:
+              description: Manifest may be cached briefly and revalidated.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimetableManifest' }
+        '304': { $ref: '#/components/responses/NotModified' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /api/v1/timetable/packages/{travelDate}:
+    get:
+      tags: [Timetable packages]
+      operationId: getTimetablePackage
+      summary: Get the optimized schedule package for a Sydney travel date
+      description: >-
+        Returns a normalized package partitioned by resolved event date. It
+        includes service-date trips whose calls fall on the requested date,
+        including after-midnight service. If the date is outside the advertised
+        window or an offering has no coverage, return availability UNAVAILABLE
+        and empty collections. Clients perform stop lookup and route calculation
+        against this package. The target is at most 2 MB per compressed date
+        package. The uncompressed JSON can be larger and is served with its
+        negotiated Content-Encoding. For the captured 29 Oct 2026 schedules,
+        a compact full-trip JSON estimate is about 16.4 MB or 1.26 MB gzip
+        before final feed validation and replacement-service association.
+      parameters:
+        - name: travelDate
+          in: path
+          required: true
+          description: Sydney local date in ISO 8601 date form.
+          schema: { type: string, format: date }
+        - name: offering
+          in: query
+          required: false
+          description: Optional offering key to limit the package.
+          schema: { $ref: '#/components/schemas/OfferingKey' }
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Published date package, including an empty package when unavailable
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Cache-Control:
+              description: Revalidate mutable date aliases; immutable revisions may be cached longer.
+              schema: { type: string }
+            Content-Encoding:
+              description: gzip or br may be used when negotiated by the client.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TimetablePackage' }
+        '304': { $ref: '#/components/responses/NotModified' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /api/v1/timetable/realtime:
+    get:
+      tags: [Realtime]
+      operationId: getTimetableRealtimeOverlay
+      summary: Get the latest published realtime overlay
+      description: >-
+        This endpoint serves backend-polled provider data; requests never
+        trigger provider calls. Static scheduled times remain in the date
+        package and must remain usable when realtime data is missing. Alerts,
+        trip updates, and vehicle positions retain feed-scoped identities and
+        may be unmatched. A failed source retains its last known good data and
+        reports its latest attempt and last successful retrieval separately.
+      parameters:
+        - name: offering
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/OfferingKey' }
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Current overlay and per-source retrieval state
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Cache-Control:
+              description: Revalidate frequently; response includes retrieval timestamps.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RealtimeOverlay' }
+        '304': { $ref: '#/components/responses/NotModified' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /api/v1/timetable/fares/opal:
+    get:
+      tags: [Fares]
+      operationId: getOpalFarePackage
+      summary: Get the current normalized Opal fare reference package
+      description: >-
+        Fare estimates are calculated by the client using this versioned
+        reference data and the selected fare profile. The package communicates
+        effective dates, limitations, and required attribution. It is sourced
+        from the published Opal fare material, not a provider fare API.
+      parameters:
+        - $ref: '#/components/parameters/IfNoneMatch'
+      responses:
+        '200':
+          description: Current fare rules and tables
+          headers:
+            ETag: { $ref: '#/components/headers/ETag' }
+            Cache-Control:
+              description: Cache according to the published fare revision and revalidate on expiry.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OpalFarePackage' }
+        '304': { $ref: '#/components/responses/NotModified' }
+        '500': { $ref: '#/components/responses/ServerError' }
+components:
+  parameters:
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      required: false
+      schema: { type: string }
+      description: ETag from a previously retrieved representation.
+  headers:
+    ETag:
+      description: Opaque representation validator for conditional requests.
+      schema: { type: string }
+  responses:
+    NotModified:
+      description: The representation has not changed.
+    BadRequest:
+      description: Invalid date or unsupported offering value.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ServerError:
+      description: The service could not serve a published representation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    OfferingKey:
+      type: string
+      enum:
+        - SYDNEY_TRAINS
+        - SYDNEY_METRO
+        - SYDNEY_REGIONAL_BUSES
+        - SYDNEY_FERRIES
+        - SYDNEY_NEWCASTLE_LIGHT_RAIL
+        - NSW_TRAINLINK_REGIONAL_TRAINS
+        - NSW_TRAINLINK_REGIONAL_COACHES
+        - SYDNEY_REGIONAL_SCHOOL_BUSES
+      description: Stable client offering key; availability is reported per key.
+    OfferingState:
+      type: string
+      enum: [AVAILABLE, PARTIAL, UNAVAILABLE, NOT_CONFIGURED]
+    TimetableManifest:
+      type: object
+      required: [schemaVersion, generatedAt, timezone, travelDateWindow, offerings]
+      properties:
+        schemaVersion: { type: string, example: '1' }
+        generatedAt: { type: string, format: date-time }
+        timezone: { type: string, const: Australia/Sydney }
+        travelDateWindow:
+          type: object
+          required: [from, through]
+          properties:
+            from: { type: string, format: date }
+            through: { type: string, format: date, description: Inclusive. }
+        offerings:
+          type: array
+          items: { $ref: '#/components/schemas/OfferingStatus' }
+    OfferingStatus:
+      type: object
+      required: [key, state, coveredDates, minimumFacets, supportedFacets, sources]
+      properties:
+        key: { $ref: '#/components/schemas/OfferingKey' }
+        state: { $ref: '#/components/schemas/OfferingState' }
+        coveredDates:
+          type: array
+          items: { type: string, format: date }
+        minimumFacets:
+          type: array
+          items: { type: string, enum: [STATION, ROUTE, LOCALITY, STOP, WHARF] }
+        supportedFacets:
+          type: array
+          items: { type: string, enum: [STATION, ROUTE, LOCALITY, STOP, WHARF] }
+        packageVersions:
+          type: object
+          additionalProperties: { type: string }
+          description: Date-keyed package version where available.
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/SourceRevision' }
+    SourceRevision:
+      type: object
+      required: [feedKey, status]
+      properties:
+        feedKey: { type: string, description: Internal provider feed namespace. }
+        role:
+          type: string
+          enum: [PRIMARY, SUPPORTING]
+          description: >-
+            ReplacementBus and PCBC are supporting feeds, not user-facing
+            timetable offerings.
+        associatedOffering:
+          $ref: '#/components/schemas/OfferingKey'
+        status: { type: string, enum: [CURRENT, DEGRADED, UNAVAILABLE] }
+        providerRevision: { type: string }
+        lastModified: { type: string, format: date-time }
+        retrievedAt: { type: string, format: date-time }
+        lastAttemptAt: { type: string, format: date-time }
+        lastSuccessfulAt: { type: string, format: date-time }
+        errorCode: { type: string, description: Stable non-sensitive service error code. }
+    TimetablePackage:
+      type: object
+      description: >-
+        Bounded, optimized client representation. Collections are empty when
+        unavailable; offeringStatuses explains which sources are available.
+      required: [schemaVersion, packageVersion, travelDate, timezone, availability, offerings, offeringStatuses, stops, routes, trips, calls]
+      properties:
+        schemaVersion: { type: string, example: '1' }
+        packageVersion: { type: string }
+        generatedAt: { type: string, format: date-time }
+        travelDate: { type: string, format: date }
+        timezone: { type: string, const: Australia/Sydney }
+        availability: { $ref: '#/components/schemas/OfferingState' }
+        offerings:
+          type: array
+          items: { $ref: '#/components/schemas/OfferingKey' }
+        offeringStatuses:
+          type: array
+          items: { $ref: '#/components/schemas/OfferingStatus' }
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/SourceRevision' }
+        stops:
+          type: array
+          items: { $ref: '#/components/schemas/Stop' }
+        routes:
+          type: array
+          items: { $ref: '#/components/schemas/RouteVariant' }
+        trips:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduledTrip' }
+        calls:
+          type: array
+          items: { $ref: '#/components/schemas/ScheduledCall' }
+        interchanges:
+          type: array
+          items: { $ref: '#/components/schemas/Interchange' }
+    Stop:
+      type: object
+      required: [id, name, kind, feedKey, providerId]
+      properties:
+        id: { type: string, description: Opaque stable public identifier within this timetable domain. }
+        name: { type: string }
+        disassembledName: { type: string }
+        kind:
+          type: string
+          enum: [STATION, PLATFORM, WHARF, BUS_STOP, LOCALITY, SUBURB, OTHER]
+        feedKey: { type: string }
+        providerId: { type: string }
+        parentStopId: { type: string }
+        locality:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            kind: { type: string, enum: [LOCALITY, SUBURB] }
+            source: { type: string }
+        platformCode: { type: string }
+        aliases: { type: array, items: { type: string } }
+        modes: { type: array, items: { type: string } }
+        networkStopId: { type: string, description: Optional reviewed cross-feed grouping identifier. }
+        coordinates:
+          type: object
+          required: [latitude, longitude]
+          properties:
+            latitude: { type: number, minimum: -90, maximum: 90 }
+            longitude: { type: number, minimum: -180, maximum: 180 }
+    RouteVariant:
+      type: object
+      required: [id, offering, feedKey, providerId, name, mode, servicePurpose]
+      properties:
+        id: { type: string }
+        offering: { $ref: '#/components/schemas/OfferingKey' }
+        feedKey: { type: string }
+        providerId: { type: string }
+        shortName: { type: string }
+        name: { type: string }
+        description: { type: string }
+        mode: { type: string, description: Normalized transit mode. }
+        servicePurpose:
+          type: string
+          enum: [REGULAR, REPLACEMENT, PLANNED_CONTINGENCY]
+          description: >-
+            Replacement/contingency routes are included with a train or Metro
+            offering only when the relationship to the affected rail service
+            has been established. Feed provenance remains in feedKey.
+        color: { type: string, pattern: '^[0-9A-Fa-f]{6}$' }
+        textColor: { type: string, pattern: '^[0-9A-Fa-f]{6}$' }
+        agencyName: { type: string }
+    ScheduledTrip:
+      type: object
+      required: [id, routeId, serviceDate, headsign]
+      properties:
+        id: { type: string }
+        routeId: { type: string }
+        providerId: { type: string }
+        serviceDate: { type: string, format: date }
+        headsign: { type: string }
+        directionId: { type: string }
+        stopCallStart: { type: integer, minimum: 0 }
+        stopCallCount: { type: integer, minimum: 0 }
+    ScheduledCall:
+      type: object
+      required: [tripId, sequence, stopId, arrival, departure, timezone]
+      properties:
+        tripId: { type: string }
+        sequence: { type: integer, minimum: 0 }
+        stopId: { type: string }
+        arrival:
+          type: string
+          format: date-time
+          description: >-
+            Absolute scheduled instant serialized as RFC 3339 with its UTC
+            offset (for example +11:00 or +10:00). The event is in the package
+            timezone unless explicitly identified otherwise.
+        departure:
+          type: string
+          format: date-time
+          description: >-
+            Absolute scheduled instant serialized as RFC 3339 with its UTC
+            offset (for example +11:00 or +10:00). The event is in the package
+            timezone unless explicitly identified otherwise.
+        timezone: { type: string, const: Australia/Sydney, description: IANA timezone for local display and date interpretation. }
+        pickupType: { type: integer }
+        dropOffType: { type: integer }
+        timepoint: { type: boolean }
+        platform: { type: string }
+        notes: { type: array, items: { type: string } }
+    Interchange:
+      type: object
+      required: [fromStopId, toStopId, minimumTransferSeconds, provenance]
+      properties:
+        fromStopId: { type: string }
+        toStopId: { type: string }
+        minimumTransferSeconds: { type: integer, minimum: 0 }
+        bidirectional: { type: boolean }
+        provenance: { type: string }
+    RealtimeOverlay:
+      type: object
+      required: [schemaVersion, overlayVersion, generatedAt, sources, alerts, tripUpdates, vehiclePositions]
+      properties:
+        schemaVersion: { type: string, example: '1' }
+        overlayVersion: { type: string }
+        generatedAt: { type: string, format: date-time }
+        sources:
+          type: array
+          items: { $ref: '#/components/schemas/SourceRevision' }
+        alerts:
+          type: array
+          items: { $ref: '#/components/schemas/ServiceAlert' }
+        tripUpdates:
+          type: array
+          items: { $ref: '#/components/schemas/TripUpdate' }
+        vehiclePositions:
+          type: array
+          items: { $ref: '#/components/schemas/VehiclePosition' }
+    ServiceAlert:
+      type: object
+      required: [id, feedKey, cause, effect, activePeriods, informedEntities]
+      properties:
+        id: { type: string }
+        feedKey: { type: string }
+        cause: { type: string }
+        effect: { type: string }
+        header: { type: string }
+        description: { type: string }
+        url: { type: string, format: uri }
+        activePeriods:
+          type: array
+          items:
+            type: object
+            properties:
+              startsAt: { type: string, format: date-time, description: Inclusive; omitted means unbounded. }
+              endsAt: { type: string, format: date-time, description: Exclusive; omitted means unbounded. }
+        informedEntities:
+          type: array
+          items:
+            type: object
+            properties:
+              feedKey: { type: string }
+              routeId: { type: string }
+              tripId: { type: string }
+              stopId: { type: string }
+              directionId: { type: string }
+              matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+    TripUpdate:
+      type: object
+      required: [feedKey, retrievedAt, matchStatus]
+      properties:
+        feedKey: { type: string }
+        tripId: { type: string }
+        routeId: { type: string }
+        scheduleRelationship: { type: string, enum: [SCHEDULED, ADDED, CANCELED, UNSCHEDULED, UNKNOWN] }
+        retrievedAt: { type: string, format: date-time }
+        matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+        stopUpdates:
+          type: array
+          items:
+            type: object
+            properties:
+              stopId: { type: string }
+              stopSequence: { type: integer }
+              arrivalPrediction: { type: string, format: date-time }
+              departurePrediction: { type: string, format: date-time }
+              arrivalDelaySeconds: { type: integer }
+              departureDelaySeconds: { type: integer }
+              scheduleRelationship: { type: string }
+    VehiclePosition:
+      type: object
+      required: [feedKey, retrievedAt, matchStatus]
+      properties:
+        feedKey: { type: string }
+        vehicleId: { type: string }
+        tripId: { type: string }
+        stopId: { type: string }
+        stopSequence: { type: integer }
+        status: { type: string }
+        timestamp: { type: string, format: date-time }
+        retrievedAt: { type: string, format: date-time }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        bearing: { type: number, minimum: 0, maximum: 360 }
+        speedMetersPerSecond: { type: number, minimum: 0 }
+        matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+    OpalFarePackage:
+      type: object
+      required: [schemaVersion, version, effectiveFrom, effectiveThrough, currency, profiles, rules, attribution]
+      properties:
+        schemaVersion: { type: string, example: '1' }
+        version: { type: string }
+        effectiveFrom: { type: string, format: date }
+        effectiveThrough: { type: string, format: date }
+        currency: { type: string, const: AUD }
+        sourceDocument: { type: string }
+        profiles:
+          type: array
+          items: { type: string, enum: [ADULT, CHILD_YOUTH, CONCESSION, SENIOR_PENSIONER] }
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            description: Normalized fare rule/table entry, not a provider workbook row.
+        limitations: { type: array, items: { type: string } }
+        attribution:
+          type: object
+          required: [text, license]
+          properties:
+            text: { type: string }
+            license: { type: string }
+            url: { type: string, format: uri }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri-reference }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri-reference }

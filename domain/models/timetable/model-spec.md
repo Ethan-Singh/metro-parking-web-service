@@ -63,15 +63,18 @@ provided), and checksum with each `FeedRevision`. Validate required tables and
 cross-references before the active-snapshot pointer changes. A failed or partial
 refresh leaves the previous active snapshot in service.
 
-The release manifest identifies Sydney Trains, Sydney Metro, `ReplacementBus`,
-and `PCBC` as separate source feeds. Keep each as its own `FeedRevision` and
-include its date-valid services in the same client package. An empty but
-successfully fetched feed is a valid revision with zero services; a failed or
-invalid feed retains its last-known-good revision. Publish a new combined
-snapshot only when the release manifest is satisfied. Do not broaden this to
-the general bus network or merge these namespaces with Complete GTFS. Do not
-make later mode feeds mandatory; use an explicit manifest for the feed set
-required by each release. Retain the full active
+The initial public offerings are Sydney Trains and Sydney Metro. The release
+manifest also identifies `ReplacementBus` and `PCBC` as separate supporting
+source feeds, each with its own `FeedRevision`; they are not standalone
+offerings. Include their service trips in the affected rail/Metro offering
+only when a replacement relationship is established. Preserve their feed key
+on every included route/trip so schedule and realtime joins remain scoped. An
+empty but successfully fetched feed is a valid revision with zero services; a
+failed or invalid feed retains its last-known-good revision. Publish a new
+combined snapshot only when the required source revisions validate. Do not
+broaden this to the general bus network or merge these namespaces with Complete
+GTFS. Do not make later mode feeds mandatory; use an explicit manifest for the
+feed set required by each release. Retain the full active
 backend snapshot and last-known-good snapshot. Publish a separate
 compact, versioned client package with its timezone, available travel-date
 range, included modes, source revisions, and checksum. The browser can cache
@@ -467,11 +470,13 @@ the user request.
 
 - Use the captured production Sydney Trains and Metro **For Realtime** feeds
   for initial routing. Do not merge Complete GTFS records into these datasets.
-- Include the dedicated `ReplacementBus` and `PCBC` schedules in the first
-  release when their current date-valid services are validated. The captured
-  reference table maps these feed keys to v1 bus trip updates and v2 bus
-  alerts. Keep all source namespaces distinct; do not classify every bus
-  operator in Complete GTFS as a replacement service.
+- Include `ReplacementBus` and `PCBC` as supporting schedule feeds in the first
+  release when their current date-valid services are validated. Their trips
+  appear within Sydney Trains or Metro only when a replacement relationship is
+  established; they are never independently offered as regional bus routes.
+  The captured reference table maps these feed keys to v1 bus trip updates and
+  v2 bus alerts. Keep all source namespaces distinct; do not classify every
+  bus operator in Complete GTFS as a replacement service.
 - Route variants may remain directional; canonical branded-line grouping is
   optional. Preserve provider route names and colors without promising a line
   identity the feed does not establish.
@@ -532,16 +537,19 @@ the user request.
   reinterpret GTFS service-day seconds. Define the Sydney DST gap/overlap
   behavior once in the API contract; reject nonexistent local times and
   require an explicit offset for the repeated fall-back time.
-- For this 1 GB droplet and the 15 MB combined Sydney Trains/Metro ZIPs, do not
-  store one Mongo document per stop-time row: the feeds contain about 1.61
-  million rows and the current Atlas tier is 512 MB. A compact indexed-call
-  estimate from the captures is about 0.47–0.75 MB gzip per travel date for
-  calls alone; the full eight-date window is about 4.9 MB before
-  stop/route/trip metadata. Treat <2 MB as a per-date compressed-package
-  target, not a guarantee. Measure final package size, browser transfer/decode,
-  phone memory, worker query latency, and backend build heap. Support
-  conditional version checks and partition by mode only if measured daily
-  packages exceed the target.
+- For the 1 GB droplet, do not store one Mongo document per stop-time row: the
+  captured production schedules contain about 1.65 million stop-time rows
+  across Sydney Trains, Metro, ReplacementBus, and PCBC. A compact full-trip
+  JSON estimate for 29 Oct 2026 is 16.4 MB / 1.26 MB gzip, including each
+  selected trip's full stop-call sequence and its referenced stop/route data.
+  The target is at most 2 MB compressed per date package. Store each immutable
+  compressed package as one document in a timetable-specific Mongo collection;
+  publish the new manifest pointer only after the full candidate set validates.
+  Keep the previous snapshot and bound retention to fit the roughly 300 MB
+  available storage. Measure final package size, browser transfer/decode, phone
+  memory, worker query latency, and peak backend build heap. If builds exceed
+  the droplet's memory, move feed parsing/building to a controlled separate
+  process before increasing the droplet size.
 - Keep realtime alerts/trip updates as a separate, independently refreshed
   overlay with its own retrieved-at timestamp. Do not bake short-lived realtime
   values into the static schedule snapshot. Saved trips are capped at 20 and

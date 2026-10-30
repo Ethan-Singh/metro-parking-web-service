@@ -7,6 +7,7 @@ indexed in [`../provider-docs/`](../provider-docs/).
 | Path | Contents |
 | --- | --- |
 | [`metro-parking-api-v1.yaml`](metro-parking-api-v1.yaml) | Canonical public API contract for this service |
+| [`timetable-api-v1.yaml`](timetable-api-v1.yaml) | Proposed v1 contract for date packages, realtime overlays, and Opal fare data; pending domain/API review |
 | [`v1-carpark/`](v1-carpark/) | Car Park API catalog, live, and history response samples |
 | [`v1-gtfs/`](v1-gtfs/) | Sydney Trains schedule feed captures |
 | [`v1-publictransport/`](v1-publictransport/) | Complete static GTFS feed capture |

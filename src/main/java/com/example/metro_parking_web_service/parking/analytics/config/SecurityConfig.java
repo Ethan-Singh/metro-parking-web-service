@@ -32,6 +32,8 @@ public class SecurityConfig {
                         auth ->
                                 auth.requestMatchers("/api/v1/parking/**")
                                         .permitAll()
+                                        .requestMatchers("/api/v1/timetable/**")
+                                        .permitAll()
                                         .requestMatchers(
                                                 "/swagger-ui.html",
                                                 "/swagger-ui/**",
@@ -67,7 +69,8 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(securityProperties.allowedOrigins());
         config.setAllowedMethods(List.of("GET", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", "Accept"));
+        config.setAllowedHeaders(List.of("Content-Type", "Accept", "If-None-Match"));
+        config.setExposedHeaders(List.of("ETag", "Content-Encoding"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
