@@ -27,7 +27,9 @@ design system.
 | `docs/apis/metro-parking-api-v1.yaml` | Public endpoint paths, request/response schemas, and examples |
 | `domain/models/` | Domain-indexed models, provider boundaries, API contracts, and flows |
 | `domain/models/carpark/implementation-spec.md` | Current car park architectural decisions and implementation plan |
-| `domain/models/timetable/model-spec.md` | Draft normalized timetable and routing model based on captured provider feeds |
+| `domain/models/timetable/domain-api.md` | Implemented timetable API and frontend handoff |
+| `domain/models/timetable/model-spec.md` | Timetable domain decisions and provider evidence |
+| `docs/apis/timetable-api-v1.yaml` | Timetable API schemas and endpoint contract |
 | `domain/models/carpark/daily-metrics-contract.md` | Focused behavior contract for daily parking metrics |
 | `docs/apis/v1-carpark/` | Saved examples of the upstream catalog, live, and history payloads |
 | `docs/apis/v1-gtfs/`, `docs/apis/v1-publictransport/`, `docs/apis/v2-gtfs/` | Captured TfNSW schedule and realtime feed responses; retain feed provenance and IDs |
@@ -49,6 +51,8 @@ implementation spec, or current API contract.
 | `parking.api` | Versioned controllers, query services, response DTOs/mappers, validation, API caching and rate limiting |
 | `parking.domain` | Normalized parking values, facility slug rules, and Sydney time helpers shared across provider, ingestion, and API layers |
 | `timetable.opal.domain` | Opal fare profiles, versioned fare rules, normalized fare-table types, and timetable fare-estimate rules |
+| `timetable.api` | Schedule-feed refresh, normalized date-package snapshots, manifest/package reads, and Mongo publication |
+| `timetable.realtime` | Independently refreshed alerts, trip updates, vehicle positions, and conservative schedule joins |
 
 Keep upstream DTOs, Mongo documents, and public response DTOs separate. Do not
 return Mongo document shapes or full upstream payloads from the API. Avoid

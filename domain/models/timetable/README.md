@@ -12,8 +12,8 @@ backend does not maintain a second journey solver.
 | Saved plans and computed route options | [route-planning.puml](route-planning.puml) |
 | Alerts, trip updates, and disruption matching | [realtime-domain.puml](realtime-domain.puml) |
 | Opal fare estimates | [opal-fare-domain.puml](opal-fare-domain.puml) |
-| Captured-feed evidence and domain decisions | [model-spec.md](model-spec.md) |
-| Proposed service-owned API contract status | [domain-api.md](domain-api.md) |
+| Provider evidence and domain decisions | [model-spec.md](model-spec.md) |
+| Implemented API and frontend handoff | [domain-api.md](domain-api.md) |
 | Provider API and capture inventory | [provider-apis.md](provider-apis.md) |
 | Provider Swagger and reference documentation | [provider docs](../../../docs/provider-docs/public-transport/) |
 | Captured provider responses | [API captures](../../../docs/apis/) |
