@@ -3,7 +3,6 @@ package com.example.metro_parking_web_service.timetable.api.service;
 
 import com.example.metro_parking_web_service.timetable.api.config.TimetableSnapshotProperties;
 import com.example.metro_parking_web_service.timetable.api.document.TimetablePackageDocument;
-import com.example.metro_parking_web_service.timetable.api.service.TimetableSnapshotPublisher.SnapshotCandidate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -97,75 +96,84 @@ public class TimetableSnapshotBuildService {
                 Instant.now().toString().replace(":", "").replace("-", "")
                         + "-"
                         + UUID.randomUUID().toString().substring(0, 8);
-        List<TimetablePackageDocument> packageDocuments = new ArrayList<>();
         List<PackageEntry> manifestEntries = new ArrayList<>();
+        long packageCount = 0;
+        boolean published = false;
+        try {
+            for (LocalDate date = from; !date.isAfter(through); date = date.plusDays(1)) {
+                ObjectNode trains =
+                        packageBuilder.build(
+                                trainsZip, "sydneytrains", TRAINS, date, trainsRevision);
+                ObjectNode metro =
+                        packageBuilder.build(metroZip, "metro", METRO, date, metroRevision);
+                int primaryTrainTripCount = trains.withArray("trips").size();
+                if (replacementBusZip != null) {
+                    appendSupportingSchedules(
+                            trains,
+                            replacementBusZip,
+                            replacementBusRevision,
+                            date,
+                            SupportingSchedulePolicy.routes().stream()
+                                    .filter(route -> route.feedKey().equals("replacementbus"))
+                                    .toList());
+                }
+                if (pcbcZip != null) {
+                    appendSupportingSchedules(
+                            trains,
+                            pcbcZip,
+                            pcbcRevision,
+                            date,
+                            SupportingSchedulePolicy.routes().stream()
+                                    .filter(route -> route.feedKey().equals("pcbc"))
+                                    .toList());
+                }
+                ObjectNode all = combine(date, snapshotVersion, trains, metro);
+                trains.put("packageVersion", snapshotVersion);
+                metro.put("packageVersion", snapshotVersion);
+                all.put("packageVersion", snapshotVersion);
+                for (ObjectNode item : List.of(trains, metro, all)) {
+                    item.put("generatedAt", Instant.now().toString());
+                }
 
-        for (LocalDate date = from; !date.isAfter(through); date = date.plusDays(1)) {
-            ObjectNode trains =
-                    packageBuilder.build(trainsZip, "sydneytrains", TRAINS, date, trainsRevision);
-            ObjectNode metro = packageBuilder.build(metroZip, "metro", METRO, date, metroRevision);
-            int primaryTrainTripCount = trains.withArray("trips").size();
-            if (replacementBusZip != null) {
-                appendSupportingSchedules(
-                        trains,
-                        replacementBusZip,
-                        replacementBusRevision,
+                publisher.stage(toDocument(snapshotVersion, date, TRAINS, trains));
+                publisher.stage(toDocument(snapshotVersion, date, METRO, metro));
+                TimetablePackageDocument allDocument =
+                        toDocument(snapshotVersion, date, "ALL", all);
+                publisher.stage(allDocument);
+                packageCount += 3;
+                manifestEntries.add(new PackageEntry(date));
+                log.info(
+                        "event=timetable_package_built date={} trainsTrips={} metroTrips={}"
+                                + " supportingTrips={} combinedGzipBytes={}",
                         date,
-                        SupportingSchedulePolicy.routes().stream()
-                                .filter(route -> route.feedKey().equals("replacementbus"))
-                                .toList());
-            }
-            if (pcbcZip != null) {
-                appendSupportingSchedules(
-                        trains,
-                        pcbcZip,
-                        pcbcRevision,
-                        date,
-                        SupportingSchedulePolicy.routes().stream()
-                                .filter(route -> route.feedKey().equals("pcbc"))
-                                .toList());
-            }
-            ObjectNode all = combine(date, snapshotVersion, trains, metro);
-            trains.put("packageVersion", snapshotVersion);
-            metro.put("packageVersion", snapshotVersion);
-            all.put("packageVersion", snapshotVersion);
-            for (ObjectNode item : List.of(trains, metro, all)) {
-                item.put("generatedAt", Instant.now().toString());
+                        trains.withArray("trips").size(),
+                        metro.withArray("trips").size(),
+                        trains.withArray("trips").size() - primaryTrainTripCount,
+                        allDocument.getPayload().length);
             }
 
-            packageDocuments.add(toDocument(snapshotVersion, date, TRAINS, trains));
-            packageDocuments.add(toDocument(snapshotVersion, date, METRO, metro));
-            packageDocuments.add(toDocument(snapshotVersion, date, "ALL", all));
-            manifestEntries.add(new PackageEntry(date));
+            ObjectNode manifest =
+                    manifest(
+                            snapshotVersion,
+                            from,
+                            through,
+                            manifestEntries,
+                            trainsRevision,
+                            metroRevision,
+                            replacementBusRevision,
+                            pcbcRevision);
+            String manifestEtag = '"' + sha256(serialize(manifest)) + '"';
+            publisher.publishStaged(snapshotVersion, manifestEtag, manifest, packageCount);
+            published = true;
             log.info(
-                    "event=timetable_package_built date={} trainsTrips={} metroTrips={}"
-                            + " supportingTrips={} combinedGzipBytes={}",
-                    date,
-                    trains.withArray("trips").size(),
-                    metro.withArray("trips").size(),
-                    trains.withArray("trips").size() - primaryTrainTripCount,
-                    packageDocuments.get(packageDocuments.size() - 1).getPayload().length);
+                    "event=timetable_snapshot_published version={} from={} through={} packages={}",
+                    snapshotVersion,
+                    from,
+                    through,
+                    packageCount);
+        } finally {
+            if (!published) publisher.discardStaged(snapshotVersion);
         }
-
-        ObjectNode manifest =
-                manifest(
-                        snapshotVersion,
-                        from,
-                        through,
-                        manifestEntries,
-                        trainsRevision,
-                        metroRevision,
-                        replacementBusRevision,
-                        pcbcRevision);
-        String manifestEtag = '"' + sha256(serialize(manifest)) + '"';
-        publisher.publish(
-                new SnapshotCandidate(snapshotVersion, manifestEtag, manifest, packageDocuments));
-        log.info(
-                "event=timetable_snapshot_published version={} from={} through={} packages={}",
-                snapshotVersion,
-                from,
-                through,
-                packageDocuments.size());
     }
 
     private ObjectNode combine(

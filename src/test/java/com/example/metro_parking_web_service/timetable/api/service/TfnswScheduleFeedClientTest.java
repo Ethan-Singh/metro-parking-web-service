@@ -11,6 +11,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import com.example.metro_parking_web_service.provider.tfnsw.config.TfnswConnectionProperties;
 import com.example.metro_parking_web_service.timetable.api.config.TimetableProviderProperties;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -18,6 +19,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 class TfnswScheduleFeedClientTest {
+
+    @TempDir java.nio.file.Path temporaryDirectory;
 
     @Test
     void headRequestIncludesOctetStreamAcceptHeaderAndReturnsLastModified() {
@@ -86,6 +89,22 @@ class TfnswScheduleFeedClientTest {
 
         assertThat(client.head("replacementbus").lastModified()).isEqualTo("replacement-r1");
         assertThat(client.download("pcbc")).containsExactly(new byte[] {'P', 'K', 3, 4});
+        server.verify();
+    }
+
+    @Test
+    void streamsProviderZipToDiskInsteadOfReturningItAsAnInMemoryArray() throws Exception {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://provider.test");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TfnswScheduleFeedClient client = client(builder.build());
+        byte[] zip = {'P', 'K', 3, 4, 5, 6};
+        java.nio.file.Path destination = temporaryDirectory.resolve("schedule.zip");
+        server.expect(requestTo("https://provider.test/metro"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(zip, MediaType.APPLICATION_OCTET_STREAM));
+
+        assertThat(client.downloadTo("metro", destination)).isEqualTo(zip.length);
+        assertThat(java.nio.file.Files.readAllBytes(destination)).containsExactly(zip);
         server.verify();
     }
 

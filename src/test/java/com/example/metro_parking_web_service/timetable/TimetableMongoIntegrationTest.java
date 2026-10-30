@@ -95,6 +95,25 @@ class TimetableMongoIntegrationTest {
     }
 
     @Test
+    void stagesPackagesInMongoBeforePublishingTheActiveManifest() throws Exception {
+        SnapshotCandidate candidate = candidate("staged-snapshot", "\"staged\"", "\"pkg\"");
+        TimetablePackageDocument stagedPackage = candidate.packages().getFirst();
+
+        publisher.stage(stagedPackage);
+        assertThat(packageRepository.countBySnapshotVersion("staged-snapshot")).isEqualTo(1);
+        assertThat(manifestRepository.findById("active")).isEmpty();
+
+        publisher.publishStaged(
+                candidate.snapshotVersion(),
+                candidate.manifestEtag(),
+                candidate.manifest(),
+                candidate.packages().size());
+
+        assertThat(manifestRepository.findById("active").orElseThrow().getSnapshotVersion())
+                .isEqualTo("staged-snapshot");
+    }
+
+    @Test
     void publishingNewSnapshotKeepsPreviousVersionAndMovesActiveManifest() throws Exception {
         publisher.publish(candidate("snapshot-1", "\"manifest-v1\"", "\"package-v1\""));
         publisher.publish(candidate("snapshot-2", "\"manifest-v2\"", "\"package-v2\""));

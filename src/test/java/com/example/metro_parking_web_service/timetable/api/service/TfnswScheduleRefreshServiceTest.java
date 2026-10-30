@@ -78,7 +78,12 @@ class TfnswScheduleRefreshServiceTest {
         when(feedClient.head("pcbc"))
                 .thenReturn(new TfnswScheduleFeedClient.FeedHead("pcbc-revision"));
         when(feedStateRepository.findById(anyString())).thenReturn(Optional.empty());
-        when(feedClient.download(anyString())).thenReturn(ZIP_BYTES);
+        when(feedClient.downloadTo(anyString(), any()))
+                .thenAnswer(
+                        invocation -> {
+                            java.nio.file.Files.write(invocation.getArgument(1), ZIP_BYTES);
+                            return (long) ZIP_BYTES.length;
+                        });
 
         service.refreshIfChanged();
 
@@ -118,7 +123,7 @@ class TfnswScheduleRefreshServiceTest {
 
         service.refreshIfChanged();
 
-        verify(feedClient, never()).download(anyString());
+        verify(feedClient, never()).downloadTo(anyString(), any());
         verify(snapshotBuildService, never())
                 .buildAndPublish(
                         any(),

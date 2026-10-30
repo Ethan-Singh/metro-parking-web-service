@@ -10,5 +10,9 @@ public interface TimetablePackageRepository
     java.util.List<TimetablePackageDocument> findAllBySnapshotVersionAndOffering(
             String snapshotVersion, String offering);
 
+    long countBySnapshotVersion(String snapshotVersion);
+
+    long deleteBySnapshotVersion(String snapshotVersion);
+
     long deleteBySnapshotVersionNotIn(Collection<String> retainedVersions);
 }

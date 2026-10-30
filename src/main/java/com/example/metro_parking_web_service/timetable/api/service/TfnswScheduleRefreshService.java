@@ -4,8 +4,10 @@ package com.example.metro_parking_web_service.timetable.api.service;
 import com.example.metro_parking_web_service.provider.tfnsw.config.TfnswConnectionProperties;
 import com.example.metro_parking_web_service.timetable.api.document.TimetableFeedStateDocument;
 import com.example.metro_parking_web_service.timetable.api.repository.TimetableFeedStateRepository;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -76,19 +78,19 @@ public class TfnswScheduleRefreshService {
             Path replacementBusTemp = Files.createTempFile("timetable-replacementbus-", ".zip");
             Path pcbcTemp = Files.createTempFile("timetable-pcbc-", ".zip");
             try {
-                byte[] trainsBytes = feedClient.download(TRAINS);
-                byte[] metroBytes = feedClient.download(METRO);
-                byte[] replacementBusBytes = feedClient.download(REPLACEMENT_BUS);
-                byte[] pcbcBytes = feedClient.download(PCBC);
-                Files.write(trainsTemp, trainsBytes);
-                Files.write(metroTemp, metroBytes);
-                Files.write(replacementBusTemp, replacementBusBytes);
-                Files.write(pcbcTemp, pcbcBytes);
-                String trainsRevision = revision(trainsLastModified, trainsBytes);
-                String metroRevision = revision(metroLastModified, metroBytes);
+                feedClient.downloadTo(TRAINS, trainsTemp);
+                feedClient.downloadTo(METRO, metroTemp);
+                feedClient.downloadTo(REPLACEMENT_BUS, replacementBusTemp);
+                feedClient.downloadTo(PCBC, pcbcTemp);
+                String trainsChecksum = sha256(trainsTemp);
+                String metroChecksum = sha256(metroTemp);
+                String replacementBusChecksum = sha256(replacementBusTemp);
+                String pcbcChecksum = sha256(pcbcTemp);
+                String trainsRevision = revision(trainsLastModified, trainsChecksum);
+                String metroRevision = revision(metroLastModified, metroChecksum);
                 String replacementBusRevision =
-                        revision(replacementBusLastModified, replacementBusBytes);
-                String pcbcRevision = revision(pcbcLastModified, pcbcBytes);
+                        revision(replacementBusLastModified, replacementBusChecksum);
+                String pcbcRevision = revision(pcbcLastModified, pcbcChecksum);
 
                 snapshotBuildService.buildAndPublish(
                         trainsTemp,
@@ -99,10 +101,10 @@ public class TfnswScheduleRefreshService {
                         replacementBusRevision,
                         pcbcTemp,
                         pcbcRevision);
-                saveState(TRAINS, trainsLastModified, trainsBytes);
-                saveState(METRO, metroLastModified, metroBytes);
-                saveState(REPLACEMENT_BUS, replacementBusLastModified, replacementBusBytes);
-                saveState(PCBC, pcbcLastModified, pcbcBytes);
+                saveState(TRAINS, trainsLastModified, trainsChecksum);
+                saveState(METRO, metroLastModified, metroChecksum);
+                saveState(REPLACEMENT_BUS, replacementBusLastModified, replacementBusChecksum);
+                saveState(PCBC, pcbcLastModified, pcbcChecksum);
                 log.info(
                         "event=timetable_provider_refresh_complete trainsRevision={}"
                                 + " metroRevision={} replacementBusRevision={} pcbcRevision={}"
@@ -165,28 +167,36 @@ public class TfnswScheduleRefreshService {
                 && lastModified.equals(previous.getProviderLastModified());
     }
 
-    private String revision(String lastModified, byte[] bytes) {
-        return lastModified == null || lastModified.isBlank() ? sha256(bytes) : lastModified;
+    private String revision(String lastModified, String checksum) {
+        return lastModified == null || lastModified.isBlank() ? checksum : lastModified;
     }
 
     private String printableRevision(String lastModified) {
         return lastModified == null || lastModified.isBlank() ? "unavailable" : lastModified;
     }
 
-    private void saveState(String key, String lastModified, byte[] content) {
+    private void saveState(String key, String lastModified, String checksum) {
         TimetableFeedStateDocument state = new TimetableFeedStateDocument();
         state.setFeedKey(key);
         state.setProviderLastModified(lastModified);
-        state.setChecksum(sha256(content));
+        state.setChecksum(checksum);
         state.setRetrievedAt(java.time.Instant.now());
         feedStateRepository.save(state);
     }
 
-    private String sha256(byte[] value) {
+    private String sha256(Path file) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value));
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = Files.newInputStream(file, StandardOpenOption.READ)) {
+                byte[] buffer = new byte[8192];
+                int length;
+                while ((length = input.read(buffer)) != -1) digest.update(buffer, 0, length);
+            }
+            return HexFormat.of().formatHex(digest.digest());
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is unavailable", exception);
+        } catch (java.io.IOException exception) {
+            throw new java.io.UncheckedIOException(exception);
         }
     }
 }

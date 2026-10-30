@@ -12,10 +12,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,8 +77,8 @@ public class RealtimeScheduleMatcher {
         SnapshotIndex current = cachedIndex;
         if (current != null && current.snapshotVersion().equals(activeVersion)) return current;
 
-        Map<TripKey, Set<TripRef>> trips = new HashMap<>();
-        Map<CallKey, Set<String>> calls = new HashMap<>();
+        Map<TripKey, List<TripRef>> trips = new HashMap<>();
+        Map<CallKey, String> calls = new HashMap<>();
         for (TimetablePackageDocument document :
                 packageRepository.findAllBySnapshotVersionAndOffering(activeVersion, "ALL")) {
             JsonNode root = readPackage(document);
@@ -94,8 +92,10 @@ public class RealtimeScheduleMatcher {
                 if (feedKey == null) feedKey = feedKeyFromNamespacedId(id);
                 if (feedKey == null) continue;
                 TripRef ref = new TripRef(id, routeId, serviceDate);
-                trips.computeIfAbsent(new TripKey(feedKey, providerId), ignored -> new HashSet<>())
-                        .add(ref);
+                List<TripRef> tripRefs =
+                        trips.computeIfAbsent(
+                                new TripKey(feedKey, providerId), ignored -> new ArrayList<>());
+                if (!tripRefs.contains(ref)) tripRefs.add(ref);
             }
             for (JsonNode call : root.path("calls")) {
                 String tripId = text(call, "tripId");
@@ -105,10 +105,11 @@ public class RealtimeScheduleMatcher {
                 String feedKey = feedKeyFromNamespacedId(stopId);
                 if (feedKey == null) continue;
                 String providerStopId = stopId.substring(feedKey.length() + 1);
-                calls.computeIfAbsent(
-                                new CallKey(tripId, providerStopId, sequence),
-                                ignored -> new HashSet<>())
-                        .add(stopId);
+                CallKey key = new CallKey(tripId, providerStopId, sequence);
+                calls.merge(
+                        key,
+                        stopId,
+                        (existing, incoming) -> existing.equals(incoming) ? existing : "");
             }
         }
         SnapshotIndex built = new SnapshotIndex(activeVersion, trips, calls);
@@ -167,7 +168,7 @@ public class RealtimeScheduleMatcher {
         List<TripRef> matching =
                 new ArrayList<>(
                         index.trips()
-                                .getOrDefault(new TripKey(scheduleFeed, providerId), Set.of()));
+                                .getOrDefault(new TripKey(scheduleFeed, providerId), List.of()));
         String routeId = text(record, "routeId");
         String startDate = text(record, "startDate");
         if (routeId != null) {
@@ -188,20 +189,19 @@ public class RealtimeScheduleMatcher {
             if (!(node instanceof ObjectNode stop)) continue;
             String providerStopId = text(stop, "stopId");
             Integer sequence = integer(stop, "stopSequence");
-            List<String> matched = new ArrayList<>();
+            String matched = null;
             if (providerStopId != null && sequence != null) {
-                matched.addAll(
-                        index.calls()
-                                .getOrDefault(
-                                        new CallKey(trip.id(), providerStopId, sequence),
-                                        Set.of()));
+                matched = index.calls().get(new CallKey(trip.id(), providerStopId, sequence));
             }
-            matched.removeIf(id -> !id.startsWith(scheduleFeed + ":"));
-            if (matched.size() == 1) {
+            if (matched != null && !matched.isBlank() && matched.startsWith(scheduleFeed + ":")) {
                 stop.put("matchStatus", "MATCHED");
-                stop.put("scheduleStopId", matched.getFirst());
+                stop.put("scheduleStopId", matched);
             } else {
-                stop.put("matchStatus", matched.isEmpty() ? "UNMATCHED" : "AMBIGUOUS");
+                stop.put(
+                        "matchStatus",
+                        matched == null
+                                ? "UNMATCHED"
+                                : matched.isBlank() ? "AMBIGUOUS" : "UNMATCHED");
                 stop.remove("scheduleStopId");
             }
         }
@@ -212,15 +212,14 @@ public class RealtimeScheduleMatcher {
         String stopId = text(record, "stopId");
         Integer sequence = integer(record, "stopSequence");
         if (stopId == null || sequence == null) return;
-        Set<String> matches =
-                index.calls().getOrDefault(new CallKey(trip.id(), stopId, sequence), Set.of());
-        List<String> scoped =
-                matches.stream().filter(id -> id.startsWith(scheduleFeed + ":")).toList();
-        if (scoped.size() == 1) {
+        String match = index.calls().get(new CallKey(trip.id(), stopId, sequence));
+        if (match != null && !match.isBlank() && match.startsWith(scheduleFeed + ":")) {
             record.put("stopMatchStatus", "MATCHED");
-            record.put("scheduleStopId", scoped.getFirst());
+            record.put("scheduleStopId", match);
         } else {
-            record.put("stopMatchStatus", scoped.isEmpty() ? "UNMATCHED" : "AMBIGUOUS");
+            record.put(
+                    "stopMatchStatus",
+                    match == null ? "UNMATCHED" : match.isBlank() ? "AMBIGUOUS" : "UNMATCHED");
         }
     }
 
@@ -248,9 +247,7 @@ public class RealtimeScheduleMatcher {
     private record TripRef(String id, String routeId, String serviceDate) {}
 
     private record SnapshotIndex(
-            String snapshotVersion,
-            Map<TripKey, Set<TripRef>> trips,
-            Map<CallKey, Set<String>> calls) {
+            String snapshotVersion, Map<TripKey, List<TripRef>> trips, Map<CallKey, String> calls) {
         private static SnapshotIndex empty() {
             return new SnapshotIndex("", Map.of(), Map.of());
         }

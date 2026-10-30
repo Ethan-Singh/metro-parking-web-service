@@ -4,6 +4,7 @@ package com.example.metro_parking_web_service.timetable.api.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
@@ -12,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import com.example.metro_parking_web_service.timetable.api.config.TimetableSnapshotProperties;
 import com.example.metro_parking_web_service.timetable.api.document.TimetablePackageDocument;
-import com.example.metro_parking_web_service.timetable.api.service.TimetableSnapshotPublisher.SnapshotCandidate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -67,24 +67,34 @@ class TimetableSnapshotBuildServiceTest {
         buildService.buildAndPublish(
                 Path.of("trains.zip"), "train-r1", Path.of("metro.zip"), "metro-r1");
 
-        ArgumentCaptor<SnapshotCandidate> candidateCaptor =
-                ArgumentCaptor.forClass(SnapshotCandidate.class);
-        verify(publisher).publish(candidateCaptor.capture());
-        SnapshotCandidate candidate = candidateCaptor.getValue();
-        assertThat(candidate.packages()).hasSize(24);
-        assertThat(candidate.manifestEtag()).startsWith("\"").endsWith("\"");
-        assertThat(candidate.manifest().path("timezone").asText()).isEqualTo("Australia/Sydney");
-        assertThat(candidate.manifest().path("travelDateWindow").path("through").asText())
+        ArgumentCaptor<TimetablePackageDocument> packageCaptor =
+                ArgumentCaptor.forClass(TimetablePackageDocument.class);
+        verify(publisher, times(24)).stage(packageCaptor.capture());
+        ArgumentCaptor<ObjectNode> manifestCaptor = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(publisher)
+                .publishStaged(
+                        anyString(),
+                        anyString(),
+                        manifestCaptor.capture(),
+                        org.mockito.ArgumentMatchers.eq(24L));
+        assertThat(packageCaptor.getAllValues()).hasSize(24);
+        assertThat(
+                        packageCaptor.getAllValues().stream()
+                                .filter(doc -> "ALL".equals(doc.getOffering()))
+                                .findFirst()
+                                .orElseThrow()
+                                .getPayload())
+                .isNotEmpty();
+        assertThat(manifestCaptor.getValue().path("timezone").asText())
+                .isEqualTo("Australia/Sydney");
+        assertThat(manifestCaptor.getValue().path("travelDateWindow").path("through").asText())
                 .isEqualTo(LocalDate.now(TimetableReadService.SYDNEY_ZONE).plusDays(6).toString());
-
-        TimetablePackageDocument all =
-                candidate.packages().stream()
-                        .filter(document -> "ALL".equals(document.getOffering()))
-                        .findFirst()
-                        .orElseThrow();
-        assertThat(all.getPayload()).isNotEmpty();
-        assertThat(all.getContentEncoding()).isEqualTo("gzip");
-        assertThat(all.getEtag()).startsWith("\"").endsWith("\"");
+        assertThat(packageCaptor.getAllValues())
+                .allSatisfy(
+                        document -> {
+                            assertThat(document.getContentEncoding()).isEqualTo("gzip");
+                            assertThat(document.getEtag()).startsWith("\"").endsWith("\"");
+                        });
         verify(packageBuilder, times(16))
                 .build(any(), anyString(), anyString(), any(), anyString());
     }
@@ -114,7 +124,8 @@ class TimetableSnapshotBuildServiceTest {
                                         "metro-r1"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Timetable package exceeded compressed-size target");
-        verify(publisher, org.mockito.Mockito.never()).publish(any());
+        verify(publisher, org.mockito.Mockito.never())
+                .publishStaged(anyString(), anyString(), any(), anyLong());
     }
 
     @Test
@@ -153,16 +164,22 @@ class TimetableSnapshotBuildServiceTest {
                 "pcbc-r1",
                 LocalDate.of(2026, 10, 26));
 
-        ArgumentCaptor<SnapshotCandidate> candidateCaptor =
-                ArgumentCaptor.forClass(SnapshotCandidate.class);
-        verify(publisher).publish(candidateCaptor.capture());
-        SnapshotCandidate candidate = candidateCaptor.getValue();
-        assertThat(candidate.manifest().path("offerings").findValuesAsText("key"))
+        ArgumentCaptor<TimetablePackageDocument> packageCaptor =
+                ArgumentCaptor.forClass(TimetablePackageDocument.class);
+        verify(publisher, times(24)).stage(packageCaptor.capture());
+        ArgumentCaptor<ObjectNode> manifestCaptor = ArgumentCaptor.forClass(ObjectNode.class);
+        verify(publisher)
+                .publishStaged(
+                        anyString(),
+                        anyString(),
+                        manifestCaptor.capture(),
+                        org.mockito.ArgumentMatchers.eq(24L));
+        assertThat(manifestCaptor.getValue().path("offerings").findValuesAsText("key"))
                 .containsExactly("SYDNEY_TRAINS", "SYDNEY_METRO")
                 .doesNotContain("REPLACEMENT_BUS", "PCBC");
         assertThat(
-                        candidate
-                                .manifest()
+                        manifestCaptor
+                                .getValue()
                                 .path("offerings")
                                 .get(0)
                                 .path("sources")
@@ -170,7 +187,7 @@ class TimetableSnapshotBuildServiceTest {
                 .contains("replacementbus", "pcbc");
 
         TimetablePackageDocument trainPackage =
-                candidate.packages().stream()
+                packageCaptor.getAllValues().stream()
                         .filter(
                                 document ->
                                         document.getOffering().equals("SYDNEY_TRAINS")
