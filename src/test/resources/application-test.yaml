@@ -31,3 +31,13 @@ providers:
         metro: /v2/gtfs/schedule/metro
       enabled: false
       refresh-interval: PT6H
+    realtime:
+      api:
+        alerts-sydney-trains: /v2/gtfs/alerts/sydneytrains
+        alerts-metro: /v2/gtfs/alerts/metro
+        trip-updates-sydney-trains: /v2/gtfs/realtime/sydneytrains
+        trip-updates-metro: /v2/gtfs/realtime/metro
+        vehicle-positions-sydney-trains: /v2/gtfs/vehiclepos/sydneytrains
+        vehicle-positions-metro: /v2/gtfs/vehiclepos/metro
+      enabled: false
+      refresh-interval: PT1M

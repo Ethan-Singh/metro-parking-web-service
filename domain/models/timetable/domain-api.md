@@ -4,8 +4,9 @@
 
 The v1 OpenAPI draft is
 [`docs/apis/timetable-api-v1.yaml`](../../../docs/apis/timetable-api-v1.yaml).
-The manifest and date-package operations are implemented; the realtime and
-Opal fare operations remain design-only. Treat the OpenAPI as the intended
+The manifest and date-package operations are implemented. The realtime read
+operation and Sydney Trains/Metro alert, trip-update, and vehicle-position
+ingestion are implemented. The Opal fare operation remains design-only. Treat the OpenAPI as the intended
 service-owned contract and keep its implemented package fields aligned with
 the JSON produced by the snapshot builder. The models in this folder describe
 normalized domain concepts, not protobuf messages or GTFS tables.
@@ -48,8 +49,27 @@ are a separately versioned overlay; fare data and rules have their own revision
 lifecycle. Provider polling is backend-controlled and never triggered by a
 client request.
 
-The draft also defines a separately versioned realtime overlay and normalized
-Opal fare package. These remain planned API representations. They retain useful
+## Package transport format
+
+Keep the public package API as versioned HTTP REST with normalized JSON. The
+date packages are already stored in gzip form and sent with
+`Content-Encoding: gzip` when the client advertises support; otherwise the
+controller returns decompressed JSON. Captured production packages measured
+about 0.12 to 1.11 MB compressed, within the 2 MB target.
+
+gRPC would not make the current JSON representation smaller by itself. A
+smaller wire format would require defining and versioning protobuf messages for
+our own package contract, generating and maintaining browser-compatible
+clients, and changing the API consumers. Standard browser clients also need a
+gRPC-Web-compatible serving path; gRPC-Web uses a browser-specific protocol and
+proxy path ([official browser guidance](https://github.com/grpc/grpc-web/blob/master/doc/browser-features.md)).
+Keep JSON plus HTTP compression while the measured package size and client
+parsing remain acceptable; revisit only if real package or performance
+measurements show a bottleneck.
+
+The draft also defines a separately versioned realtime overlay and normalised
+Opal fare package. The overlay contains alerts, trip updates, and vehicle
+positions for the initial Sydney Trains and Metro sources. It retains useful
 optional metadata and provenance without exposing raw GTFS tables, protobuf
 messages, or provider DTOs as the application contract. The
 date package contains the searchable stops, so there is no per-keystroke
@@ -113,11 +133,14 @@ the package and realtime overlay; there is no duplicate backend journey solver.
 
 The static package contract has a working implementation and tests. Before
 frontend integration, confirm its exact response examples against the
-published endpoint. The OpenAPI realtime and fare schemas are still drafts;
-review their normalized field names and examples as those endpoints are
-implemented. Realtime must account for the captured GTFS-Realtime header,
-incrementality, deletion semantics, alert targets, trip and stop updates,
-vehicle positions, and the applicable TfNSW extensions described in
+published endpoint. Realtime refresh fetches six sources per minute by default:
+two JSON alert feeds and four binary trip-update/vehicle-position feeds. That
+is 8,640 provider requests per day before retries. Binary feeds are decoded
+with the pinned endpoint schema variants; the normalizer accepts only
+`FULL_DATASET`, applies full-feed entity replacement, and retains provider
+feed keys. Schedule matching currently reports realtime entities as
+`UNMATCHED` until a validated namespaced matcher is implemented. The
+endpoint-specific schemas and extensions are described in
 [`realtime-domain.puml`](realtime-domain.puml) and
 [`docs/provider-docs/proto/README.md`](../../../docs/provider-docs/proto/README.md).
 

@@ -97,11 +97,14 @@ paths:
       summary: Get the latest published realtime overlay
       description: >-
         This endpoint serves backend-polled provider data; requests never
-        trigger provider calls. Static scheduled times remain in the date
-        package and must remain usable when realtime data is missing. Alerts,
-        trip updates, and vehicle positions retain feed-scoped identities and
-        may be unmatched. A failed source retains its last known good data and
-        reports its latest attempt and last successful retrieval separately.
+        trigger provider calls. The initial implementation includes separate
+        Sydney Trains and Metro alerts, trip updates, and vehicle-position
+        feeds. Alert JSON and binary GTFS-Realtime feeds are decoded with their
+        endpoint-pinned schemas. Static scheduled times remain in the date
+        package and must remain usable when realtime data is missing. A failed
+        source retains its last known good data and reports its latest attempt
+        and last successful retrieval separately. Realtime references remain
+        UNMATCHED until validated against a namespaced timetable identity.
       parameters:
         - name: offering
           in: query
@@ -233,7 +236,10 @@ components:
         feedKey: { type: string, description: Internal provider feed namespace. }
         schemaKey:
           type: string
-          description: Internal pinned decoder/schema variant identifier for realtime sources.
+          description: >-
+            Internal pinned decoder/schema variant identifier for realtime
+            sources. Metro's schema variant is selected from observed protobuf
+            extension wire fields.
         role:
           type: string
           enum: [PRIMARY, SUPPORTING]
@@ -448,16 +454,21 @@ components:
             type: object
             properties:
               feedKey: { type: string }
+              agencyId: { type: string }
               routeId: { type: string }
               tripId: { type: string }
+              startDate: { type: string, format: date }
+              startTime: { type: string, pattern: '^\d{2}:\d{2}:\d{2}$' }
+              scheduleRelationship: { type: string }
               stopId: { type: string }
-              directionId: { type: string }
+              directionId: { type: integer, minimum: 0 }
               matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
     TripUpdate:
       type: object
       required: [feedKey, retrievedAt, matchStatus]
       properties:
         feedKey: { type: string }
+        entityId: { type: string, description: Provider entity identity within feedKey. }
         tripId: { type: string }
         routeId: { type: string }
         startDate: { type: string, format: date }
@@ -468,6 +479,11 @@ components:
         providerTimestamp: { type: string, format: date-time }
         delaySeconds: { type: integer }
         matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
+        vehicle:
+          type: object
+          properties:
+            id: { type: string }
+            label: { type: string }
         stopUpdates:
           type: array
           items:
@@ -488,18 +504,28 @@ components:
       required: [feedKey, retrievedAt, matchStatus]
       properties:
         feedKey: { type: string }
+        entityId: { type: string, description: Provider entity identity within feedKey. }
         vehicleId: { type: string }
+        vehicleLabel: { type: string }
         tripId: { type: string }
+        routeId: { type: string }
+        startDate: { type: string, format: date }
+        startTime: { type: string, pattern: '^\d{2}:\d{2}:\d{2}$' }
+        directionId: { type: integer, minimum: 0 }
+        scheduleRelationship: { type: string }
         stopId: { type: string }
         stopSequence: { type: integer }
         status: { type: string }
         timestamp: { type: string, format: date-time }
         retrievedAt: { type: string, format: date-time }
+        matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
         latitude: { type: number, minimum: -90, maximum: 90 }
         longitude: { type: number, minimum: -180, maximum: 180 }
         bearing: { type: number, minimum: 0, maximum: 360 }
         speedMetersPerSecond: { type: number, minimum: 0 }
         occupancy: { $ref: '#/components/schemas/OccupancyStatus' }
+        congestion: { type: string }
+        trackDirection: { type: string, enum: [UP, DOWN] }
         vehicleAttributes:
           type: object
           description: Optional normalized TfNSW vehicle descriptor extension fields.
@@ -524,7 +550,6 @@ components:
               quietCarriage: { type: boolean }
               toilet: { type: string, enum: [NONE, NORMAL, ACCESSIBLE] }
               luggageRack: { type: boolean }
-        matchStatus: { type: string, enum: [MATCHED, UNMATCHED, AMBIGUOUS] }
     OccupancyStatus:
       type: string
       enum: [EMPTY, MANY_SEATS_AVAILABLE, FEW_SEATS_AVAILABLE, STANDING_ROOM_ONLY, CRUSHED_STANDING_ROOM_ONLY, FULL, NOT_ACCEPTING_PASSENGERS, UNKNOWN]

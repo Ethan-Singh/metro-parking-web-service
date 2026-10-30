@@ -63,6 +63,16 @@ providers:
         metro: "${TIMETABLE_METRO_API:}"
       enabled: "${TIMETABLE_PROVIDER_ENABLED:true}"
       refresh-interval: "${TIMETABLE_REFRESH_INTERVAL:PT6H}"
+    realtime:
+      api:
+        alerts-sydney-trains: "${TFNSW_REALTIME_ALERTS_SYDNEY_TRAINS_API:/v2/gtfs/alerts/sydneytrains}"
+        alerts-metro: "${TFNSW_REALTIME_ALERTS_METRO_API:/v2/gtfs/alerts/metro}"
+        trip-updates-sydney-trains: "${TFNSW_REALTIME_TRIP_UPDATES_SYDNEY_TRAINS_API:/v2/gtfs/realtime/sydneytrains}"
+        trip-updates-metro: "${TFNSW_REALTIME_TRIP_UPDATES_METRO_API:/v2/gtfs/realtime/metro}"
+        vehicle-positions-sydney-trains: "${TFNSW_REALTIME_VEHICLE_POSITIONS_SYDNEY_TRAINS_API:/v2/gtfs/vehiclepos/sydneytrains}"
+        vehicle-positions-metro: "${TFNSW_REALTIME_VEHICLE_POSITIONS_METRO_API:/v2/gtfs/vehiclepos/metro}"
+      enabled: "${TFNSW_REALTIME_ENABLED:true}"
+      refresh-interval: "${TFNSW_REALTIME_REFRESH_INTERVAL:PT1M}"
 timetable:
   snapshot:
     bootstrap-enabled: false

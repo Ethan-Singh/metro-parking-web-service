@@ -4,6 +4,7 @@ package com.example.metro_parking_web_service.timetable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.metro_parking_web_service.timetable.api.document.TimetableManifestDocument;
@@ -12,6 +13,9 @@ import com.example.metro_parking_web_service.timetable.api.repository.TimetableM
 import com.example.metro_parking_web_service.timetable.api.repository.TimetablePackageRepository;
 import com.example.metro_parking_web_service.timetable.api.service.TimetableSnapshotPublisher;
 import com.example.metro_parking_web_service.timetable.api.service.TimetableSnapshotPublisher.SnapshotCandidate;
+import com.example.metro_parking_web_service.timetable.realtime.repository.RealtimeOverlayRepository;
+import com.example.metro_parking_web_service.timetable.realtime.service.GtfsRealtimeAlertNormalizer.NormalizedAlerts;
+import com.example.metro_parking_web_service.timetable.realtime.service.RealtimeOverlayPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +54,8 @@ class TimetableMongoIntegrationTest {
     @Autowired private TimetableSnapshotPublisher publisher;
     @Autowired private TimetableManifestRepository manifestRepository;
     @Autowired private TimetablePackageRepository packageRepository;
+    @Autowired private RealtimeOverlayPublisher realtimeOverlayPublisher;
+    @Autowired private RealtimeOverlayRepository realtimeOverlayRepository;
     @Autowired private MockMvc mockMvc;
 
     @AfterEach
@@ -106,6 +112,35 @@ class TimetableMongoIntegrationTest {
                         get("/api/v1/timetable/packages/2026-10-30")
                                 .param("offering", "NOT_AN_OFFERING"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void publishesRealtimeOverlayAtomicallyAndServesItWithConditionalRequests() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode alert = mapper.createObjectNode();
+        alert.put("id", "alert-1");
+        alert.put("feedKey", "alerts-sydneytrains");
+        realtimeOverlayPublisher.publishAlerts(
+                "alerts-sydneytrains",
+                new NormalizedAlerts(
+                        "2.0",
+                        "FULL_DATASET",
+                        Instant.parse("2026-10-30T00:00:00Z"),
+                        List.of(alert)),
+                Instant.parse("2026-10-30T00:00:01Z"));
+
+        var published = realtimeOverlayRepository.findById("active").orElseThrow();
+        assertThat(published.getOverlayVersion()).isNotBlank();
+        assertThat(published.getEtag()).startsWith("\"").endsWith("\"");
+        mockMvc.perform(get("/api/v1/timetable/realtime"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("ETag", published.getEtag()))
+                .andExpect(jsonPath("$.alerts[0].id").value("alert-1"))
+                .andExpect(jsonPath("$.sources[0].gtfsRealtimeVersion").value("2.0"));
+        mockMvc.perform(
+                        get("/api/v1/timetable/realtime")
+                                .header("If-None-Match", published.getEtag()))
+                .andExpect(status().isNotModified());
     }
 
     private SnapshotCandidate candidate(String version, String manifestEtag, String packageEtag)

@@ -161,9 +161,9 @@ note bottom of RealtimeSourceState
 end note
 
 note right of CarriagePosition
-  Decode extensions with the schema pinned for that endpoint.
-  Captured variants use different extension numbers/shapes
-  (1006 repeated carriages versus 1007 carriage data); do not
-  combine generated protobuf definitions across variants.
+  Decode extensions with a pinned schema selected from observed
+  wire fields. Captured variants use different extension numbers
+  (1006/1999 versus 1007); preserve the selected schema key and
+  do not combine generated protobuf definitions across variants.
 end note
 @enduml
