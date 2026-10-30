@@ -7,20 +7,27 @@ spring:
   data:
     mongodb:
       auto-index-creation: true
-external-server:
-  parking:
-    base-url: http://localhost:8081
-    api: /parking
-    apikey: test-key
-    policy:
-      disabled-facilities:
+providers:
+  tfnsw:
+    base-url: ""
+    apikey: ""
+    parking:
+      api: /parking
+      policy:
+        disabled-facilities:
         - 1
         - 2
-      backfill-window: 31
-    security:
-      allowed-origins:
+        backfill-window: 31
+      security:
+        allowed-origins:
         - http://localhost:3000
-      rate-limit:
-        capacity: 25
-        refill-tokens: 10
-        refill-period-seconds: 60
+        rate-limit:
+          capacity: 25
+          refill-tokens: 10
+          refill-period-seconds: 60
+    timetable:
+      api:
+        sydney-trains: /v1/gtfs/schedule/sydneytrains
+        metro: /v2/gtfs/schedule/metro
+      enabled: false
+      refresh-interval: PT6H
