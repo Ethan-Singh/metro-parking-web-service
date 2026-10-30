@@ -35,27 +35,40 @@ server:
     mime-types:
     - application/json
     min-response-size: 1024
-external-server:
-  parking:
-    base-url: "${PARKING_BASE_URL:}"
-    api: "${PARKING_API:}"
-    apikey: "${PARKING_APIKEY:}"
-    policy:
-      disabled-facilities:
-      - 1
-      - 2
-      - 3
-      - 4
-      - 5
-      backfill-window: 31
-    analytics:
-      almost-full-threshold: 0.1
-    security:
-      allowed-origins: "${ALLOWED_ORIGINS:[http://localhost:5173]}"
-      rate-limit:
-        capacity: 60
-        refill-tokens: 60
-        refill-period-seconds: 60
+providers:
+  tfnsw:
+    base-url: "${TFNSW_BASE_URL:}"
+    apikey: "${TFNSW_APIKEY:}"
+    parking:
+      api: "${PARKING_API:}"
+      policy:
+        disabled-facilities:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        backfill-window: 31
+      analytics:
+        almost-full-threshold: 0.1
+      security:
+        allowed-origins: "${ALLOWED_ORIGINS:[http://localhost:5173]}"
+        rate-limit:
+          capacity: 60
+          refill-tokens: 60
+          refill-period-seconds: 60
+    timetable:
+      api:
+        sydney-trains: "${TIMETABLE_SYDNEY_TRAINS_API:}"
+        metro: "${TIMETABLE_METRO_API:}"
+      enabled: "${TIMETABLE_PROVIDER_ENABLED:true}"
+      refresh-interval: "${TIMETABLE_REFRESH_INTERVAL:PT6H}"
+timetable:
+  snapshot:
+    bootstrap-enabled: false
+    sydney-trains-zip: docs/apis/v1-gtfs/schedules/sydneytrains/sydneytrains_GTFS_PROD_20261027140100.zip
+    metro-zip: docs/apis/v2-gtfs/schedules/metro/metro_GTFS_PROD_20261026124700.zip
+    maximum-compressed-package-bytes: 2097152
 resilience4j:
   circuitbreaker:
     instances:

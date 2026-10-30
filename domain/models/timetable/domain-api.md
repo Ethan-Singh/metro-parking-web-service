@@ -8,6 +8,25 @@ It is a reviewable proposal, not an implemented or frozen contract. The model
 in [`domain.puml`](domain.puml) describes normalized domain data; it is not a
 provider schema.
 
+The manifest and date-package read endpoints are implemented. Captured-feed
+bootstrap is opt-in with `--timetable.snapshot.bootstrap-enabled=true`; it
+reads the configured production Sydney Trains and Metro ZIPs in
+`application.yaml`, builds yesterday through today+6, and writes versioned gzip
+packages to the timetable Mongo collections. It validates every package's
+compressed-size target before publishing the active manifest. ReplacementBus
+and PCBC are not loaded into user-facing packages until a replacement
+relationship can be established.
+
+The real provider refresh path uses the TfNSW Sydney Trains v1
+`/v1/gtfs/schedule/sydneytrains` and Metro v2 `/v2/gtfs/schedule/metro`
+endpoints. It checks `Last-Modified` with `HEAD` every six hours and downloads
+both feeds only on first load or when either revision changes. Set
+`TFNSW_APIKEY` to the complete provider Authorization header value (for
+example, `apikey <token>`) and `TIMETABLE_PROVIDER_ENABLED=true` to enable it.
+The credential remains server-side. Downloaded source ZIPs are temporary build
+inputs; only validated compressed client packages and small feed revision
+state are kept. Refresh errors leave the active manifest and packages unchanged.
+
 ## Service boundary
 
 The backend owns provider credentials, controlled feed refresh, validation,

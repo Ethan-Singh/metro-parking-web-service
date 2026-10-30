@@ -64,7 +64,11 @@ public class TimetableReadService {
         return manifestRepository
                 .findById("active")
                 .filter(document -> document.getPayload() != null)
-                .map(document -> jsonRepresentation(document.getPayload(), document.getEtag()))
+                .map(
+                        document ->
+                                jsonRepresentation(
+                                        objectMapper.valueToTree(document.getPayload()),
+                                        document.getEtag()))
                 .orElseGet(this::emptyManifest);
     }
 
@@ -72,7 +76,16 @@ public class TimetableReadService {
         if (offering != null && !OFFERINGS.contains(offering)) {
             throw new IllegalArgumentException("Unsupported timetable offering");
         }
-        String packageKey = travelDate + "#" + (offering == null ? "ALL" : offering);
+        String snapshotVersion =
+                manifestRepository
+                        .findById("active")
+                        .map(document -> document.getSnapshotVersion())
+                        .orElse(null);
+        if (snapshotVersion == null || snapshotVersion.isBlank()) {
+            return emptyPackage(travelDate, offering);
+        }
+        String packageKey =
+                snapshotVersion + "#" + travelDate + "#" + (offering == null ? "ALL" : offering);
         return packageRepository
                 .findById(packageKey)
                 .map(this::storedPackage)
