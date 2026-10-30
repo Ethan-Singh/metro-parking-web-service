@@ -89,6 +89,50 @@ travel date only; that package includes earlier service-date trips whose
 resolved calls fall on that date. This preserves after-midnight arrivals while
 keeping daily payloads small.
 
+### Realtime protocol envelope and normalized overlay
+
+The realtime endpoint captures are binary GTFS-Realtime, not JSON. Decode each
+source with the matching pinned `gtfs-realtime.proto` base schema and its
+provider extension variant; the three captured TfNSW proto files are not
+interchangeable. The schema choice belongs to each realtime source definition,
+not to a guessed route, trip, or identifier value. See the exact captured
+variants and field-number differences in
+[`docs/provider-docs/proto/README.md`](../../../docs/provider-docs/proto/README.md).
+
+Normalize the feed envelope as source state: retain `gtfs_realtime_version`,
+`incrementality`, provider header timestamp (converted from Unix seconds to an
+`Instant`), retrieval/attempt/last-success times, schema key, and source
+status. The captured feeds use `FULL_DATASET`; still model `DIFFERENTIAL` and
+deleted entities so a future provider change cannot silently leave obsolete
+alerts or vehicles in the published overlay. Apply full replacement or
+differential deletion only inside that source's namespace. Publish an
+independent overlay version and retain last-known-good data per failed source.
+Timestamps are evidence; do not invent a freshness threshold or turn missing
+updates into zero delay.
+
+The normalized alert, trip-update, and vehicle-position records preserve
+feed-scoped provider IDs and represent `MATCHED`, `UNMATCHED`, and `AMBIGUOUS`
+schedule joins explicitly. Keep GTFS-Realtime `scheduleRelationship` distinct
+from join status: values such as `SCHEDULED`, `ADDED`, `UNSCHEDULED`,
+`CANCELED`, `REPLACEMENT`, `SKIPPED`, and `NO_DATA` describe provider service
+semantics, not whether our mapping succeeded. Alerts retain all informed entity
+selectors and active periods; absent start/end bounds remain unbounded, and
+their inclusive/exclusive interpretation must be verified against captured
+examples before activation. Trip updates retain provider time/delay and
+uncertainty at trip and stop level, plus optional occupancy. Vehicle positions
+retain event timestamp, coordinates/status, and schedule match outcome.
+
+Map the captured TfNSW extensions into optional domain fields rather than
+exposing generated protobuf types. Preserve vehicle attributes (air
+conditioning, wheelchair capacity, model, prior-trip indicator, special
+attributes), vehicle-level occupancy, and ordered carriage details (position,
+name, occupancy, quiet-carriage, toilet, and luggage-rack attributes) when the
+source schema supplies them. The Sydney Trains capture contains vehicle and
+consist data; the Metro capture contains vehicle descriptors. Keep these
+attributes as provider observations: do not infer user accessibility or
+promise a boarding position from them. Accessibility presentation remains
+deferred until source coverage and semantics are validated.
+
 ### Stops, agencies, lines, and route variants
 
 - `StopRef = (feedKey, providerStopId)` is the internal stop identity. GTFS
@@ -539,10 +583,11 @@ the user request.
   require an explicit offset for the repeated fall-back time.
 - For the 1 GB droplet, do not store one Mongo document per stop-time row: the
   captured production schedules contain about 1.65 million stop-time rows
-  across Sydney Trains, Metro, ReplacementBus, and PCBC. A compact full-trip
-  JSON estimate for 29 Oct 2026 is 16.4 MB / 1.26 MB gzip, including each
-  selected trip's full stop-call sequence and its referenced stop/route data.
-  The target is at most 2 MB compressed per date package. Store each immutable
+  across Sydney Trains, Metro, ReplacementBus, and PCBC. The initial published
+  package contains only Sydney Trains and Metro; measured `ALL` packages for
+  29 Oct through 5 Nov 2026 ranged from about 0.12 MB to 1.11 MB gzip. The
+  target is at most 2 MB compressed per date package. Re-measure when adding
+  feeds or changing the package shape. Store each immutable
   compressed package as one document in a timetable-specific Mongo collection;
   publish the new manifest pointer only after the full candidate set validates.
   Keep the previous snapshot and bound retention to fit the roughly 300 MB

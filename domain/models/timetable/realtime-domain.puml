@@ -4,9 +4,20 @@ skinparam packageStyle rectangle
 hide methods
 
 class RealtimeOverlaySnapshot {
+  overlayVersion
+  publishedAt : Instant
+}
+class RealtimeSourceState {
+  feedKey
+  schemaKey
+  gtfsRealtimeVersion
+  incrementality : FULL_DATASET | DIFFERENTIAL
+  status : CURRENT | DEGRADED | UNAVAILABLE
   providerGeneratedAt : optional Instant
-  retrievedAt : Instant
-  freshnessState
+  lastAttemptAt : optional Instant
+  retrievedAt : optional Instant
+  lastSuccessfulAt : optional Instant
+  errorCode : optional
 }
 class ServiceAlert {
   providerNamespace
@@ -15,7 +26,9 @@ class ServiceAlert {
   description
   cause
   effect
+  severity : optional
   activePeriods
+  translatedUrl : optional
   sourceUpdatedAt : optional Instant
 }
 class AlertTarget {
@@ -24,7 +37,9 @@ class AlertTarget {
   routeId : optional
   tripId : optional
   stopId : optional
-  matchedScheduleRefs
+  directionId : optional
+  matchStatus : MATCHED | UNMATCHED | AMBIGUOUS
+  matchedScheduleRefs : optional
 }
 class RealtimeTripUpdate {
   providerNamespace
@@ -32,7 +47,11 @@ class RealtimeTripUpdate {
   providerRouteId : optional
   startDate : optional
   startTime : optional
-  scheduleRelationship
+  directionId : optional
+  scheduleRelationship : SCHEDULED | ADDED | UNSCHEDULED | CANCELED | REPLACEMENT | SKIPPED | NO_DATA | UNKNOWN
+  providerTimestamp : optional Instant
+  delaySeconds : optional
+  matchStatus : MATCHED | UNMATCHED | AMBIGUOUS
 }
 class RealtimeVehiclePosition {
   providerNamespace
@@ -45,23 +64,54 @@ class RealtimeVehiclePosition {
   currentStopSequence : optional
   currentStatus : optional
   vehicleTimestamp : optional Instant
+  occupancy : optional OccupancyStatus
+  vehicleAttributes : optional TfnswVehicleAttributes
+  carriages : CarriagePosition[]
 }
 class RealtimeStopUpdate {
   stopSequence : optional
   providerStopId : optional
-  scheduleRelationship : optional
   arrivalDelaySeconds : optional
   departureDelaySeconds : optional
+  arrivalUncertaintySeconds : optional
+  departureUncertaintySeconds : optional
   predictedArrival : optional Instant
   predictedDeparture : optional Instant
-  carriageOccupancy : optional
+  departureOccupancy : optional OccupancyStatus
+  scheduleRelationship : optional
+}
+class TfnswVehicleAttributes {
+  airConditioned : optional boolean
+  wheelchairCapacity : optional integer
+  vehicleModel : optional
+  performingPriorTrip : optional boolean
+  specialAttributes : optional integer
+}
+class CarriagePosition {
+  name : optional
+  positionInConsist : integer
+  occupancy : optional OccupancyStatus
+  quietCarriage : optional boolean
+  toilet : optional NONE | NORMAL | ACCESSIBLE
+  luggageRack : optional boolean
+}
+enum OccupancyStatus {
+  EMPTY
+  MANY_SEATS_AVAILABLE
+  FEW_SEATS_AVAILABLE
+  STANDING_ROOM_ONLY
+  CRUSHED_STANDING_ROOM_ONLY
+  FULL
+  NOT_ACCEPTING_PASSENGERS
+  UNKNOWN
 }
 class ScheduleJoinResult {
-  status : MATCHED | ADDED | CANCELED | UNMATCHED
+  status : MATCHED | UNMATCHED | AMBIGUOUS
   scheduleFeedKey : optional
   matchedTripRef : optional
 }
 
+RealtimeOverlaySnapshot o-- "1..*" RealtimeSourceState
 RealtimeOverlaySnapshot o-- "0..*" ServiceAlert
 RealtimeOverlaySnapshot o-- "0..*" RealtimeTripUpdate
 RealtimeOverlaySnapshot o-- "0..*" RealtimeVehiclePosition
@@ -71,6 +121,10 @@ ScheduleJoinResult --> "0..1" ScheduledTrip
 RealtimeTripUpdate o-- "0..*" RealtimeStopUpdate
 RealtimeStopUpdate --> "0..1" ScheduledStopCall
 RealtimeVehiclePosition --> "0..1" ScheduledTrip : namespace-scoped join
+RealtimeVehiclePosition o-- "0..*" CarriagePosition
+RealtimeVehiclePosition --> "0..1" TfnswVehicleAttributes
+RealtimeVehiclePosition --> OccupancyStatus
+CarriagePosition --> OccupancyStatus
 
 note right of ScheduleJoinResult
   Match within the provider namespace. Bus trip updates
@@ -87,14 +141,29 @@ end note
 
 note left of RealtimeOverlaySnapshot
   Keep this overlay independently refreshed from the static
-  schedule. Stale or missing updates never become zero delay.
-  Poll providers on controlled backend schedules; a client
-  request must not trigger an upstream feed call.
+  schedule. Retain last-known-good data per source and report
+  attempt/retrieval timestamps. No domain freshness threshold
+  is imposed; missing updates never become zero delay. Poll on
+  a controlled backend schedule, never on a client request.
 end note
 
 note right of RealtimeVehiclePosition
   Keep vehicle event timestamp, feed timestamp, and retrieval time.
   A location may be absent or unmatched; retain it without joining
   solely on an unscoped trip ID.
+end note
+
+note bottom of RealtimeSourceState
+  Preserve GTFS-Realtime header version and incrementality.
+  Full datasets replace that source's prior entity set; apply
+  differential updates and deletions only within their source
+  namespace and only after their semantics are validated.
+end note
+
+note right of CarriagePosition
+  Decode extensions with the schema pinned for that endpoint.
+  Captured variants use different extension numbers/shapes
+  (1006 repeated carriages versus 1007 carriage data); do not
+  combine generated protobuf definitions across variants.
 end note
 @enduml

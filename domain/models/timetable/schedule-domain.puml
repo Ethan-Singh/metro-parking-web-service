@@ -16,18 +16,20 @@ package "Published schedule data" {
     checksum
   }
   class ClientScheduleManifest {
-    snapshotId
+    snapshotVersion
     availableTravelDates
     timeZone : Australia/Sydney
     generatedAt : Instant
-    freshnessState
   }
   class ClientSchedulePackage {
     packageId
+    snapshotVersion
     travelDate : LocalDate
     includedServiceDates : LocalDate[]
     feedRevisions
-    checksum
+    etag
+    contentEncoding : gzip
+    compressedPayload
   }
   class DatedStopEvent {
     serviceDate : LocalDate
@@ -67,12 +69,13 @@ package "Published schedule data" {
   }
   enum OfferingAvailability {
     AVAILABLE
-    PARTIALLY_AVAILABLE
-    STALE
+    PARTIAL
     UNAVAILABLE
+    NOT_CONFIGURED
   }
   enum TimetableOfferingKey {
-    SYDNEY_TRAINS_AND_METRO
+    SYDNEY_TRAINS
+    SYDNEY_METRO
     SYDNEY_REGIONAL_BUSES
     SYDNEY_FERRIES
     SYDNEY_AND_NEWCASTLE_LIGHT_RAIL
