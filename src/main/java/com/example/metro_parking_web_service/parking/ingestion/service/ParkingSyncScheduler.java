@@ -21,15 +21,15 @@ class ParkingSyncScheduler {
     private final ParkingBackfillService parkingBackfillService;
     private volatile Instant facilityRefreshDue = Instant.EPOCH;
 
-    @Scheduled(fixedDelay = 5, timeUnit = TimeUnit.MINUTES)
-    void syncHistory() {
+    @Scheduled(fixedRate = 5, timeUnit = TimeUnit.MINUTES)
+    void syncParkingData() {
         Instant now = Instant.now();
         if (!now.isBefore(facilityRefreshDue)) {
             boolean refreshed = parkingSnapshot.refresh();
             facilityRefreshDue =
                     now.plus(refreshed ? FACILITY_REFRESH_INTERVAL : FACILITY_RETRY_INTERVAL);
-            return;
         }
+        parkingBackfillService.refreshLiveParking();
         parkingBackfillService.syncHistory();
     }
 

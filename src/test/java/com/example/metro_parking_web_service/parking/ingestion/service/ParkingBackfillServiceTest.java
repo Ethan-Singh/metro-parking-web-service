@@ -31,9 +31,8 @@ class ParkingBackfillServiceTest {
     @InjectMocks private ParkingBackfillService service;
 
     @Test
-    void fourOfFiveSlotsUseLiveEndpointAndFifthBackfillsYesterday() {
+    void everyFifthSlotBackfillsYesterdayAndLiveRefreshCoversEveryFacility() {
         LocalDate today = LocalDate.now(ParkingPolicy.SYDNEY_ZONE);
-        when(catalog.nextFacilityId()).thenReturn(42);
         when(catalog.getFacilityIds()).thenReturn(List.of(42));
         when(catalog.getFacilityName(42)).thenReturn("Central Station");
         when(policy.getEarliestBackfillDate()).thenReturn(today.minusDays(1));
@@ -42,10 +41,11 @@ class ParkingBackfillServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(client.fetchHistory(42, today.minusDays(1))).thenReturn(List.of());
 
+        service.refreshLiveParking();
         for (int slot = 0; slot < 5; slot++) service.syncHistory();
 
-        verify(client, times(4)).fetchLive(42);
+        verify(client, times(1)).fetchLive(42);
         verify(client).fetchHistory(42, today.minusDays(1));
-        verify(ingestService, times(5)).ingest(anyList());
+        verify(ingestService, times(2)).ingest(anyList());
     }
 }

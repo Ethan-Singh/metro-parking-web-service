@@ -1,25 +1,20 @@
 @startuml
 title Scheduled Live Refresh and Historical Backfill
 start
-:Run one centrally paced scheduler slot;
+:Run the five-minute parking scheduler;
 if (facility catalog refresh due?) then (yes)
   :Call /carpark without facility;
   :Cache facility IDs and names;
-else (no)
-  :Select next work item within the shared request budget;
-  if (live refresh?) then (yes)
-    :Call /carpark?facility={facilityId};
-    :Map MessageDate from Sydney local time to UTC Instant;
-    :Derive sydneyDate from MessageDate;
-    :Upsert newest sample into the matching ten-minute bucket;
-    note right: Live ingestion does not mark historical request work COMPLETE.
-  else (history backfill)
-    :Select facility and provider eventdate request;
-    :Call /carpark/history?facility={facilityId}&eventdate={date};
-    :Map each MessageDate from Sydney local time to UTC Instant;
-    :Group and upsert records by their actual Sydney date;
-    :Complete the history request work item on success;
-  endif
+endif
+:For each enabled facility, sequentially call /carpark?facility={facilityId};
+:Map MessageDate from Sydney local time to UTC Instant;
+:Upsert newest sample into the matching ten-minute bucket;
+note right: Every enabled facility is attempted once per five-minute round.
+if (every fifth scheduler run?) then (yes)
+  :Select facility and provider eventdate request;
+  :Call /carpark/history?facility={facilityId}&eventdate={date};
+  :Map and upsert records by their actual Sydney dates;
+  :Complete the history request work item on success;
 endif
 if (provider request failed?) then (yes)
   :Set historical work to RETRY_WAIT when applicable;
@@ -47,9 +42,9 @@ note right
   records that the requested history operation succeeded; it does not claim
   complete sample coverage for that Sydney date.
 
-  Every provider request, including catalog, live, and history, consumes one
-  shared scheduler slot. Run no parallel upstream calls outside that budget.
-  Retry failed history requests later through the scheduler; bucket upserts
-  are idempotent.
+  Provider calls run sequentially. A live refresh round includes one call per
+  enabled facility; a history request is attempted every fifth round. Catalog
+  refreshes are additional calls every six hours. Retry failed history
+  requests later through the scheduler; bucket upserts are idempotent.
 end note
 @enduml

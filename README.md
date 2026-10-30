@@ -26,7 +26,7 @@ The domain models are maintained in [`domain/models`](domain/models/README.md), 
 ## Data collection and storage
 
 1. Every six hours, the scheduler refreshes the facility-name lookup from the provider's `/carpark` endpoint and applies configured facility exclusions.
-2. The scheduler runs one global slot every five minutes and makes at most one first-attempt provider request per slot. Four of every five work slots fetch a facility's live record; the fifth requests the newest eligible history date. Catalog refreshes every six hours also consume a slot. The [request budget](domain/models/carpark/implementation-spec.md#4-current-occupancy-and-historical-backfill) documents the daily formula and backlog behavior.
+2. Every five-minute scheduler run fetches a live occupancy record for each enabled facility. Every fifth run also attempts one historical facility/date request, and the catalog is refreshed every six hours. The [request budget](domain/models/carpark/implementation-spec.md#4-current-occupancy-and-historical-backfill) documents the daily formula and backlog behavior.
 3. Provider `MessageDate` values are interpreted in `Australia/Sydney`, converted to UTC, and stored as `Instant` values.
 4. MongoDB groups samples by facility and Sydney calendar date. Each `ParkingDay` stores at most one newest sample per ten-minute bucket (up to 150 samples) and its backfill state.
 5. History responses use epoch milliseconds and compact tuples: `[timeMs, occupancyRate, available]`.
@@ -35,7 +35,7 @@ The `parkingDay` collection uses a fresh schema. A unique index covers `(facilit
 
 ### Provider request budget
 
-With a five-minute interval, the global schedule has `S = floor(24 × 60 / 5) = 288` slots/day. A six-hour catalog refresh uses `C = ceil(24 / 6) = 4` slots, leaving `W = S - C = 284` work slots. The 4:1 allocation gives about `L = 227` live slots and `H = 57` history slots. During backlog catch-up, the maximum is 288 scheduled first attempts/day. Once caught up, each enabled facility (`N`) creates about one new prior-day history job/day, so expected requests are approximately `C + L + min(H, N)`. With 41 enabled facilities, that is about 272/day. Empty history slots are skipped. These counts exclude retries, which can add upstream calls; they also assume one running service instance. See the [car-park implementation spec](domain/models/carpark/implementation-spec.md) for assumptions and formulas. The account limits previously supplied for this project are 60,000 requests/day and 5 requests/second.
+With a five-minute interval, the schedule has `S = floor(24 × 60 / 5) = 288` refresh rounds/day. For `N` enabled facilities, live requests are `N × S`; with 41 facilities that is `11,808` live calls/day. The scheduler also makes up to `H = floor(S / 5) = 57` history requests/day during backlog catch-up and `C = ceil(24 / 6) = 4` catalog requests/day. The resulting scheduled first-attempt maximum is `N × S + H + C = 11,869` requests/day. Once history is caught up, with 41 facilities expected usage is about `N × S + min(H, N) + C = 11,853` requests/day. Counts exclude retries and assume one service instance. See the [car-park implementation spec](domain/models/carpark/implementation-spec.md) for assumptions and formulas. The account limits previously supplied for this project are 60,000 requests/day and 5 requests/second.
 
 ## REST API
 
@@ -87,7 +87,7 @@ providers:
         metro: <Metro schedule path>
 ```
 
-The provider base URL and Authorization header are shared under `providers.tfnsw`; each domain owns its API path and settings below that provider. The per-IP token bucket is configured under `providers.tfnsw.parking.security.rate-limit`. Timetable refresh is enabled by default and can be disabled locally with `TIMETABLE_PROVIDER_ENABLED=false`; its refresh interval is configurable with `TIMETABLE_REFRESH_INTERVAL`. The scheduler is suppressed in the `test` profile.
+The provider base URL and Authorization header are shared under `providers.tfnsw`; each domain owns its API path and settings below that provider. The per-IP token bucket is configured under `providers.tfnsw.parking.security.rate-limit`. Timetable schedule refresh is enabled by default and can be disabled with `TIMETABLE_PROVIDER_ENABLED=false`; its interval is configurable with `TIMETABLE_REFRESH_INTERVAL`. Realtime alerts, trip updates, and vehicle positions are enabled by default, using six requests per minute for Sydney Trains and Metro (`TFNSW_REALTIME_ENABLED=false` disables them; `TFNSW_REALTIME_REFRESH_INTERVAL` changes the interval). The scheduler is disabled in the `test` profile.
 
 ## Run locally
 

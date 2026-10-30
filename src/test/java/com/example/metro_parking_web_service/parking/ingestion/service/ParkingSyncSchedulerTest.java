@@ -1,6 +1,7 @@
 /* (MISTLETOE MACHINATIONS)2026 */
 package com.example.metro_parking_web_service.parking.ingestion.service;
 
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,16 +21,17 @@ class ParkingSyncSchedulerTest {
     @InjectMocks private ParkingSyncScheduler scheduler;
 
     @Test
-    void dueSlotRefreshesCatalogAndNextSlotSyncsHistory() {
+    void eachSlotRefreshesLiveFacilitiesAndBackfill() {
         when(catalog.refresh()).thenReturn(true);
 
-        scheduler.syncHistory();
+        scheduler.syncParkingData();
         ReflectionTestUtils.setField(
                 scheduler, "facilityRefreshDue", Instant.now().plusSeconds(60));
-        scheduler.syncHistory();
+        scheduler.syncParkingData();
 
         verify(catalog).refresh();
-        verify(backfillService).syncHistory();
+        verify(backfillService, times(2)).refreshLiveParking();
+        verify(backfillService, times(2)).syncHistory();
     }
 
     @Test

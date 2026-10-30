@@ -41,32 +41,48 @@ public class ParkingBackfillService {
     private final AtomicInteger workSlot = new AtomicInteger();
     private volatile BackfillPlan backfillPlan;
 
-    /** Rotate between direct live snapshots and historical date backfill. */
+    /** Allocate every fifth five-minute scheduler run to historical backfill. */
     public void syncHistory() {
         if (Math.floorMod(workSlot.getAndIncrement(), 5) == 4) {
             backfillOne();
-        } else {
-            refreshLiveParking();
         }
     }
 
-    private void refreshLiveParking() {
-        Integer facilityId = parkingSnapshot.nextFacilityId();
-        if (facilityId == null) {
-            log.warn("event=live_parking_sync decision=skip reason=no_facilities");
+    public void refreshLiveParking() {
+        List<Integer> facilityIds = parkingSnapshot.getFacilityIds();
+        if (facilityIds.isEmpty()) {
+            log.warn("event=live_parking_refresh decision=skip reason=no_facilities");
             return;
         }
 
-        try {
-            CarParkApiRecord record = parkingClient.fetchLive(facilityId);
-            parkingIngestService.ingest(record == null ? List.of() : List.of(record));
-            log.debug(
-                    "event=live_parking_sync decision=success facilityId={} messageDate={}",
-                    facilityId,
-                    record == null ? null : record.messageDate());
-        } catch (Exception exception) {
-            log.warn("event=live_parking_sync decision=retry facilityId={}", facilityId, exception);
+        Instant startedAt = Instant.now();
+        int successful = 0;
+        int failed = 0;
+        for (int facilityId : facilityIds) {
+            try {
+                CarParkApiRecord record = parkingClient.fetchLive(facilityId);
+                parkingIngestService.ingest(record == null ? List.of() : List.of(record));
+                successful++;
+                log.debug(
+                        "event=live_parking_facility_refresh decision=success facilityId={}"
+                                + " messageDate={}",
+                        facilityId,
+                        record == null ? null : record.messageDate());
+            } catch (Exception exception) {
+                failed++;
+                log.warn(
+                        "event=live_parking_facility_refresh decision=retry facilityId={}",
+                        facilityId,
+                        exception);
+            }
         }
+        log.info(
+                "event=live_parking_refresh decision=complete facilityCount={} successfulCount={}"
+                        + " failedCount={} durationMs={}",
+                facilityIds.size(),
+                successful,
+                failed,
+                Duration.between(startedAt, Instant.now()).toMillis());
     }
 
     /** Backfill one older facility/date per run, newest date first. */

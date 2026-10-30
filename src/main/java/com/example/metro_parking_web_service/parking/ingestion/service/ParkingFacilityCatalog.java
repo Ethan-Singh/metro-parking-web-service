@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,14 +19,12 @@ public class ParkingFacilityCatalog {
 
     private final CarParkApiClient client;
     private final ParkingPolicy parkingPolicy;
-    private final AtomicInteger rotation = new AtomicInteger();
-
     private volatile CatalogSnapshot snapshot = new CatalogSnapshot(Map.of(), Map.of());
 
     public boolean refresh() {
         Map<String, String> upstream = client.fetchFacilities();
         if (upstream == null || upstream.isEmpty()) {
-            log.warn("event=parking_facilities_refresh decision=skip reason=empty_response");
+            log.warn("event=parking_facility_catalog_refresh decision=skip reason=empty_response");
             return false;
         }
 
@@ -45,7 +42,7 @@ public class ParkingFacilityCatalog {
                             slugIndex.putIfAbsent(FacilitySlug.fromName(facilityName), facilityId));
             snapshot = new CatalogSnapshot(Map.copyOf(next), Map.copyOf(slugIndex));
             log.info(
-                    "event=parking_facilities_refresh decision=success facilityCount={}"
+                    "event=parking_facility_catalog_refresh decision=success facilityCount={}"
                             + " excludedCount={}",
                     next.size(),
                     upstream.size() - next.size());
@@ -68,13 +65,6 @@ public class ParkingFacilityCatalog {
 
     public Integer facilityIdForSlug(String slug) {
         return snapshot.facilityIdsBySlug().get(slug);
-    }
-
-    public Integer nextFacilityId() {
-        List<Integer> ids = getFacilityIds();
-        if (ids.isEmpty()) return null;
-        int index = Math.floorMod(rotation.getAndIncrement(), ids.size());
-        return ids.get(index);
     }
 
     private Map.Entry<Integer, String> parseFacility(String rawId, String name) {
