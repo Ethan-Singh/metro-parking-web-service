@@ -78,13 +78,20 @@ polling/version lifecycle. The production realtime poll is one minute by
 default; quota review and any cadence change are deferred until request counts
 are measured.
 
-Bounded retention for older timetable package versions is not implemented yet.
-Complete these backend follow-ups after initial app integration:
+The publisher retains the latest five package versions, including the active
+version, and deletes older packages and their historical manifest documents
+after switching the active pointer. At the current observed size of about
+17.5 MB per snapshot, five versions use about 87.5 MB; a publish may briefly
+need room for the new version before pruning completes. MongoDB storage is a
+separate budget from the application droplet, so keep monitoring the cluster's
+total storage.
+
+Remaining backend follow-ups after initial app integration:
 
 - Test the app against the running API and compare its requests/responses to
   the OpenAPI contract.
-- Add bounded package-version retention and confirm it preserves active and
-  last-known-good snapshots.
+- Confirm five-version retention behavior and storage use in the deployed
+  MongoDB cluster.
 - Measure provider request totals and package sizes after supporting feeds;
   retain the one-minute realtime cadence until those measurements are known.
 

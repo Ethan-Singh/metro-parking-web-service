@@ -18,11 +18,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class TimetableSnapshotPublisher {
 
+    static final int MAX_RETAINED_SNAPSHOTS = 5;
+
     private final TimetablePackageRepository packageRepository;
     private final TimetableManifestRepository manifestRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public void publish(SnapshotCandidate candidate) {
+    public synchronized void publish(SnapshotCandidate candidate) {
         Objects.requireNonNull(candidate, "candidate");
         if (candidate.snapshotVersion() == null || candidate.snapshotVersion().isBlank()) {
             throw new IllegalArgumentException("Snapshot version is required");
@@ -33,12 +35,6 @@ public class TimetableSnapshotPublisher {
         if (candidate.manifest() == null) {
             throw new IllegalArgumentException("A snapshot manifest is required");
         }
-
-        String previousVersion =
-                manifestRepository
-                        .findById("active")
-                        .map(document -> document.getSnapshotVersion())
-                        .orElse(null);
 
         for (TimetablePackageDocument packageDocument : candidate.packages()) {
             if (!candidate.snapshotVersion().equals(packageDocument.getSnapshotVersion())) {
@@ -72,11 +68,37 @@ public class TimetableSnapshotPublisher {
         activeManifest.setPayload(manifest.getPayload());
         manifestRepository.save(activeManifest);
 
-        java.util.Set<String> retainedVersions = new java.util.HashSet<>();
-        retainedVersions.add(candidate.snapshotVersion());
-        if (previousVersion != null && !previousVersion.isBlank())
-            retainedVersions.add(previousVersion);
+        String activeVersion =
+                manifestRepository
+                        .findById("active")
+                        .map(TimetableManifestDocument::getSnapshotVersion)
+                        .orElse(candidate.snapshotVersion());
+        List<TimetableManifestDocument> recentManifests =
+                manifestRepository.findByIdStartingWithOrderByPublishedAtDesc("snapshot:");
+        java.util.Set<String> retainedVersions = new java.util.LinkedHashSet<>();
+        recentManifests.stream()
+                .limit(MAX_RETAINED_SNAPSHOTS)
+                .map(TimetableManifestDocument::getSnapshotVersion)
+                .filter(Objects::nonNull)
+                .forEach(retainedVersions::add);
+        retainedVersions.add(activeVersion);
+        while (retainedVersions.size() > MAX_RETAINED_SNAPSHOTS) {
+            String oldest =
+                    recentManifests.stream()
+                            .map(TimetableManifestDocument::getSnapshotVersion)
+                            .filter(version -> !version.equals(activeVersion))
+                            .filter(retainedVersions::contains)
+                            .reduce((first, second) -> second)
+                            .orElse(null);
+            if (oldest == null) break;
+            retainedVersions.remove(oldest);
+        }
         packageRepository.deleteBySnapshotVersionNotIn(retainedVersions);
+        for (TimetableManifestDocument historicalManifest : recentManifests) {
+            if (!retainedVersions.contains(historicalManifest.getSnapshotVersion())) {
+                manifestRepository.deleteById(historicalManifest.getId());
+            }
+        }
     }
 
     public static String packageId(TimetablePackageDocument document) {

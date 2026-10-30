@@ -602,11 +602,14 @@ the user request.
   remain Sydney Trains and Metro; their initial measured `ALL` packages for
   29 Oct through 5 Nov 2026 ranged from about 0.12 MB to 1.11 MB gzip before
   the reviewed supporting legs were added. The target is at most 2 MB
-  compressed per date package. Re-measure the updated packages. Store each immutable
-  compressed package as one document in a timetable-specific Mongo collection;
-  publish the new manifest pointer only after the full candidate set validates.
-  Keep the previous snapshot and bound retention to fit the roughly 300 MB
-  available storage. Measure final package size, browser transfer/decode, phone
+  compressed per date package. Re-measure the updated packages. Store each
+  immutable compressed package as one document in a timetable-specific Mongo
+  collection; publish the new manifest pointer only after the full candidate
+  set validates. Keep the latest five snapshots, including active, and prune
+  older packages/manifests after publishing. At about 17.5 MB per snapshot,
+  five use about 87.5 MB before database overhead; measure against the MongoDB
+  cluster's 512 MB limit and other collections. Measure final package size,
+  browser transfer/decode, phone
   memory, worker query latency, and peak backend build heap. If builds exceed
   the droplet's memory, move feed parsing/building to a controlled separate
   process before increasing the droplet size.

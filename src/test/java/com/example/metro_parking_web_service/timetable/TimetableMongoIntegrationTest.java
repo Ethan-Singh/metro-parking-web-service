@@ -106,6 +106,28 @@ class TimetableMongoIntegrationTest {
     }
 
     @Test
+    void retainsOnlyFiveMostRecentSnapshotVersions() throws Exception {
+        for (int version = 1; version <= 7; version++) {
+            String id = "retention-" + version;
+            publisher.publish(candidate(id, "\"manifest-" + version + "\"", "\"package\""));
+        }
+
+        assertThat(manifestRepository.findById("active").orElseThrow().getSnapshotVersion())
+                .isEqualTo("retention-7");
+        assertThat(packageRepository.findAllBySnapshotVersionAndOffering("retention-1", "ALL"))
+                .isEmpty();
+        assertThat(packageRepository.findAllBySnapshotVersionAndOffering("retention-2", "ALL"))
+                .isEmpty();
+        for (int version = 3; version <= 7; version++) {
+            String id = "retention-" + version;
+            assertThat(packageRepository.findAllBySnapshotVersionAndOffering(id, "ALL")).hasSize(1);
+            assertThat(manifestRepository.findById("snapshot:" + id)).isPresent();
+        }
+        assertThat(manifestRepository.findById("snapshot:retention-1")).isEmpty();
+        assertThat(manifestRepository.findById("snapshot:retention-2")).isEmpty();
+    }
+
+    @Test
     void rejectsMalformedTravelDateAndUnsupportedOfferingAsBadRequests() throws Exception {
         mockMvc.perform(get("/api/v1/timetable/packages/not-a-date"))
                 .andExpect(status().isBadRequest());
